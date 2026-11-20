@@ -1,5 +1,15 @@
 # Server dependency audit — 2026-10-30
 
+## Candidate review update, 2026-11-20
+
+Upstream `rustls-acme` 0.15.4 requires `chrono`. The upstream high-level ACME
+adapter is excluded from future adoption following
+[RUSTSEC-2026-0543](https://rustsec.org/advisories/RUSTSEC-2026-0543.html).
+The current candidate builds Axum, Tower HTTP and rustls alongside the same
+low-level ACME implementation used by the shipping server. Its feature graph
+and vendored-source hashes are checked alongside the runtime profile. The
+original upstream evaluation below records the October dependency set.
+
 This is the historical TLS/server-candidate review. The subsequently implemented
 minimal HTTP server has a separate [HTTP/file audit](http-audit.md), with a much
 smaller dependency graph. The later [TLS integration audit](tls-audit.md) records controls for the actual
