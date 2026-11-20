@@ -46,6 +46,11 @@ pub fn input_timeout_status(bytes: u64) -> u16 {
     if bytes == 0 { 0 } else { 408 }
 }
 
+/// An HTTP/1.1 request is persistent by default after strict header validation.
+pub fn http1_persistent(upgrade: bool, close: bool) -> bool {
+    !upgrade && !close
+}
+
 /// A completed, framed exchange may retain its admitted connection briefly.
 pub fn reuse_allowed(completed: u64, age_ms: u64, requested: bool, draining: bool) -> bool {
     requested && !draining && completed > 0 && completed < 100 && age_ms < 120000

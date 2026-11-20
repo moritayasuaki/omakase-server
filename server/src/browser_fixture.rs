@@ -77,3 +77,59 @@ fn firefox_loopback_fixture() {
         origin.join().unwrap();
     });
 }
+
+#[test]
+#[ignore = "controlled-loopback transfer experiment; run scripts/transport_benchmark.mjs"]
+fn transport_benchmark_fixture() {
+    let backend = TcpListener::bind("127.0.0.1:0").unwrap();
+    backend.set_nonblocking(true).unwrap();
+    let parsed=pathward_config::ParsedConfig::parse(&format!(
+        "capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nproxy-limit \"connections\" \"32\"\nproxy-limit \"response-body\" \"1MiB\"\nproxy-timeout \"total\" \"60s\"\n}}",backend.local_addr().unwrap())).unwrap();
+    let config = parsed.compile().unwrap();
+    let server = Server::new(&config).unwrap();
+    let names = vec!["app.example".to_owned()];
+    let key = rcgen::KeyPair::generate().unwrap();
+    let cert = rcgen::CertificateParams::new(names.clone())
+        .unwrap()
+        .self_signed(&key)
+        .unwrap();
+    let pem = format!("{}{}", key.serialize_pem(), cert.pem());
+    let group = tls::Certificate::parse(pem.as_bytes(), &names).unwrap();
+    let mut tls = tls::TlsServer::new(Arc::new(tls::Identity::new(names, Some(group)))).unwrap();
+    tls.set_quic_send_window(
+        tls::QuicSendWindow::parse(&std::env::var("PATHWARD_TEST_SEND_WINDOW").unwrap()).unwrap(),
+    );
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let udp = UdpSocket::bind(address).unwrap();
+    let stop = AtomicBool::new(false);
+    println!("BENCH_PORT={}\n{}", address.port(), cert.pem());
+    io::stdout().flush().unwrap();
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            let blob: Vec<_>=(0..818_100usize).map(|n|(n%251) as u8).collect();
+            while !stop.load(Ordering::Acquire) {
+                let (mut socket,_) = match backend.accept() {
+                    Ok(pair)=>pair,
+                    Err(e) if e.kind()==io::ErrorKind::WouldBlock => {std::thread::sleep(Duration::from_millis(1));continue;}
+                    Err(e)=>panic!("{e}")
+                };
+                socket.set_nonblocking(false).unwrap();
+                socket.set_write_timeout(Some(Duration::from_secs(5))).unwrap();
+                let Ok(head)=http::read_head(&mut socket,Instant::now()+Duration::from_secs(3)) else {continue};
+                let bytes=if head.starts_with(b"GET /asset ") {blob.as_slice()} else {b"ready"};
+                let header=format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: application/octet-stream\r\nConnection: close\r\n\r\n",bytes.len());
+                let _=socket.write_all(header.as_bytes()).and_then(|()|socket.write_all(bytes));
+            }
+        });
+        let stop_ref = &stop;
+        scope.spawn(move || {
+            let mut line = String::new();
+            let _ = std::io::stdin().read_line(&mut line);
+            stop_ref.store(true, Ordering::Release);
+        });
+        server
+            .serve_tls_http3(listener, None, udp, &stop, &tls)
+            .unwrap();
+    });
+}

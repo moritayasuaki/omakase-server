@@ -106,7 +106,7 @@ pub fn reload_loop(server: &Server, path: &Path, signals: &Signals) {
 pub fn monitor(
     listener: TcpListener,
     server: &Server,
-    identity: Option<&tls::Identity>,
+    identity: Option<&dyn tls::CertificateStatus>,
     shutdown: &AtomicBool,
     done: &AtomicBool,
 ) -> io::Result<()> {
@@ -124,7 +124,7 @@ pub fn monitor(
                     let req = http::parse(&head, stream.local_addr()?.port())
                         .map_err(|_| io::Error::other("invalid monitor request"))?;
                     let draining = shutdown.load(Ordering::Acquire) || server.is_draining();
-                    let cert = identity.and_then(tls::Identity::certificate_times);
+                    let cert = identity.and_then(tls::CertificateStatus::validity_interval);
                     let valid = cert
                         .zip(tls::unix_now().ok())
                         .is_some_and(|((b, e), n)| b <= n && n < e);

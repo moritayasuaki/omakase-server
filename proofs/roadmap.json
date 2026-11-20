@@ -98,7 +98,10 @@
     "BootstrapProofs.every_bridge_interleaving_excludes_writers",
     "BootstrapProofs.bridge_run_epoch_nondecreasing",
     "BootstrapProofs.switch_rejects_staged_publication",
-    "BootstrapProofs.rollback_to_same_mode_cannot_revive_stale_upload"
+    "BootstrapProofs.rollback_to_same_mode_cannot_revive_stale_upload",
+    "TlsProofs.other_group_preserved",
+    "TlsProofs.failed_group_preserved",
+    "TlsProofs.unpersisted_group_preserved"
   ],
   "axioms": {
     "Classical.choice": {
@@ -631,6 +634,31 @@
         "AuthorityProofs.outside_license_tree_denied",
         "AuthorityProofs.unknown_license_text_name_denied",
         "AuthorityProofs.non_text_license_exception_denied"
+      ]
+    },
+    {
+      "id": "CERTIFICATE-GROUP-ISOLATION",
+      "title": "証明書グループの更新失敗を隔離する",
+      "priority": "P1",
+      "status": "proved",
+      "acceptance": "更新対象外の証明書と、永続化に失敗した候補の旧証明書を保持する。SNI選択・保存・再起動は独立グループの実通信試験で照合する。",
+      "theorems": [
+        "TlsProofs.other_group_preserved",
+        "TlsProofs.failed_group_preserved",
+        "TlsProofs.unpersisted_group_preserved"
+      ]
+    },
+    {
+      "id": "HTTP1-DEFAULT-PERSISTENCE",
+      "title": "通常のHTTP/1.1要求で接続を再利用する",
+      "priority": "P1",
+      "status": "proved",
+      "acceptance": "closeとupgradeは再利用を許さず、静止・回数・経過時間・世代再検査の既存条件を保つ。",
+      "theorems": [
+        "DeliveryProofs.http1_persistence_exact",
+        "DeliveryProofs.http1_close_blocks_reuse",
+        "DeliveryProofs.reuse_no_draining",
+        "DeliveryProofs.reuse_bounded"
       ]
     }
   ]

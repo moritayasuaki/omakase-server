@@ -201,8 +201,54 @@ impl Identity {
             .any(|d| identity_allowed(name.as_bytes(), name.as_bytes(), d.as_bytes()))
     }
 }
+/// Disjoint SNI ownership fixed at startup. Each worker owns just one Identity.
+pub struct IdentitySet {
+    groups: Vec<Arc<Identity>>,
+}
+pub trait CertificateStatus {
+    fn validity_interval(&self) -> Option<(u64, u64)>;
+}
+impl CertificateStatus for Identity {
+    fn validity_interval(&self) -> Option<(u64, u64)> {
+        self.certificate_times()
+    }
+}
+impl CertificateStatus for IdentitySet {
+    fn validity_interval(&self) -> Option<(u64, u64)> {
+        self.certificate_times()
+    }
+}
+impl IdentitySet {
+    pub fn new(groups: Vec<Arc<Identity>>) -> io::Result<Self> {
+        let mut names = std::collections::BTreeSet::new();
+        for group in &groups {
+            if group.domains.is_empty() || group.domains.iter().any(|name| !names.insert(name)) {
+                return Err(denied());
+            }
+        }
+        if names.is_empty() || names.len() > 16 {
+            return Err(denied());
+        }
+        Ok(Self { groups })
+    }
+    fn select(&self, name: &str) -> Option<&Identity> {
+        self.groups
+            .iter()
+            .find(|group| group.known(name))
+            .map(Arc::as_ref)
+    }
+    pub fn certificate_times(&self) -> Option<(u64, u64)> {
+        self.groups
+            .iter()
+            .try_fold((0, u64::MAX), |(begin, end), group| {
+                group
+                    .certificate_times()
+                    .map(|(b, e)| (begin.max(b), end.min(e)))
+            })
+    }
+}
 struct Resolver {
-    identity: Arc<Identity>,
+    identities: Arc<IdentitySet>,
     challenge: bool,
 }
 impl fmt::Debug for Resolver {
@@ -213,30 +259,61 @@ impl fmt::Debug for Resolver {
 impl ResolvesServerCert for Resolver {
     fn resolve(&self, hello: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
         let name = hello.server_name()?;
-        if !self.identity.known(name) {
-            return None;
-        }
+        let identity = self.identities.select(name)?;
         if self.challenge {
-            let locked = self.identity.challenge.read().ok()?;
+            let locked = identity.challenge.read().ok()?;
             let cert = locked.as_ref()?;
             if cert.domain != name || Instant::now() >= cert.until {
                 return None;
             }
             Some(cert.key.clone())
         } else {
-            let locked = self.identity.certificate.read().ok()?;
+            let locked = identity.certificate.read().ok()?;
             let cert = locked.as_ref()?;
             cert.active().then(|| cert.key.clone())
         }
     }
 }
 pub struct TlsServer {
-    identity: Arc<Identity>,
+    identities: Arc<IdentitySet>,
+    send_window: QuicSendWindow,
     normal: Arc<ServerConfig>,
     challenge: Arc<ServerConfig>,
 }
+#[derive(Clone, Copy, Default)]
+pub enum QuicSendWindow {
+    #[default]
+    KiB128,
+    KiB256,
+    KiB512,
+}
+impl QuicSendWindow {
+    pub fn parse(value: &str) -> io::Result<Self> {
+        match value {
+            "128KiB" => Ok(Self::KiB128),
+            "256KiB" => Ok(Self::KiB256),
+            "512KiB" => Ok(Self::KiB512),
+            _ => Err(io::Error::other(
+                "HTTP/3 send window must be 128KiB, 256KiB or 512KiB",
+            )),
+        }
+    }
+    fn bytes(self) -> u64 {
+        match self {
+            Self::KiB128 => 128 * 1024,
+            Self::KiB256 => 256 * 1024,
+            Self::KiB512 => 512 * 1024,
+        }
+    }
+}
 impl TlsServer {
+    pub fn set_quic_send_window(&mut self, window: QuicSendWindow) {
+        self.send_window = window;
+    }
     pub fn new(identity: Arc<Identity>) -> io::Result<Self> {
+        Self::for_groups(Arc::new(IdentitySet::new(vec![identity])?))
+    }
+    pub fn for_groups(identities: Arc<IdentitySet>) -> io::Result<Self> {
         let config = |challenge| -> io::Result<Arc<ServerConfig>> {
             let mut cfg = ServerConfig::builder_with_provider(Arc::new(
                 rustls::crypto::ring::default_provider(),
@@ -245,7 +322,7 @@ impl TlsServer {
             .map_err(|_| denied())?
             .with_no_client_auth()
             .with_cert_resolver(Arc::new(Resolver {
-                identity: identity.clone(),
+                identities: identities.clone(),
                 challenge,
             }));
             cfg.alpn_protocols = if challenge {
@@ -261,7 +338,8 @@ impl TlsServer {
         let normal = config(false)?;
         let challenge = config(true)?;
         Ok(Self {
-            identity,
+            identities,
+            send_window: QuicSendWindow::default(),
             normal,
             challenge,
         })
@@ -287,7 +365,7 @@ impl TlsServer {
             .max_concurrent_uni_streams(3u32.into())
             .stream_receive_window(16384u32.into())
             .receive_window(65535u32.into())
-            .send_window(131072)
+            .send_window(self.send_window.bytes())
             .crypto_buffer_size(131072)
             .datagram_receive_buffer_size(None)
             .keep_alive_interval(Some(Duration::from_secs(10)))
@@ -297,13 +375,13 @@ impl TlsServer {
         Ok(config)
     }
     pub(crate) fn current_identity(&self, name: &str) -> bool {
-        self.identity.known(name)
-            && self
-                .identity
+        self.identities.select(name).is_some_and(|group| {
+            group
                 .certificate
                 .read()
                 .ok()
                 .is_some_and(|c| c.as_ref().is_some_and(|c| c.active()))
+        })
     }
     /// Blocking compatibility API for embedders and focused transport tests.
     pub fn accept(&self, stream: TcpStream, accepted: Instant) -> io::Result<Option<TlsTransport>> {
@@ -352,7 +430,7 @@ impl TlsServer {
             .server_name()
             .ok_or_else(|| handshake_failure(denied(), HandshakePhase::Policy, &socket))?
             .to_owned();
-        if !self.identity.known(&name) {
+        if self.identities.select(&name).is_none() {
             return Err(handshake_failure(denied(), HandshakePhase::Policy, &socket));
         }
         let protocols: Vec<_> = hello.alpn().into_iter().flatten().collect();

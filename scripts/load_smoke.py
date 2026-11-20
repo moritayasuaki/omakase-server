@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix='pathward-load-') as tmp:
         return socket.create_connection(('127.0.0.1',port),timeout=2,source_address=(ip,0))
     def get(ip='127.0.0.2'):
         with connect(ip) as s:
-            try:s.sendall(b'GET / HTTP/1.1\r\nHost: example.com\r\n\r\n')
+            try:s.sendall(b'GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n')
             except (BrokenPipeError,ConnectionResetError):return b''
             return receive(s)
     held=[]

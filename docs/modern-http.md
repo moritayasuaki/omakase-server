@@ -78,9 +78,9 @@ valid on a static site and survives managed configuration generation/reload.
 
 ## Connection protocols
 
-- HTTP/1.1 finite responses support sequential reuse when the client explicitly
-  sends `Connection: keep-alive`. Missing/close headers, errors, redirects and
-  upgrades can close. No pipelining is supported. A connection is limited to 100
+- HTTP/1.1 finite responses support sequential reuse by default. An explicit
+  `Connection: close` ends reuse. Errors, redirects and upgrades can close.
+  No pipelining is supported. A connection is limited to 100
   exchanges, 120 seconds lifetime and five seconds idle. Reuse charges another
   rate credit and takes a fresh configuration snapshot. Response framing is
   complete before the next request is dispatched; POST is never replayed.
@@ -112,6 +112,14 @@ changes subsequent requests, while existing requests retain their admitted
 snapshot. Decoding a transport header never grants a file by itself.
 
 ## QUIC address changes and early data
+
+The UDP sender defaults to 128 KiB of outstanding stream data per connection.
+With `--experimental-http3`, `--http3-send-window` accepts `128KiB`, `256KiB`
+or `512KiB` at startup. This tunes the sender independently of receive limits,
+admission credits and the rules for address migration and early data. At 256
+admitted connections the three windows represent 32, 64 and 128 MiB of stream
+data respectively. Allocator, retransmission, socket and handshake memory must
+be measured separately.
 
 QUIC migration is enabled. Quinn performs path validation; PathWard keeps the
 original normalized peer key for the entire connection. Active/rate/byte leases
@@ -420,3 +428,24 @@ yields, and progress never renews the deadline. Explicit server stop remains
 separately bounded. Four extracted Lean lemmas prove the allowance conjunction
 and rejection at either limit, not TCP delivery or adapter refinement.
 A Linux-only regression delays reading a 512 KiB response and sends a late PING.
+
+## Reproducing the send-window measurement
+
+Build the server's library test target in release mode with
+`cargo +1.99.1 test --release --locked --manifest-path server/Cargo.toml --lib --no-run`.
+Pass the printed test executable and a new report path to
+`node scripts/transport_benchmark.mjs TEST_BINARY REPORT.json`. This requires
+curl with HTTP/3, Node.js, and ps. A loopback UDP relay delays each direction
+by 75 ms. The second scenario drops every thousandth datagram. Each of 24
+independent clients establishes a fresh connection and reuses it for a second
+request. The next wave reconnects and downloads the full 818,100-byte body.
+The driver checks the negotiated protocol, connection reuse, status, length and
+SHA-256 for every transfer. The direct HTTP/2 transfer is a fixture sanity check.
+
+With 150 ms of simulated round-trip delay the median of three single transfers
+fell from 1.54 to 1.13 seconds when changing from 128 to 512 KiB. With loss the
+medians were 1.66 and 1.20 seconds. Every 24-client wave completed. Peak sampled
+server RSS in the loss scenarios rose from 40.3 to 52.5 MiB. First-byte times
+were similar. The default remains 128 KiB. The user-space relay, one process
+per client and a small deterministic payload limit what this says about other
+networks and memory use. [Recorded measurements](transport-benchmark-2026-11-20.json)

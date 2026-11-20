@@ -205,6 +205,8 @@ import UpstreamProofs
 #print axioms DeliveryProofs.idle_has_no_http_timeout
 #print axioms DeliveryProofs.partial_head_times_out
 #print axioms DeliveryProofs.reuse_eq
+#print axioms DeliveryProofs.http1_persistence_exact
+#print axioms DeliveryProofs.http1_close_blocks_reuse
 #print axioms DeliveryProofs.reuse_bounded
 #print axioms DeliveryProofs.reuse_no_draining
 #print axioms DeliveryProofs.reuse_expired
@@ -633,6 +635,9 @@ import UpstreamProofs
 #print axioms TlsProofs.renewal_contract
 #print axioms TlsProofs.renew_at_expiration
 #print axioms TlsProofs.lifecycle_total
+#print axioms TlsProofs.other_group_preserved
+#print axioms TlsProofs.failed_group_preserved
+#print axioms TlsProofs.unpersisted_group_preserved
 #print axioms UpstreamProofs.probe_eq
 #print axioms UpstreamProofs.probe_read_only
 #print axioms UpstreamProofs.probe_bounded

@@ -19,7 +19,7 @@ def run(*args,ok=True):
     return result.stdout.strip()
 def get(port,path='/'):
     with socket.create_connection(('127.0.0.1',port),timeout=3) as s:
-        s.sendall(f'GET {path} HTTP/1.1\r\nHost: example.com\r\n\r\n'.encode())
+        s.sendall(f'GET {path} HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n'.encode())
         out=b''
         while chunk:=s.recv(8192):out+=chunk
         return out

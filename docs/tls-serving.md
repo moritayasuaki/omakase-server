@@ -53,9 +53,25 @@ such as `/var/lib/pathward/production`. `--accept-terms` explicitly accepts the
 selected CA's subscriber terms. Do not use a disposable cache in production.
 The directory binds to the CA, sorted configured domains and contact; changing
 that identity requires a separate directory. Host/ACME identity changes require restart; publications, roots, headers and
-redirects support transactional reload. The initial implementation uses one SAN certificate/account for all
-1–16 configured DNS domains, so these domains share an identity and public CT
-visibility. Issuance requires control of every domain.
+redirects support transactional reload. By default one SAN certificate covers
+the 1–16 configured DNS names. Each name in a certificate must validate.
+
+Use repeated `--acme-group` options to renew sets of names independently.
+For example, `--acme-group example.org,www.example.org --acme-group app.example.org`
+assigns three configured sites to two workers. List each configured hostname
+exactly once. Each group has its own persisted account and certificate, renewal
+backoff and TLS-ALPN challenge. TCP TLS and QUIC select the group by exact SNI.
+The monitor reports ready when every group has a currently valid certificate.
+A group undergoing an unsuccessful renewal continues serving its last valid
+certificate until expiry while the other workers can issue and renew.
+
+Use a separately provisioned private cache when migrating from the original
+single-certificate layout. The grouped cache locks its parent and binds it to
+the CA and contact. Child directory names derive from the sorted DNS names,
+so reordering groups reuses their existing certificates. Preserve the original
+cache for rollback. Changing the configured identity set requires restarting
+the server. Exercise the new grouping against a staging CA before ordering
+production certificates.
 
 The process must be able to read configuration/content and own its private cache;
 run under a dedicated unprivileged service UID. Choose an unprivileged listener

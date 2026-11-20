@@ -166,6 +166,15 @@ theorem reuse_eq (c a : U64) (r d : Bool) :
   cases r <;> cases d <;> simp [delivery.reuse_allowed]
   split_ifs <;> simp_all
 
+theorem http1_persistence_exact (upgrade close : Bool) :
+    delivery.http1_persistent upgrade close = ok (!upgrade && !close) := by
+  cases upgrade <;> cases close <;> rfl
+
+theorem http1_close_blocks_reuse (c a : U64) (upgrade draining : Bool) :
+    (do let requested ← delivery.http1_persistent upgrade true
+        delivery.reuse_allowed c a requested draining) = ok false := by
+  cases upgrade <;> rfl
+
 theorem reuse_bounded (c a : U64) (r d : Bool)
     (h : delivery.reuse_allowed c a r d = ok true) :
     c.val < 100 ∧ a.val < 120000 ∧ r = true ∧ d = false := by

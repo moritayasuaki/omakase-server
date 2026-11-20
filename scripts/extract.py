@@ -105,6 +105,7 @@ def main():
                         "--start-from", "pathward::delivery::shrink_allowed",
                         "--start-from", "pathward::delivery::phase_live",
                         "--start-from", "pathward::delivery::input_timeout_status",
+                        "--start-from", "pathward::delivery::http1_persistent",
                         "--start-from", "pathward::delivery::reuse_allowed",
                         "--start-from", "pathward::delivery::request_credit",
                         "--start-from", "pathward::delivery::task_slot",

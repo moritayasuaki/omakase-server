@@ -130,6 +130,14 @@ query strings and other paths are not matched. With IPv6 loopback transport use
 | `/readyz` | 200 only while serving, not draining, and (in TLS mode) a currently valid certificate is installed; otherwise 503 |
 | `/metrics` | Prometheus text format with fixed metric names and bounded status-class labels |
 
+`pathward_response_phase_microseconds` reports fixed histogram buckets for
+finite HTTP/2 and HTTP/3 responses from the common responder. The `prepare`
+sample covers selection, upstream or file work, and any representation encoding
+after request validation and admission. The `submit` sample covers successful
+submission of the response to the transport, including flow-control waits.
+Peer receipt can occur later. Streaming responses and early protocol rejections
+do not produce these samples. Labels identify only protocol and phase.
+
 Metrics include accepted/active/overloaded connections, completed responses,
 request I/O and handshake errors, completed body bytes, reload successes/errors,
 configuration generation, admission rejections, ACME attempts/activations/errors, dropped logs, readiness,

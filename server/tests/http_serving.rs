@@ -79,7 +79,7 @@ fn exchange(address: SocketAddr, request: &[u8]) -> Vec<u8> {
 fn get(address: SocketAddr, method: &str, host: &str, path: &str) -> Vec<u8> {
     exchange(
         address,
-        format!("{method} {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").as_bytes(),
+        format!("{method} {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n").as_bytes(),
     )
 }
 

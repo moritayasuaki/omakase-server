@@ -1,4 +1,4 @@
-//! One bounded ACME worker for the fixed configured SAN set. No client-driven issuance.
+//! One bounded ACME worker per configured certificate group.
 use crate::{
     secrets::SecretStore,
     tls::{Certificate, Identity, unix_now},
@@ -21,6 +21,130 @@ use std::{
 
 pub const STAGING: &str = rustls_acme::acme::LETS_ENCRYPT_STAGING_DIRECTORY;
 pub const PRODUCTION: &str = rustls_acme::acme::LETS_ENCRYPT_PRODUCTION_DIRECTORY;
+
+/// An empty list keeps the original single-certificate cache layout.
+pub struct Groups {
+    managers: Vec<Manager>,
+    _directory_lock: Option<SecretStore>,
+}
+impl Groups {
+    pub fn new(
+        domains: Vec<String>,
+        groups: Vec<Vec<String>>,
+        roots: &[&str],
+        cache: &Path,
+        directory: &str,
+        contact: Vec<String>,
+        client: Arc<ClientConfig>,
+    ) -> io::Result<Self> {
+        if groups.is_empty() {
+            return Ok(Self {
+                managers: vec![Manager::new(
+                    domains, roots, cache, directory, contact, client,
+                )?],
+                _directory_lock: None,
+            });
+        }
+        validated_names(&domains, &contact)?;
+        HttpsClient::new(directory, client.clone())?;
+        let groups = partition(domains, groups)?;
+        let parent = SecretStore::open(cache, roots)?;
+        parent.bind(
+            format!(
+                "pathward-acme-groups-v1\n{directory}\n{}\n",
+                contact.join("\n")
+            )
+            .as_bytes(),
+        )?;
+        let mut managers = Vec::with_capacity(groups.len());
+        for group in groups {
+            let digest = ring::digest::digest(&ring::digest::SHA256, group.join("\n").as_bytes());
+            let id: String = digest.as_ref().iter().map(|b| format!("{b:02x}")).collect();
+            managers.push(Manager::new(
+                group,
+                roots,
+                &cache.join(id),
+                directory,
+                contact.clone(),
+                client.clone(),
+            )?);
+        }
+        Ok(Self {
+            managers,
+            _directory_lock: Some(parent),
+        })
+    }
+    pub fn workers(&self) -> &[Manager] {
+        &self.managers
+    }
+    pub fn set_observability(&mut self, observe: Arc<crate::observe::Observability>) {
+        for manager in &mut self.managers {
+            manager.set_observability(observe.clone());
+        }
+    }
+}
+
+fn validated_names(domains: &[String], contact: &[String]) -> io::Result<Vec<String>> {
+    if domains.is_empty()
+        || domains.len() > 16
+        || domains.iter().any(|d| {
+            !d.contains('.')
+                || d.len() > 253
+                || d.parse::<std::net::IpAddr>().is_ok()
+                || !d.split('.').all(|label| {
+                    !label.is_empty()
+                        && label.len() <= 63
+                        && label
+                            .bytes()
+                            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+                        && label.as_bytes()[0].is_ascii_alphanumeric()
+                        && label.as_bytes()[label.len() - 1].is_ascii_alphanumeric()
+                })
+        })
+    {
+        return Err(error());
+    }
+    let mut unique = domains.to_vec();
+    unique.sort();
+    unique.dedup();
+    if unique.len() != domains.len()
+        || contact.len() > 1
+        || contact.iter().any(|c| {
+            c.len() > 254
+                || !c.starts_with("mailto:")
+                || !c.bytes().all(|b| (0x21..=0x7e).contains(&b))
+        })
+    {
+        return Err(error());
+    }
+    Ok(unique)
+}
+
+fn partition(
+    mut domains: Vec<String>,
+    mut groups: Vec<Vec<String>>,
+) -> io::Result<Vec<Vec<String>>> {
+    if domains.is_empty()
+        || domains.len() > 16
+        || groups.len() > domains.len()
+        || groups.iter().any(Vec::is_empty)
+    {
+        return Err(io::Error::other("invalid ACME group count"));
+    }
+    domains.sort_unstable();
+    for group in &mut groups {
+        group.sort_unstable();
+    }
+    let mut assigned: Vec<_> = groups.iter().flatten().collect();
+    assigned.sort_unstable();
+    if domains.windows(2).any(|w| w[0] == w[1]) || !assigned.into_iter().eq(&domains) {
+        return Err(io::Error::other(
+            "ACME groups must cover every configured hostname exactly once",
+        ));
+    }
+    groups.sort_unstable();
+    Ok(groups)
+}
 const ORDER_BUDGET: Duration = Duration::from_secs(600);
 fn error() -> io::Error {
     io::Error::other("ACME operation failed")
@@ -108,38 +232,7 @@ impl Manager {
         contact: Vec<String>,
         client: Arc<ClientConfig>,
     ) -> io::Result<Self> {
-        if domains.is_empty()
-            || domains.len() > 16
-            || domains.iter().any(|d| {
-                !d.contains('.')
-                    || d.len() > 253
-                    || d.parse::<std::net::IpAddr>().is_ok()
-                    || !d.split('.').all(|label| {
-                        !label.is_empty()
-                            && label.len() <= 63
-                            && label
-                                .bytes()
-                                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-                            && label.as_bytes()[0].is_ascii_alphanumeric()
-                            && label.as_bytes()[label.len() - 1].is_ascii_alphanumeric()
-                    })
-            })
-        {
-            return Err(error());
-        }
-        let mut unique = domains.clone();
-        unique.sort();
-        unique.dedup();
-        if unique.len() != domains.len()
-            || contact.len() > 1
-            || contact.iter().any(|c| {
-                c.len() > 254
-                    || !c.starts_with("mailto:")
-                    || !c.bytes().all(|b| (0x21..=0x7e).contains(&b))
-            })
-        {
-            return Err(error());
-        }
+        let unique = validated_names(&domains, &contact)?;
         let client = Arc::new(HttpsClient::new(directory, client)?);
         let cache = SecretStore::open(cache_path, roots)?;
         let binding = format!(
@@ -446,5 +539,36 @@ mod diagnostic_tests {
             AcmeError::HttpRequest(HttpsRequestError::Non2xxStatus { status_code: 429 }),
         );
         assert!(status.to_string().contains("429"));
+    }
+}
+
+#[cfg(test)]
+mod group_tests {
+    use super::partition;
+    #[test]
+    fn partitions_are_exact_and_independent_of_order() {
+        let names = vec![
+            "a.test".to_owned(),
+            "b.test".to_owned(),
+            "c.test".to_owned(),
+        ];
+        let group = |indices: &[usize]| {
+            indices
+                .iter()
+                .map(|&i| names[i].clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            partition(names.clone(), vec![group(&[2]), group(&[1, 0])]).unwrap(),
+            vec![group(&[0, 1]), group(&[2])]
+        );
+        for invalid in [
+            vec![group(&[0, 1])],
+            vec![group(&[0, 1]), group(&[1, 2])],
+            vec![vec![], group(&[0, 1, 2])],
+            vec![group(&[0, 1]), vec!["other.test".to_owned()]],
+        ] {
+            assert!(partition(names.clone(), invalid).is_err());
+        }
     }
 }

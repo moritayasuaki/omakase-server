@@ -1,0 +1,122 @@
+{
+  "date": "2026-11-20",
+  "platform": "macOS arm64, optimized Rust 1.99.1",
+  "curl": "8.22.0",
+  "body_bytes": 818100,
+  "clients_per_wave": 24,
+  "one_way_delay_ms": 75,
+  "results": [
+    {
+      "send_window": "128KiB",
+      "drop_every_datagrams": 0,
+      "single_transfer_ms": [
+        1526,
+        1538,
+        1548
+      ],
+      "single_first_byte_ms": [
+        158,
+        162,
+        161
+      ],
+      "reconnect_waves": [
+        {
+          "body_bytes": 5,
+          "successful": 24,
+          "max_transfer_ms": 170
+        },
+        {
+          "body_bytes": 818100,
+          "successful": 24,
+          "max_transfer_ms": 1546
+        }
+      ],
+      "peak_server_rss_kib": 36864,
+      "observed_drops": 0
+    },
+    {
+      "send_window": "128KiB",
+      "drop_every_datagrams": 1000,
+      "single_transfer_ms": [
+        1543,
+        1655,
+        1678
+      ],
+      "single_first_byte_ms": [
+        162,
+        159,
+        156
+      ],
+      "reconnect_waves": [
+        {
+          "body_bytes": 5,
+          "successful": 24,
+          "max_transfer_ms": 162
+        },
+        {
+          "body_bytes": 818100,
+          "successful": 24,
+          "max_transfer_ms": 6248
+        }
+      ],
+      "peak_server_rss_kib": 41264,
+      "observed_drops": 21
+    },
+    {
+      "send_window": "512KiB",
+      "drop_every_datagrams": 0,
+      "single_transfer_ms": [
+        1126,
+        1124,
+        1127
+      ],
+      "single_first_byte_ms": [
+        162,
+        163,
+        159
+      ],
+      "reconnect_waves": [
+        {
+          "body_bytes": 5,
+          "successful": 24,
+          "max_transfer_ms": 174
+        },
+        {
+          "body_bytes": 818100,
+          "successful": 24,
+          "max_transfer_ms": 1118
+        }
+      ],
+      "peak_server_rss_kib": 47232,
+      "observed_drops": 0
+    },
+    {
+      "send_window": "512KiB",
+      "drop_every_datagrams": 1000,
+      "single_transfer_ms": [
+        1129,
+        1267,
+        1202
+      ],
+      "single_first_byte_ms": [
+        160,
+        173,
+        159
+      ],
+      "reconnect_waves": [
+        {
+          "body_bytes": 5,
+          "successful": 24,
+          "max_transfer_ms": 173
+        },
+        {
+          "body_bytes": 818100,
+          "successful": 24,
+          "max_transfer_ms": 5873
+        }
+      ],
+      "peak_server_rss_kib": 53760,
+      "observed_drops": 21
+    }
+  ]
+}
