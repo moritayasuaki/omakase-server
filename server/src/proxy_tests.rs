@@ -33,6 +33,7 @@ fn exchange(addr: SocketAddr, request: &[u8]) -> Vec<u8> {
     let mut s = TcpStream::connect(addr).unwrap();
     s.set_read_timeout(Some(Duration::from_secs(20))).unwrap();
     s.write_all(request).unwrap();
+    s.shutdown(std::net::Shutdown::Write).unwrap();
     let mut output = Vec::new();
     if let Err(e) = s.read_to_end(&mut output) {
         assert_eq!(e.kind(), std::io::ErrorKind::ConnectionReset);
@@ -341,7 +342,7 @@ fn split_request_body_and_options_max_forwards() {
                 let mut c = TcpStream::connect(addr).unwrap();
                 c.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
                 c.write_all(
-                    b"PATCH /api/ HTTP/1.1\r\nHost: app.example\r\nContent-Length: 4\r\n\r\nab",
+                    b"PATCH /api/ HTTP/1.1\r\nHost: app.example\r\nConnection: close\r\nContent-Length: 4\r\n\r\nab",
                 )
                 .unwrap();
                 std::thread::sleep(Duration::from_millis(30));
@@ -431,7 +432,7 @@ fn real_tls_sets_trusted_forwarding_and_plaintext_only_redirects_proxy_targets()
                 ClientConnection::new(client.clone(), ServerName::try_from("app.example").unwrap())
                     .unwrap();
             let mut tls_client = StreamOwned::new(conn, &mut s);
-            tls_client.write_all(b"POST /api/ HTTP/1.1\r\nHost: app.example:443\r\nContent-Length: 2\r\nX-Forwarded-Proto: http\r\n\r\nok").unwrap();
+            tls_client.write_all(b"POST /api/ HTTP/1.1\r\nHost: app.example:443\r\nConnection: close\r\nContent-Length: 2\r\nX-Forwarded-Proto: http\r\n\r\nok").unwrap();
             let mut response = Vec::new();
             tls_client.read_to_end(&mut response).unwrap();
             assert!(response.starts_with(b"HTTP/1.1 200 ") && response.ends_with(b"OK"));
@@ -1086,7 +1087,12 @@ fn keepalive_is_framed_and_rechecks_snapshot_then_closes_at_100_exchanges() {
                         .reload(&config("new").compile().unwrap(), &AtomicBool::new(false))
                         .unwrap();
                 }
-                client.write_all(b"POST /create HTTP/1.1\r\nHost: app.example\r\nConnection: keep-alive\r\nContent-Length: 4\r\n\r\nONCE").unwrap();
+                let connection = if i % 2 == 0 {
+                    ""
+                } else {
+                    "Connection: keep-alive\r\n"
+                };
+                write!(client, "POST /create HTTP/1.1\r\nHost: app.example\r\n{connection}Content-Length: 4\r\n\r\nONCE").unwrap();
                 let (head, body) = framed_response(&mut client);
                 assert!(head.starts_with("HTTP/1.1 201 "));
                 assert_eq!(body, b"OK");

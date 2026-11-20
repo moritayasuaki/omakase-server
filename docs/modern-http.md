@@ -78,12 +78,14 @@ valid on a static site and survives managed configuration generation/reload.
 
 ## Connection protocols
 
-- HTTP/1.1 finite responses support sequential reuse when the client explicitly
-  sends `Connection: keep-alive`. Missing/close headers, errors, redirects and
-  upgrades can close. No pipelining is supported. A connection is limited to 100
+- HTTP/1.1 finite responses support sequential reuse by default. An explicit
+  `Connection: close` ends reuse. Errors, redirects and upgrades can close.
+  No pipelining is supported. A connection is limited to 100
   exchanges, 120 seconds lifetime and five seconds idle. Reuse charges another
-  rate credit and takes a fresh configuration snapshot. Response framing is
-  complete before the next request is dispatched; POST is never replayed.
+  rate credit and takes a fresh configuration snapshot. Withdrawing a published
+  URL takes effect on the next exchange on an existing connection. Linux tests
+  this case even when another URL still publishes the same file. Each response
+  is framed before the next request is dispatched. POST is never replayed.
 - Normal TLS advertises `h2` and `http/1.1`. HTTP/2 uses at most 32 streams per
   connection, a 16 KiB header-list/stream window, 4 KiB HPACK table, 65,535-byte
   connection window, bounded resets and 16 KiB send buffers. Each stream charges
@@ -112,6 +114,14 @@ changes subsequent requests, while existing requests retain their admitted
 snapshot. Decoding a transport header never grants a file by itself.
 
 ## QUIC address changes and early data
+
+The UDP sender defaults to 128 KiB of outstanding stream data per connection.
+With `--experimental-http3`, `--http3-send-window` accepts `128KiB`, `256KiB`
+or `512KiB` at startup. This tunes the sender independently of receive limits,
+admission credits and the rules for address migration and early data. At 256
+admitted connections the three windows represent 32, 64 and 128 MiB of stream
+data respectively. Allocator, retransmission, socket and handshake memory must
+be measured separately.
 
 QUIC migration is enabled. Quinn performs path validation; PathWard keeps the
 original normalized peer key for the entire connection. Active/rate/byte leases
@@ -420,3 +430,34 @@ yields, and progress never renews the deadline. Explicit server stop remains
 separately bounded. Four extracted Lean lemmas prove the allowance conjunction
 and rejection at either limit, not TCP delivery or adapter refinement.
 A Linux-only regression delays reading a 512 KiB response and sends a late PING.
+
+## Reproducing the send-window measurement
+
+Build the server's library test target in release mode with
+`cargo +1.99.1 test --release --locked --manifest-path server/Cargo.toml --lib --no-run`.
+Pass the printed test executable and a new report path to
+`node scripts/transport_benchmark.mjs TEST_BINARY REPORT.json`. This requires
+curl with HTTP/3, Node.js, and ps. A loopback UDP relay delays each direction
+by 75 ms. The second scenario drops every thousandth datagram. Each of 24
+independent clients establishes a fresh connection and reuses it for a second
+request. The next wave reconnects and downloads the full 818,100-byte body.
+The driver checks negotiated protocol, connection reuse, status, length and
+SHA-256 for every transfer. It also checks both server-side phase counters for
+every HTTP/3 response and for a direct HTTP/2 transfer. The phase sums in the
+report cover the five-byte warmup and the following asset on the same connection.
+
+| Send window | Median transfer, no loss | Median transfer, 0.1% loss | Sampled peak RSS, no loss / loss |
+| --- | ---: | ---: | ---: |
+| 128 KiB | 1.56 s | 1.67 s | 35.2 / 53.1 MiB |
+| 256 KiB | 1.19 s | 1.21 s | 39.7 / 44.0 MiB |
+| 512 KiB | 1.13 s | 1.16 s | 44.8 / 70.3 MiB |
+
+Each median covers three single-client asset transfers at 150 ms simulated
+round-trip delay. At zero loss, server preparation took 12–15 ms for each
+warmup-and-asset pair across the three window settings. Median submission
+fell from 1.39 s to 1.02 s to 0.87 s. The asset's first byte arrived at about
+160 ms in each case. All 288 transfers in the 24-client waves completed.
+With loss, the slowest full-body client in each wave took 4.45, 5.88 and
+3.73 s respectively. The 128 KiB default preserves the existing memory
+budget. The loopback relay, sampled memory and small sample size limit
+extrapolation to public networks. [Recorded measurements](transport-benchmark-2026-11-20.json)

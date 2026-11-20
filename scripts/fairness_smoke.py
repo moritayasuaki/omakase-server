@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix="pathward-fairness-") as temporary:
         time.sleep(.15)
         started = time.monotonic()
         with socket.create_connection(("127.0.0.1", port), timeout=1.5, source_address=("127.0.0.3", 0)) as stream:
-            stream.sendall(b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+            stream.sendall(b"GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n")
             response = b""
             while chunk := stream.recv(8192):
                 response += chunk

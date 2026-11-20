@@ -971,7 +971,11 @@ fn eight_live_streams_leave_ordinary_http_workers_available_and_drain_on_stop() 
                 let mut excess = connect(addr, WS);
                 assert!(tail(&mut excess).starts_with(b"HTTP/1.1 503 "));
                 let mut ordinary = connect(addr, GET);
-                assert!(tail(&mut ordinary).ends_with(b"OK"));
+                assert!(head(&mut ordinary).starts_with(b"HTTP/1.1 200 "));
+                let mut body = [0; 2];
+                ordinary.read_exact(&mut body).unwrap();
+                assert_eq!(&body, b"OK");
+                drop(ordinary);
                 server.begin_shutdown();
                 for c in &mut clients {
                     assert!(tail(c).is_empty());

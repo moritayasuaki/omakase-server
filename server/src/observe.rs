@@ -38,6 +38,70 @@ pub struct Observability {
     acme_successes: AtomicU64,
     acme_errors: AtomicU64,
     log_dropped: AtomicU64,
+    response_times: [[ResponseTimes; 2]; 2],
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum Protocol {
+    H2,
+    H3,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum ResponsePhase {
+    Prepare,
+    Submit,
+}
+
+const RESPONSE_BUCKETS_US: [u64; 7] = [
+    1_000, 5_000, 25_000, 100_000, 500_000, 2_000_000, 10_000_000,
+];
+
+#[derive(Default)]
+struct ResponseTimes {
+    buckets: [AtomicU64; RESPONSE_BUCKETS_US.len() + 1],
+    sum: AtomicU64,
+}
+
+impl Observability {
+    pub(crate) fn response_time(
+        &self,
+        protocol: Protocol,
+        phase: ResponsePhase,
+        elapsed: Duration,
+    ) {
+        let sample = elapsed.as_micros().min(u64::MAX as u128) as u64;
+        let metric = &self.response_times[protocol as usize][phase as usize];
+        let bucket = RESPONSE_BUCKETS_US.partition_point(|&limit| limit < sample);
+        metric.buckets[bucket].fetch_add(1, Ordering::Relaxed);
+        metric.sum.fetch_add(sample, Ordering::Relaxed);
+    }
+
+    fn response_metrics(&self, out: &mut String) {
+        use std::fmt::Write;
+        let name = "pathward_response_phase_microseconds";
+        writeln!(out, "# TYPE {name} histogram").unwrap();
+        for (protocol, phases) in ["h2", "h3"].into_iter().zip(&self.response_times) {
+            for (phase, metric) in ["prepare", "submit"].into_iter().zip(phases) {
+                let labels = format!("protocol=\"{protocol}\",phase=\"{phase}\"");
+                let mut count = 0;
+                for (bucket, value) in metric.buckets.iter().enumerate() {
+                    count += value.load(Ordering::Relaxed);
+                    let bound = RESPONSE_BUCKETS_US
+                        .get(bucket)
+                        .map_or_else(|| "+Inf".to_owned(), u64::to_string);
+                    writeln!(out, "{name}_bucket{{{labels},le=\"{bound}\"}} {count}").unwrap();
+                }
+                writeln!(out, "{name}_count{{{labels}}} {count}").unwrap();
+                writeln!(
+                    out,
+                    "{name}_sum{{{labels}}} {}",
+                    metric.sum.load(Ordering::Relaxed)
+                )
+                .unwrap();
+            }
+        }
+    }
 }
 const IO_REASONS: [&str; 7] = [
     "timed_out",
@@ -338,6 +402,7 @@ impl Observability {
         cert: Option<(u64, u64)>,
     ) -> String {
         let mut out = String::new();
+        self.response_metrics(&mut out);
         for (name, kind, value) in [
             (
                 "h2_retired_streams_total",
@@ -663,5 +728,36 @@ mod tests {
             obs.metrics(7, true, false, false, None)
                 .contains("pathward_config_generation 7\n")
         );
+    }
+}
+
+#[cfg(test)]
+mod response_time_tests {
+    use super::*;
+    #[test]
+    fn buckets_are_cumulative_and_isolated_by_phase_and_protocol() {
+        let observe = Observability::default();
+        observe.response_time(
+            Protocol::H2,
+            ResponsePhase::Prepare,
+            Duration::from_micros(1000),
+        );
+        observe.response_time(
+            Protocol::H2,
+            ResponsePhase::Prepare,
+            Duration::from_micros(1001),
+        );
+        let mut metrics = String::new();
+        observe.response_metrics(&mut metrics);
+        for expected in [
+            "bucket{protocol=\"h2\",phase=\"prepare\",le=\"1000\"} 1",
+            "bucket{protocol=\"h2\",phase=\"prepare\",le=\"5000\"} 2",
+            "bucket{protocol=\"h2\",phase=\"prepare\",le=\"+Inf\"} 2",
+            "sum{protocol=\"h2\",phase=\"prepare\"} 2001",
+            "count{protocol=\"h2\",phase=\"submit\"} 0",
+            "count{protocol=\"h3\",phase=\"prepare\"} 0",
+        ] {
+            assert!(metrics.contains(expected), "{expected}");
+        }
     }
 }

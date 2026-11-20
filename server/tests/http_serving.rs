@@ -3,7 +3,7 @@ use pathward_config::ParsedConfig;
 use pathward_server::Server;
 use std::{
     fs,
-    io::{Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     net::{SocketAddr, TcpListener, TcpStream},
     os::unix::fs::symlink,
     path::PathBuf,
@@ -19,6 +19,10 @@ impl Drop for Tree {
 }
 
 fn with_server(test: impl FnOnce(SocketAddr)) {
+    with_running_server(|address, _, _| test(address));
+}
+
+fn with_running_server(test: impl FnOnce(SocketAddr, &Server, &str)) {
     let path = std::env::temp_dir().join(format!(
         "pathward-http-{}-{}",
         std::process::id(),
@@ -49,12 +53,60 @@ fn with_server(test: impl FnOnce(SocketAddr)) {
     let stop = AtomicBool::new(false);
     std::thread::scope(|scope| {
         let worker = scope.spawn(|| server.serve(listener, &stop));
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| test(address)));
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            test(address, &server, &text)
+        }));
         stop.store(true, Ordering::Release);
         worker.join().unwrap().unwrap();
         if let Err(panic) = result {
             std::panic::resume_unwind(panic);
         }
+    });
+}
+
+#[test]
+fn persistent_connection_loses_access_to_a_withdrawn_public_url() {
+    with_running_server(|address, server, text| {
+        let mut stream = TcpStream::connect(address).unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        stream
+            .write_all(b"GET /guide/ HTTP/1.1\r\nHost: example.com\r\n\r\n")
+            .unwrap();
+        let mut reader = BufReader::new(stream);
+        let mut header = String::new();
+        reader.read_line(&mut header).unwrap();
+        assert!(header.starts_with("HTTP/1.1 200 "));
+        loop {
+            header.clear();
+            assert!(reader.read_line(&mut header).unwrap() > 0);
+            if header == "\r\n" {
+                break;
+            }
+        }
+        let mut body = [0; 12];
+        reader.read_exact(&mut body).unwrap();
+        assert_eq!(&body, b"PUBLIC INDEX");
+
+        let updated = text.replace("publish \"/guide/\" \"index.html\"\n", "");
+        assert_ne!(updated, text);
+        let parsed = ParsedConfig::parse(&updated).unwrap();
+        assert_eq!(
+            server
+                .reload(&parsed.compile().unwrap(), &AtomicBool::new(false))
+                .unwrap(),
+            2
+        );
+        reader
+            .get_mut()
+            .write_all(b"GET /guide/ HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut withdrawn = String::new();
+        reader.read_to_string(&mut withdrawn).unwrap();
+        assert!(withdrawn.starts_with("HTTP/1.1 404 "), "{withdrawn}");
+        assert!(!withdrawn.contains("PUBLIC INDEX"));
+        assert!(get(address, "GET", "example.com", "/").ends_with(b"PUBLIC INDEX"));
     });
 }
 
@@ -79,7 +131,7 @@ fn exchange(address: SocketAddr, request: &[u8]) -> Vec<u8> {
 fn get(address: SocketAddr, method: &str, host: &str, path: &str) -> Vec<u8> {
     exchange(
         address,
-        format!("{method} {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").as_bytes(),
+        format!("{method} {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n").as_bytes(),
     )
 }
 

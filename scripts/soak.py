@@ -103,7 +103,7 @@ def response(port, request, context=None, host=HOSTS[0], peer="127.0.0.20"):
         stream.close()
 
 def request(method, target, host=HOSTS[0]):
-    return f"{method} {target} HTTP/1.1\r\nHost: {host}\r\n\r\n".encode()
+    return f"{method} {target} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n".encode()
 
 def config(root, release):
     name = "a" if release == "A" else "b"

@@ -106,11 +106,29 @@ async fn exchange(
             ) {
                 return send(multiplex::rejection(400), &mut stream).await;
             }
+            let preparing = Instant::now();
             let response = multiplex::respond(
                 server, request, body, sni, port, peer, budget, shutdown, early,
             )
             .await?;
-            send(response, &mut stream).await
+            let finite = !matches!(response.body, multiplex::Body::Events { .. });
+            let submitting = Instant::now();
+            if finite {
+                server.observe.response_time(
+                    crate::observe::Protocol::H3,
+                    crate::observe::ResponsePhase::Prepare,
+                    submitting - preparing,
+                );
+            }
+            let result = send(response, &mut stream).await;
+            if finite && result.is_ok() {
+                server.observe.response_time(
+                    crate::observe::Protocol::H3,
+                    crate::observe::ResponsePhase::Submit,
+                    submitting.elapsed(),
+                );
+            }
+            result
         }
         .await;
         wire.release(stream_id);

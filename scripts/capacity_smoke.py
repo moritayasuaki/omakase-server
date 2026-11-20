@@ -23,7 +23,7 @@ def receive(stream):
 
 def get(port, peer='127.0.0.20', target='/'):
     with socket.create_connection(('127.0.0.1', port), timeout=3, source_address=(peer, 0)) as stream:
-        stream.sendall(f'GET {target} HTTP/1.1\r\nHost: example.com\r\n\r\n'.encode())
+        stream.sendall(f'GET {target} HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n'.encode())
         return receive(stream)
 
 with tempfile.TemporaryDirectory(prefix='pathward-capacity-') as tmp:

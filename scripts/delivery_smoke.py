@@ -126,7 +126,7 @@ site "example.com" {{
         def post(tag):
             began = time.monotonic()
             with connect() as s:
-                s.sendall(b"POST /create HTTP/1.1\r\nHost: example.com\r\nContent-Length: 3\r\n\r\none")
+                s.sendall(b"POST /create HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\nContent-Length: 3\r\n\r\none")
                 h, body = head(s), finish(s)
                 assert h.startswith(b"HTTP/1.1 201 ") and body == b"OK", (h, body)
                 assert f"x-robots-tag: {tag}\r\n".encode() in h
@@ -143,7 +143,7 @@ site "example.com" {{
         # Deliberately keep complete large responses unread, from the same IP.
         for _ in range(24):
             s = connect()
-            s.sendall(b"GET /image HTTP/1.1\r\nHost: example.com\r\n\r\n")
+            s.sendall(b"GET /image HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n")
             downloads.append(s)
         for s in downloads:
             h = head(s)
@@ -178,7 +178,7 @@ site "example.com" {{
             time.sleep(.02)
         waiting = connect()
         held.append(waiting)
-        waiting.sendall(b"GET /hold HTTP/1.1\r\nHost: example.com\r\n\r\n")
+        waiting.sendall(b"GET /hold HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n")
         assert hold_entered.wait(3)
         post("reserved")
         assert created == 4, "small mutation was repeated or blocked by a configured maximum"
@@ -215,7 +215,7 @@ site "example.com" {{
         before_errors = metrics()["pathward_request_io_errors_total"]
         cancelled = connect()
         try:
-            cancelled.sendall(b"GET /image HTTP/1.1\r\nHost: example.com\r\n\r\n")
+            cancelled.sendall(b"GET /image HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n")
             assert head(cancelled).startswith(b"HTTP/1.1 200 ")
             assert cancelled.recv(1)
             cancelled.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))

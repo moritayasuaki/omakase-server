@@ -85,4 +85,29 @@ theorem lifecycle_total (b e n : U64) (k h p : Bool) :
     (∃ result, tls.renewal_due b e n = ok result) := by
   exact ⟨⟨_, activate_eq b e n k h p⟩, ⟨_, renewal_eq b e n⟩⟩
 
+/-- A renewal changes one certificate slot after the extracted activation gate succeeds. -/
+def certificateAfter (before : Nat → Option Nat) (writer reader candidate : Nat)
+    (decision : RustM Bool) : Option Nat :=
+  match decision with
+  | .ok true => if writer = reader then some candidate else before reader
+  | _ => before reader
+
+theorem other_group_preserved (before : Nat → Option Nat) (writer reader candidate : Nat)
+    (decision : RustM Bool) (different : writer ≠ reader) :
+    certificateAfter before writer reader candidate decision = before reader := by
+  unfold certificateAfter
+  split <;> simp_all
+
+theorem failed_group_preserved (before : Nat → Option Nat) (writer reader candidate : Nat)
+    (decision : RustM Bool) (rejected : decision ≠ ok true) :
+    certificateAfter before writer reader candidate decision = before reader := by
+  unfold certificateAfter
+  split <;> simp_all
+
+theorem unpersisted_group_preserved (before : Nat → Option Nat) (writer reader candidate : Nat)
+    (b e n : U64) (key names : Bool) :
+    certificateAfter before writer reader candidate (tls.activate b e n key names false) = before reader := by
+  apply failed_group_preserved
+  cases key <;> cases names <;> simp [tls.activate]
+
 end TlsProofs

@@ -53,9 +53,25 @@ such as `/var/lib/pathward/production`. `--accept-terms` explicitly accepts the
 selected CA's subscriber terms. Do not use a disposable cache in production.
 The directory binds to the CA, sorted configured domains and contact; changing
 that identity requires a separate directory. Host/ACME identity changes require restart; publications, roots, headers and
-redirects support transactional reload. The initial implementation uses one SAN certificate/account for all
-1–16 configured DNS domains, so these domains share an identity and public CT
-visibility. Issuance requires control of every domain.
+redirects support transactional reload. By default one SAN certificate covers
+the 1–16 configured DNS names. Each name in a certificate must validate.
+
+Use repeated `--acme-group` options to renew sets of names independently.
+For example, `--acme-group example.org,www.example.org --acme-group app.example.org`
+assigns three configured sites to two workers. List each configured hostname
+exactly once. Each group has its own persisted account and certificate, renewal
+backoff and TLS-ALPN challenge. TCP TLS and QUIC select the group by exact SNI.
+The monitor reports ready when every group has a currently valid certificate.
+A group undergoing an unsuccessful renewal continues serving its last valid
+certificate until expiry while the other workers can issue and renew.
+
+Use a separately provisioned private cache when migrating from the original
+single-certificate layout. The grouped cache locks its parent and binds it to
+the CA and contact. Child directory names derive from the sorted DNS names,
+so reordering groups reuses their existing certificates. Preserve the original
+cache for rollback. Changing the configured identity set requires restarting
+the server. Exercise the new grouping against a staging CA before ordering
+production certificates.
 
 The process must be able to read configuration/content and own its private cache;
 run under a dedicated unprivileged service UID. Choose an unprivileged listener
@@ -74,7 +90,7 @@ private incomplete staging inode is removed on restart. Storage errors fail
 closed. Permission protection is not at-rest encryption or protection from root,
 same-UID processes, malicious backups, swap or hardware failure.
 
-One ACME worker polls continuously, renews in the last third of certificate
+Each certificate group has a worker that polls continuously, renews in the last third of certificate
 lifetime and retries failures with exponential delay (60 seconds to one hour).
 It persists the account before contacting the CA and each checked certificate
 before activation. A valid cached certificate serves immediately after restart.
@@ -84,10 +100,12 @@ write cannot activate a new identity. The CLI emits redacted lifecycle/failure
 events on stderr; connect these to your supervisor's alerting. No automatic
 external notification is configured by PathWard.
 
-TLS requires configured SNI; HTTP Host must agree with SNI. Only HTTP/1.1 is
-supported (TLS ALPN `http/1.1`, or absent ALPN for ordinary clients). ACME-only
-`acme-tls/1` connections never reach file serving. TLS 1.2/1.3 use the ring provider;
-TLS 1.0/1.1, session resumption/tickets and 0-RTT are disabled. Handshakes have a
+TLS requires configured SNI and a matching HTTP authority. TCP supports HTTP/2
+and HTTP/1.1, and the dedicated `acme-tls/1` listener path handles certificate
+validation. TCP TLS uses TLS 1.2/1.3 with the ring provider and disables tickets
+and early data. Opt-in HTTP/3 has separate resumption and early-data rules.
+[QUIC address changes and early data](modern-http.md#quic-address-changes-and-early-data).
+TCP handshakes have a
 5-second total deadline including queue time and a 128 KiB input limit. The
 four ordinary workers and startup-profile queue bound handshakes and upstream
 work; [staged delivery](delivery.md) collects HTTP heads and sends completed

@@ -177,7 +177,7 @@ fn managed_proxy_activation_failure_and_rollback_preserve_the_shared_service_bud
         let mut s = TcpStream::connect(addr).unwrap();
         // The held request spans three separately bounded one-second capacity waits.
         s.set_read_timeout(Some(Duration::from_secs(6))).unwrap();
-        s.write_all(b"GET / HTTP/1.1\r\nHost: app.example\r\n\r\n")
+        s.write_all(b"GET / HTTP/1.1\r\nHost: app.example\r\nConnection: close\r\n\r\n")
             .unwrap();
         let mut out = Vec::new();
         s.read_to_end(&mut out).unwrap();

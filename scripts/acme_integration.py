@@ -118,7 +118,7 @@ with tempfile.TemporaryDirectory(prefix="pathward-acme-integration-") as tempora
                        PATHWARD_TEST_DIRECTORY=f"https://localhost:{api}/dir", PATHWARD_TEST_PORT=str(serving),
                        PATHWARD_TEST_FALLBACK_CERT=str(work / "server.pem"), PATHWARD_TEST_FALLBACK_KEY=str(work / "server.key"))
             command = ([sys.executable, "scripts/soak.py", "--seconds", str(args.soak_seconds), "--report", args.report]
-                       if args.soak_seconds else ["cargo", "+1.99.1", "test", "--offline", "--locked", "--manifest-path", "server/Cargo.toml", "--test", "acme_lifecycle", "--", "--ignored", "--nocapture"])
+                       if args.soak_seconds else ["cargo", "+1.99.1", "test", "--offline", "--locked", "--manifest-path", "server/Cargo.toml", "--test", "acme_lifecycle", "--", "--ignored", "--nocapture", "--test-threads=1"])
             if args.rehearsal:
                 command = [sys.executable, "scripts/staging_rehearsal.py", "--content", str(args.content.resolve()),
                            "--manifest", str(args.manifest.resolve()), "--seconds", str(args.seconds), "--report", args.report]

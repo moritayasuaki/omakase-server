@@ -447,8 +447,17 @@ def delivery.input_timeout_status (bytes : Std.U64) : RustM Std.U16 := do
   then ok 0#u16
   else ok 408#u16
 
-/-- [pathward::delivery::reuse_allowed]:
+/-- [pathward::delivery::http1_persistent]:
     Source: 'src/delivery.rs', lines 50:0-52:1
+    Visibility: public -/
+def delivery.http1_persistent
+  (upgrade : Bool) (close : Bool) : RustM Bool := do
+  if upgrade
+  then ok false
+  else ok (¬ close)
+
+/-- [pathward::delivery::reuse_allowed]:
+    Source: 'src/delivery.rs', lines 55:0-57:1
     Visibility: public -/
 def delivery.reuse_allowed
   (completed : Std.U64) (age_ms : Std.U64) (requested : Bool) (draining : Bool)
@@ -468,7 +477,7 @@ def delivery.reuse_allowed
   else ok false
 
 /-- [pathward::delivery::request_credit]:
-    Source: 'src/delivery.rs', lines 55:0-57:1
+    Source: 'src/delivery.rs', lines 60:0-62:1
     Visibility: public -/
 def delivery.request_credit
   (global : Std.U64) (peer : Std.U64) (draining : Bool) : RustM Bool := do
@@ -479,13 +488,13 @@ def delivery.request_credit
        else ok false
 
 /-- [pathward::delivery::task_slot]:
-    Source: 'src/delivery.rs', lines 60:0-62:1
+    Source: 'src/delivery.rs', lines 65:0-67:1
     Visibility: public -/
 def delivery.task_slot (running : Std.U64) : RustM Bool := do
   ok (running < 64#u64)
 
 /-- [pathward::delivery::encode_allowed]:
-    Source: 'src/delivery.rs', lines 66:0-87:1
+    Source: 'src/delivery.rs', lines 71:0-92:1
     Visibility: public -/
 def delivery.encode_allowed
   (enabled : Bool) (size : Std.U64) (status : Std.U16) (safe_method : Bool)
@@ -521,7 +530,7 @@ def delivery.encode_allowed
   else ok false
 
 /-- [pathward::delivery::multiplex_slot]:
-    Source: 'src/delivery.rs', lines 90:0-92:1
+    Source: 'src/delivery.rs', lines 95:0-97:1
     Visibility: public -/
 def delivery.multiplex_slot
   (active : Std.U64) (seen : Std.U64) (age_ms : Std.U64) (draining : Bool) :
@@ -537,7 +546,7 @@ def delivery.multiplex_slot
     else ok false
 
 /-- [pathward::delivery::cancel_slot]:
-    Source: 'src/delivery.rs', lines 96:0-98:1
+    Source: 'src/delivery.rs', lines 101:0-103:1
     Visibility: public -/
 def delivery.cancel_slot
   (discarded : Std.U64) (age_ms : Std.U64) : RustM Bool := do
@@ -546,7 +555,7 @@ def delivery.cancel_slot
   else ok false
 
 /-- [pathward::delivery::head_slot]:
-    Source: 'src/delivery.rs', lines 101:0-103:1
+    Source: 'src/delivery.rs', lines 106:0-108:1
     Visibility: public -/
 def delivery.head_slot (active : Std.U64) (held : Bool) : RustM Bool := do
   if held
@@ -554,7 +563,7 @@ def delivery.head_slot (active : Std.U64) (held : Bool) : RustM Bool := do
   else ok (active < 32#u64)
 
 /-- [pathward::delivery::HeldAction]
-    Source: 'src/delivery.rs', lines 106:0-110:1
+    Source: 'src/delivery.rs', lines 111:0-115:1
     Visibility: public -/
 @[discriminant isize]
 inductive delivery.HeldAction where
@@ -563,7 +572,7 @@ inductive delivery.HeldAction where
 | TryAdmission : delivery.HeldAction
 
 /-- [pathward::delivery::held_action]:
-    Source: 'src/delivery.rs', lines 114:0-122:1
+    Source: 'src/delivery.rs', lines 119:0-127:1
     Visibility: public -/
 def delivery.held_action
   (cancelled : Bool) (elapsed_ms : Std.U64) : RustM delivery.HeldAction := do
@@ -575,7 +584,7 @@ def delivery.held_action
     else ok delivery.HeldAction.TryAdmission
 
 /-- [pathward::delivery::retirement_close]:
-    Source: 'src/delivery.rs', lines 127:0-138:1
+    Source: 'src/delivery.rs', lines 132:0-143:1
     Visibility: public -/
 def delivery.retirement_close
   (retiring : Bool) (quiet_ms : Std.U64) (retired_ms : Std.U64)
@@ -612,7 +621,7 @@ def delivery.retirement_close
     else ok false
 
 /-- [pathward::delivery::h2_close_ready]:
-    Source: 'src/delivery.rs', lines 142:0-144:1
+    Source: 'src/delivery.rs', lines 147:0-149:1
     Visibility: public -/
 def delivery.h2_close_ready
   (close : Bool) (stopping : Bool) (wire_pending : Bool) : RustM Bool := do
@@ -623,7 +632,7 @@ def delivery.h2_close_ready
   else ok false
 
 /-- [pathward::delivery::h2_drain_expired]:
-    Source: 'src/delivery.rs', lines 148:0-156:1
+    Source: 'src/delivery.rs', lines 153:0-161:1
     Visibility: public -/
 def delivery.h2_drain_expired
   (wire_pending : Bool) (retiring : Bool) (quiet_ms : Std.U64)
@@ -643,7 +652,7 @@ def delivery.h2_drain_expired
   else ok false
 
 /-- [pathward::delivery::h2_peer_drain_allowed]:
-    Source: 'src/delivery.rs', lines 161:0-163:1
+    Source: 'src/delivery.rs', lines 166:0-168:1
     Visibility: public -/
 def delivery.h2_peer_drain_allowed
   (elapsed_ms : Std.U64) (received : Std.U64) : RustM Bool := do
@@ -652,7 +661,7 @@ def delivery.h2_peer_drain_allowed
   else ok false
 
 /-- [pathward::delivery::early_allowed]:
-    Source: 'src/delivery.rs', lines 166:0-174:1
+    Source: 'src/delivery.rs', lines 171:0-179:1
     Visibility: public -/
 def delivery.early_allowed
   (confirmed : Bool) (read : Bool) (published : Bool) (body : Std.U64)
@@ -672,7 +681,7 @@ def delivery.early_allowed
     else ok false
 
 /-- [pathward::delivery::wire_fits]:
-    Source: 'src/delivery.rs', lines 177:0-179:1
+    Source: 'src/delivery.rs', lines 182:0-184:1
     Visibility: public -/
 def delivery.wire_fits
   (used : Std.U64) (next : Std.U64) (limit : Std.U64) : RustM Bool := do

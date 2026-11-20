@@ -312,11 +312,10 @@ impl Server {
             Err(http::Rejection(status)) => return Self::reject(stream, status).await,
         };
         if let Some(out) = &mut handoff {
-            out.reuse = !req.upgrade
-                && req.headers.iter().any(|h| {
-                    h.name.eq_ignore_ascii_case("connection")
-                        && h.value.eq_ignore_ascii_case(b"keep-alive")
-                });
+            let close = req.headers.iter().any(|h| {
+                h.name.eq_ignore_ascii_case("connection") && h.value.eq_ignore_ascii_case(b"close")
+            });
+            out.reuse = pathward::delivery::http1_persistent(req.upgrade, close);
         }
         let Some(site) = snapshot.sites.iter().find(|s| s.host == req.host) else {
             return Self::reject(stream, 421).await;

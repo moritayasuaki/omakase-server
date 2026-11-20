@@ -110,6 +110,41 @@ pub fn monitor(
     shutdown: &AtomicBool,
     done: &AtomicBool,
 ) -> io::Result<()> {
+    monitor_certificates(
+        listener,
+        server,
+        identity,
+        shutdown,
+        done,
+        tls::Identity::certificate_times,
+    )
+}
+
+pub fn monitor_groups(
+    listener: TcpListener,
+    server: &Server,
+    identities: Option<&tls::IdentitySet>,
+    shutdown: &AtomicBool,
+    done: &AtomicBool,
+) -> io::Result<()> {
+    monitor_certificates(
+        listener,
+        server,
+        identities,
+        shutdown,
+        done,
+        tls::IdentitySet::certificate_times,
+    )
+}
+
+fn monitor_certificates<T>(
+    listener: TcpListener,
+    server: &Server,
+    identity: Option<&T>,
+    shutdown: &AtomicBool,
+    done: &AtomicBool,
+    certificate_times: fn(&T) -> Option<(u64, u64)>,
+) -> io::Result<()> {
     if !listener.local_addr()?.ip().is_loopback() {
         return Err(io::Error::other("monitor requires loopback"));
     }
@@ -124,7 +159,7 @@ pub fn monitor(
                     let req = http::parse(&head, stream.local_addr()?.port())
                         .map_err(|_| io::Error::other("invalid monitor request"))?;
                     let draining = shutdown.load(Ordering::Acquire) || server.is_draining();
-                    let cert = identity.and_then(tls::Identity::certificate_times);
+                    let cert = identity.and_then(certificate_times);
                     let valid = cert
                         .zip(tls::unix_now().ok())
                         .is_some_and(|((b, e), n)| b <= n && n < e);

@@ -28,7 +28,7 @@ def response(stream):
 
 def get(port, path="/", host="example.com", method="GET"):
     with socket.create_connection(("127.0.0.1", port), timeout=3) as stream:
-        stream.sendall(f"{method} {path} HTTP/1.1\r\nHost: {host}\r\n\r\n".encode())
+        stream.sendall(f"{method} {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n".encode())
         return response(stream)
 
 def wait_for(check, seconds=8):

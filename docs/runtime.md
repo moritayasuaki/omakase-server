@@ -53,11 +53,10 @@ request time; reload validates roots and rules, not every file's contents.
 
 **Restart required:** the top-level capacity profile, adding/removing/changing hostnames, listener and monitoring
 addresses, ACME directory/contact/cache identity and other CLI options. Host order
-may change. The fixed domain set keeps every reloaded publication aligned with
-the existing certificate/ACME identity; this release does not implement a
-multi-certificate or domain-change transaction. Use a fresh bound cache when
-changing ACME identity, as described in the TLS guide. Library users must pass the
-same validated cache pathname to `Server::new_with_cache` and `Manager::new`.
+may change. A reload preserves the domain set and its configured certificate
+groups. Provision a separate cache when transitioning a single certificate to
+groups. Library users pass the same validated base cache path to
+`Server::new_with_cache` and the ACME manager or group constructor.
 
 ## Graceful shutdown
 
@@ -129,6 +128,14 @@ query strings and other paths are not matched. With IPv6 loopback transport use
 | `/healthz` | 200 while the monitoring worker answers, including draining |
 | `/readyz` | 200 only while serving, not draining, and (in TLS mode) a currently valid certificate is installed; otherwise 503 |
 | `/metrics` | Prometheus text format with fixed metric names and bounded status-class labels |
+
+`pathward_response_phase_microseconds` reports fixed histogram buckets for
+finite HTTP/2 and HTTP/3 responses from the common responder. The `prepare`
+sample covers selection, upstream or file work, and any representation encoding
+after request validation and admission. The `submit` sample covers successful
+submission of the response to the transport, including flow-control waits.
+Peer receipt can occur later. Streaming responses and early protocol rejections
+do not produce these samples. Labels identify only protocol and phase.
 
 Metrics include accepted/active/overloaded connections, completed responses,
 request I/O and handshake errors, completed body bytes, reload successes/errors,

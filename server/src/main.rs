@@ -9,11 +9,12 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     thread,
 };
-const HELP: &str = "pathward-server serve-http CONFIG [127.0.0.1:8080] [--monitor 127.0.0.1:9090]\npathward-server serve-tls CONFIG CACHE_DIRECTORY --accept-terms [--http-listen 0.0.0.0:80] [--experimental-http3] [--acme staging|production] [--listen 0.0.0.0:443] [--contact mailto:admin@example.com] [--monitor 127.0.0.1:9090]\npathward-server check CONFIG [--cache DIR]\npathward-server generate BASE SITE ROOT MANIFEST [--index FILE]\npathward-server init CONTROL_DIR CONFIG\npathward-server status --control-dir DIR\npathward-server activate --control-dir DIR --expect GENERATION:SHA256 CONFIG\npathward-server rollback --control-dir DIR --expect GENERATION:SHA256\npathward-server cutover-policy OP ARGS... (read-only; see docs/cutover-policy.md)\nServing modes accept --control-dir DIR with CONFIG=DIR/.config.\nSIGHUP reloads roots/publications; SIGTERM/SIGINT drain active connections. Monitor is opt-in and loopback-only.\nLinux 5.6+ and trusted procfs required. TLS-ALPN-01 requires public TCP/443 forwarding.\nACME defaults to staging. --accept-terms accepts the selected CA's subscriber terms.";
+const HELP: &str = "pathward-server serve-http CONFIG [127.0.0.1:8080] [--monitor 127.0.0.1:9090]\npathward-server serve-tls CONFIG CACHE_DIRECTORY --accept-terms [--http-listen 0.0.0.0:80] [--experimental-http3] [--http3-send-window 128KiB|256KiB|512KiB] [--acme staging|production] [--listen 0.0.0.0:443] [--contact mailto:admin@example.com] [--acme-group HOST[,HOST...] ...] [--monitor 127.0.0.1:9090]\npathward-server check CONFIG [--cache DIR]\npathward-server generate BASE SITE ROOT MANIFEST [--index FILE]\npathward-server init CONTROL_DIR CONFIG\npathward-server status --control-dir DIR\npathward-server activate --control-dir DIR --expect GENERATION:SHA256 CONFIG\npathward-server rollback --control-dir DIR --expect GENERATION:SHA256\npathward-server cutover-policy OP ARGS... (read-only; see docs/cutover-policy.md)\nServing modes accept --control-dir DIR with CONFIG=DIR/.config.\nSIGHUP reloads roots/publications; SIGTERM/SIGINT drain active connections. Monitor is opt-in and loopback-only.\nLinux 5.6+ and trusted procfs required. TLS-ALPN-01 requires public TCP/443 forwarding.\nACME defaults to staging. --accept-terms accepts the selected CA's subscriber terms.";
 #[derive(Default)]
 struct ServiceOptions {
     monitor: Option<SocketAddr>,
     http3: bool,
+    send_window: Option<tls::QuicSendWindow>,
     http_listen: Option<SocketAddr>,
     control_dir: Option<PathBuf>,
 }
@@ -168,12 +169,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             let mut address = "0.0.0.0:443";
             let mut directory = acme::STAGING;
             let mut contact = Vec::new();
+            let mut groups = Vec::new();
             let mut options = ServiceOptions::default();
             let mut seen = std::collections::BTreeSet::new();
             let mut i = 3;
             while i < args.len() {
                 let flag = args[i].to_str().ok_or(HELP)?;
-                if !seen.insert(flag) {
+                if flag != "--acme-group" && !seen.insert(flag) {
                     return Err("duplicate CLI option".into());
                 }
                 if flag == "--experimental-http3" {
@@ -200,12 +202,19 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                     "--http-listen" => options.http_listen = Some(value.parse()?),
                     "--control-dir" => options.control_dir = Some(value.into()),
                     "--contact" => contact.push(value.to_owned()),
+                    "--acme-group" => groups.push(value.split(',').map(str::to_owned).collect()),
+                    "--http3-send-window" => {
+                        options.send_window = Some(tls::QuicSendWindow::parse(value)?)
+                    }
                     _ => return Err(HELP.into()),
                 }
                 i += 2;
             }
             if !accept {
                 return Err("--accept-terms is required before contacting the selected CA".into());
+            }
+            if options.send_window.is_some() && !options.http3 {
+                return Err("--http3-send-window requires --experimental-http3".into());
             }
             let address: SocketAddr = address.parse()?;
             let parsed = control::read_config(Path::new(&args[1]))?;
@@ -234,8 +243,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 return Err("control and ACME storage must be disjoint".into());
             }
             let signals = control::Signals::install()?;
-            let mut manager = acme::Manager::new(
+            let mut manager = acme::Groups::new(
                 domains,
+                groups,
                 &roots,
                 &cache,
                 directory,
@@ -268,7 +278,7 @@ fn run_service(
     listener: TcpListener,
     path: &Path,
     signals: &control::Signals,
-    manager: Option<&acme::Manager>,
+    manager: Option<&acme::Groups>,
     options: ServiceOptions,
 ) -> std::io::Result<()> {
     let managed = if let Some(directory) = &options.control_dir {
@@ -313,11 +323,19 @@ fn run_service(
         })
         .transpose()?;
     let redirect = options.http_listen.map(TcpListener::bind).transpose()?;
-    let identity = manager.map(acme::Manager::identity);
-    let tls = identity
-        .as_ref()
-        .map(|identity| tls::TlsServer::new(identity.clone()))
+    let identity = manager
+        .map(|m| {
+            tls::IdentitySet::new(m.workers().iter().map(acme::Manager::identity).collect())
+                .map(std::sync::Arc::new)
+        })
         .transpose()?;
+    let mut tls = identity
+        .as_ref()
+        .map(|identity| tls::TlsServer::for_groups(identity.clone()))
+        .transpose()?;
+    if let (Some(tls), Some(window)) = (&mut tls, options.send_window) {
+        tls.set_quic_send_window(window);
+    }
     server.observability().enable_stderr()?;
     server.observability().listening(
         listener.local_addr()?.port(),
@@ -362,7 +380,7 @@ fn run_service(
                     .name("pathward-monitor".into())
                     .spawn_scoped(scope, || {
                         let _stop = StopWorker(&signals.shutdown);
-                        let result = control::monitor(
+                        let result = control::monitor_groups(
                             listener,
                             server,
                             identity.as_deref(),
@@ -376,8 +394,9 @@ fn run_service(
                     })
             })
             .transpose()?;
-        let acme_worker = manager
-            .map(|manager| {
+        let mut acme_workers = Vec::new();
+        for manager in manager.into_iter().flat_map(acme::Groups::workers) {
+            acme_workers.push(
                 thread::Builder::new()
                     .name("pathward-acme".into())
                     .spawn_scoped(scope, || {
@@ -389,9 +408,9 @@ fn run_service(
                         }
                         let _stop = Stop(&signals.shutdown);
                         manager.run(&signals.shutdown);
-                    })
-            })
-            .transpose()?;
+                    })?,
+            );
+        }
         let result = match tls.as_ref() {
             Some(tls) if options.http3 => {
                 let udp = std::net::UdpSocket::bind(listener.local_addr()?)?;
@@ -415,7 +434,7 @@ fn run_service(
                 .join()
                 .map_err(|_| std::io::Error::other("deployment worker failed"))??;
         }
-        if let Some(worker) = acme_worker {
+        for worker in acme_workers {
             worker
                 .join()
                 .map_err(|_| std::io::Error::other("ACME worker failed"))?;

@@ -743,6 +743,7 @@ async fn exchange(
         }
         h2_reset(&mut sender).await?;
         phase = observe::TransportStage::Responder;
+        let preparing = Instant::now();
         let response = while_h2_open(
             &mut sender,
             respond(
@@ -751,7 +752,24 @@ async fn exchange(
         )
         .await??;
         phase = observe::TransportStage::Output;
-        send_h2(response, &mut sender).await
+        let finite = !matches!(response.body, Body::Events { .. });
+        let submitting = Instant::now();
+        if finite {
+            server.observe.response_time(
+                observe::Protocol::H2,
+                observe::ResponsePhase::Prepare,
+                submitting - preparing,
+            );
+        }
+        let result = send_h2(response, &mut sender).await;
+        if finite && result.is_ok() {
+            server.observe.response_time(
+                observe::Protocol::H2,
+                observe::ResponsePhase::Submit,
+                submitting.elapsed(),
+            );
+        }
+        result
     }
     .await;
     if result.is_err() {
