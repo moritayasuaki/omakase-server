@@ -441,13 +441,23 @@ curl with HTTP/3, Node.js, and ps. A loopback UDP relay delays each direction
 by 75 ms. The second scenario drops every thousandth datagram. Each of 24
 independent clients establishes a fresh connection and reuses it for a second
 request. The next wave reconnects and downloads the full 818,100-byte body.
-The driver checks the negotiated protocol, connection reuse, status, length and
-SHA-256 for every transfer. The direct HTTP/2 transfer is a fixture sanity check.
+The driver checks negotiated protocol, connection reuse, status, length and
+SHA-256 for every transfer. It also checks both server-side phase counters for
+every HTTP/3 response and for a direct HTTP/2 transfer. The phase sums in the
+report cover the five-byte warmup and the following asset on the same connection.
 
-With 150 ms of simulated round-trip delay the median of three single transfers
-fell from 1.54 to 1.13 seconds when changing from 128 to 512 KiB. With loss the
-medians were 1.66 and 1.20 seconds. Every 24-client wave completed. Peak sampled
-server RSS in the loss scenarios rose from 40.3 to 52.5 MiB. First-byte times
-were similar. The default remains 128 KiB. The user-space relay, one process
-per client and a small deterministic payload limit what this says about other
-networks and memory use. [Recorded measurements](transport-benchmark-2026-11-20.json)
+| Send window | Median transfer, no loss | Median transfer, 0.1% loss | Sampled peak RSS, no loss / loss |
+| --- | ---: | ---: | ---: |
+| 128 KiB | 1.56 s | 1.67 s | 35.2 / 53.1 MiB |
+| 256 KiB | 1.19 s | 1.21 s | 39.7 / 44.0 MiB |
+| 512 KiB | 1.13 s | 1.16 s | 44.8 / 70.3 MiB |
+
+Each median covers three single-client asset transfers at 150 ms simulated
+round-trip delay. At zero loss, server preparation took 12–15 ms for each
+warmup-and-asset pair across the three window settings. Median submission
+fell from 1.39 s to 1.02 s to 0.87 s. The asset's first byte arrived at about
+160 ms in each case. All 288 transfers in the 24-client waves completed.
+With loss, the slowest full-body client in each wave took 4.45, 5.88 and
+3.73 s respectively. The 128 KiB default preserves the existing memory
+budget. The loopback relay, sampled memory and small sample size limit
+extrapolation to public networks. [Recorded measurements](transport-benchmark-2026-11-20.json)

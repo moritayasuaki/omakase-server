@@ -316,11 +316,16 @@ fn failed_group_does_not_block_another_groups_renewal() {
                 .1,
             first
         );
+        let (_, leaf) = x509_parser::parse_x509_certificate(&first).unwrap();
+        let expiry = u64::try_from(leaf.validity().not_after.timestamp()).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(45);
+        while pathward_server::tls::unix_now().unwrap() < expiry {
+            assert!(Instant::now() < deadline, "test certificate did not expire");
+            thread::sleep(Duration::from_millis(100));
+        }
+        assert!(fetch_named(port, issued.clone(), "GET", names[0], names[0]).is_err());
         let renewed = wait_for_name(port, issued.clone(), names[1], Some(&second)).1;
         assert_eq!(fs::read(frozen.join(".certificate")).unwrap(), durable);
-        if let Ok((_, served)) = fetch_named(port, issued.clone(), "GET", names[0], names[0]) {
-            assert_eq!(served, first);
-        }
         (frozen, durable, renewed)
     });
     drop(groups);

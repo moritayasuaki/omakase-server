@@ -90,7 +90,7 @@ private incomplete staging inode is removed on restart. Storage errors fail
 closed. Permission protection is not at-rest encryption or protection from root,
 same-UID processes, malicious backups, swap or hardware failure.
 
-One ACME worker polls continuously, renews in the last third of certificate
+Each certificate group has a worker that polls continuously, renews in the last third of certificate
 lifetime and retries failures with exponential delay (60 seconds to one hour).
 It persists the account before contacting the CA and each checked certificate
 before activation. A valid cached certificate serves immediately after restart.
@@ -100,10 +100,12 @@ write cannot activate a new identity. The CLI emits redacted lifecycle/failure
 events on stderr; connect these to your supervisor's alerting. No automatic
 external notification is configured by PathWard.
 
-TLS requires configured SNI; HTTP Host must agree with SNI. Only HTTP/1.1 is
-supported (TLS ALPN `http/1.1`, or absent ALPN for ordinary clients). ACME-only
-`acme-tls/1` connections never reach file serving. TLS 1.2/1.3 use the ring provider;
-TLS 1.0/1.1, session resumption/tickets and 0-RTT are disabled. Handshakes have a
+TLS requires configured SNI and a matching HTTP authority. TCP supports HTTP/2
+and HTTP/1.1, and the dedicated `acme-tls/1` listener path handles certificate
+validation. TCP TLS uses TLS 1.2/1.3 with the ring provider and disables tickets
+and early data. Opt-in HTTP/3 has separate resumption and early-data rules.
+[QUIC address changes and early data](modern-http.md#quic-address-changes-and-early-data).
+TCP handshakes have a
 5-second total deadline including queue time and a 128 KiB input limit. The
 four ordinary workers and startup-profile queue bound handshakes and upstream
 work; [staged delivery](delivery.md) collects HTTP heads and sends completed

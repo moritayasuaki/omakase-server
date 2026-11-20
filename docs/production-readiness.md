@@ -68,8 +68,9 @@ occupying all workers while retaining queued CA validation connections.
 1. **Deployment-specific certificate operation.** Test staging with the real DNS,
    TCP/443 path, service UID, clock and durable storage. Monitor redacted renewal/
    expiry events externally. ARI, Retry-After handling, in-order badNonce retries,
-   revocation/OCSP, contact updates and key rollover are absent. One certificate
-   covers all configured sites; separate per-site issuance is not implemented.
+   revocation/OCSP, contact updates and key rollover are absent. The default
+   certificate covers all configured sites. Repeated `--acme-group` options
+   assign independent certificate and renewal workers to exact sets of names.
    HTTP-01/DNS-01 and wildcard domains are absent.
 2. **Deployment and content ownership.** Enforce a service-owned configuration,
    roots and key store, with least privilege. Use trusted local filesystems and

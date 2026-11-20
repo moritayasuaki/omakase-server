@@ -79,6 +79,30 @@ async function transfer(port, certificate, asset, protocol = '3') {
   return { firstByteMs: Number(lines[1][3])*1000, totalMs: Number(lines[1][4])*1000 };
 }
 
+async function phaseTotals(port, protocol, expectedCount) {
+  const deadline = Date.now() + 3000;
+  do {
+    const response = await fetch('http://127.0.0.1:' + port + '/metrics', {
+      headers: { Connection: 'close' }, signal: AbortSignal.timeout(3000)
+    });
+    if (!response.ok) throw Error('Monitor returned ' + response.status);
+    const lines = (await response.text()).split('\n');
+    const totals = {};
+    for (const phase of ['prepare', 'submit']) {
+      for (const field of ['sum', 'count']) {
+        const prefix = 'pathward_response_phase_microseconds_' + field
+          + '{protocol="' + protocol + '",phase="' + phase + '"} ';
+        const line = lines.find(value => value.startsWith(prefix));
+        if (!line) throw Error('Missing monitor value ' + prefix);
+        totals[phase + '_' + field] = Number(line.slice(prefix.length));
+      }
+    }
+    if (totals.prepare_count === expectedCount && totals.submit_count === expectedCount) return totals;
+    await new Promise(resolve => setTimeout(resolve, 10));
+  } while (Date.now() < deadline);
+  throw Error('Expected ' + expectedCount + ' completed ' + protocol + ' responses in both phases');
+}
+
 async function trial(window) {
   const proc = spawn(binary, ['--exact','browser_fixture::transport_benchmark_fixture','--ignored','--nocapture'],
     { env: { ...process.env, PATHWARD_TEST_SEND_WINDOW: window }, stdio: ['pipe','pipe','pipe'] });
@@ -93,11 +117,15 @@ async function trial(window) {
     }
     const pem = log.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/);
     const match = log.match(/BENCH_PORT=(\d+)/);
-    if (!pem || !match) throw Error('Fixture startup failed: ' + log);
+    const monitorMatch = log.match(/MONITOR_PORT=(\d+)/);
+    if (!pem || !match || !monitorMatch) throw Error('Fixture startup failed: ' + log);
     const port = Number(match[1]);
+    const monitorPort = Number(monitorMatch[1]);
     const ca = path.join(directory, window + '.pem');
     await fs.writeFile(ca, pem[0] + '\n', {mode:0o600});
     const baseline = await transfer(port, ca, true, '2');
+    await phaseTotals(monitorPort, 'h2', 2);
+    let totals = await phaseTotals(monitorPort, 'h3', 0);
     for (const dropEvery of [0, 1000]) {
       const relay = await link(port, 75, dropEvery);
       let peakRssKiB = 0;
@@ -109,12 +137,22 @@ async function trial(window) {
       }, 500);
       try {
         const samples = [];
-        for (let i=0; i<3; i++) samples.push(await transfer(relay.port, ca, true));
+        for (let i = 0; i < 3; i++) {
+          const timing = await transfer(relay.port, ca, true);
+          const after = await phaseTotals(monitorPort, 'h3', totals.submit_count + 2);
+          samples.push({
+            ...timing,
+            pairPrepareMs: (after.prepare_sum - totals.prepare_sum) / 1000,
+            pairSubmitMs: (after.submit_sum - totals.submit_sum) / 1000
+          });
+          totals = after;
+        }
         const waves = [];
         for (let i=0; i<2; i++) {
           const wave = await Promise.allSettled(Array.from({length:report.clients}, () => transfer(relay.port, ca, i === 1)));
           for (const result of wave) if (result.status !== 'fulfilled') throw result.reason;
           waves.push(wave.map(result => result.value.totalMs));
+          totals = await phaseTotals(monitorPort, 'h3', totals.submit_count + 2 * report.clients);
         }
         report.results.push({window, rttMs:150, dropEvery, h2Loopback:baseline, samples, reconnectMs:waves, peakRssKiB, relay:relay.counts});
       } finally { clearInterval(monitor); relay.close(); }
@@ -127,6 +165,6 @@ async function trial(window) {
   }
 }
 try {
-  for (const window of ['128KiB','512KiB']) await trial(window);
+  for (const window of ['128KiB', '256KiB', '512KiB']) await trial(window);
   await fs.writeFile(reportPath, JSON.stringify(report,null,2)+'\n',{flag:'wx'});
 } finally { await fs.rm(directory,{recursive:true,force:true}); }

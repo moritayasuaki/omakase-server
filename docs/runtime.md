@@ -53,11 +53,10 @@ request time; reload validates roots and rules, not every file's contents.
 
 **Restart required:** the top-level capacity profile, adding/removing/changing hostnames, listener and monitoring
 addresses, ACME directory/contact/cache identity and other CLI options. Host order
-may change. The fixed domain set keeps every reloaded publication aligned with
-the existing certificate/ACME identity; this release does not implement a
-multi-certificate or domain-change transaction. Use a fresh bound cache when
-changing ACME identity, as described in the TLS guide. Library users must pass the
-same validated cache pathname to `Server::new_with_cache` and `Manager::new`.
+may change. A reload preserves the domain set and its configured certificate
+groups. Provision a separate cache when transitioning a single certificate to
+groups. Library users pass the same validated base cache path to
+`Server::new_with_cache` and the ACME manager or group constructor.
 
 ## Graceful shutdown
 

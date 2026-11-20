@@ -83,8 +83,13 @@ fn firefox_loopback_fixture() {
 fn transport_benchmark_fixture() {
     let backend = TcpListener::bind("127.0.0.1:0").unwrap();
     backend.set_nonblocking(true).unwrap();
-    let parsed=pathward_config::ParsedConfig::parse(&format!(
-        "capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nproxy-limit \"connections\" \"32\"\nproxy-limit \"response-body\" \"1MiB\"\nproxy-timeout \"total\" \"60s\"\n}}",backend.local_addr().unwrap())).unwrap();
+    let policy = format!(
+        "capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\n\
+         proxy-limit \"connections\" \"32\"\nproxy-limit \"response-body\" \"1MiB\"\n\
+         proxy-timeout \"total\" \"60s\"\n}}",
+        backend.local_addr().unwrap()
+    );
+    let parsed = pathward_config::ParsedConfig::parse(&policy).unwrap();
     let config = parsed.compile().unwrap();
     let server = Server::new(&config).unwrap();
     let names = vec!["app.example".to_owned()];
@@ -103,23 +108,38 @@ fn transport_benchmark_fixture() {
     let address = listener.local_addr().unwrap();
     let udp = UdpSocket::bind(address).unwrap();
     let stop = AtomicBool::new(false);
-    println!("BENCH_PORT={}\n{}", address.port(), cert.pem());
+    let monitor = TcpListener::bind("127.0.0.1:0").unwrap();
+    println!(
+        "BENCH_PORT={}\nMONITOR_PORT={}\n{}",
+        address.port(),
+        monitor.local_addr().unwrap().port(),
+        cert.pem()
+    );
     io::stdout().flush().unwrap();
     std::thread::scope(|scope| {
+        scope.spawn(|| crate::control::monitor(monitor, &server, None, &stop, &stop).unwrap());
         scope.spawn(|| {
-            let blob: Vec<_>=(0..818_100usize).map(|n|(n%251) as u8).collect();
+            let blob: Vec<_> = (0..818_100usize).map(|n| (n % 251) as u8).collect();
             while !stop.load(Ordering::Acquire) {
-                let (mut socket,_) = match backend.accept() {
-                    Ok(pair)=>pair,
-                    Err(e) if e.kind()==io::ErrorKind::WouldBlock => {std::thread::sleep(Duration::from_millis(1));continue;}
-                    Err(e)=>panic!("{e}")
+                let (mut socket, _) = match backend.accept() {
+                    Ok(pair) => pair,
+                    Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(1));
+                        continue;
+                    }
+                    Err(e) => panic!("{e}"),
                 };
                 socket.set_nonblocking(false).unwrap();
                 socket.set_write_timeout(Some(Duration::from_secs(5))).unwrap();
-                let Ok(head)=http::read_head(&mut socket,Instant::now()+Duration::from_secs(3)) else {continue};
-                let bytes=if head.starts_with(b"GET /asset ") {blob.as_slice()} else {b"ready"};
-                let header=format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: application/octet-stream\r\nConnection: close\r\n\r\n",bytes.len());
-                let _=socket.write_all(header.as_bytes()).and_then(|()|socket.write_all(bytes));
+                let Ok(head) = http::read_head(&mut socket, Instant::now() + Duration::from_secs(3)) else {
+                    continue;
+                };
+                let bytes = if head.starts_with(b"GET /asset ") { blob.as_slice() } else { b"ready" };
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: application/octet-stream\r\nConnection: close\r\n\r\n",
+                    bytes.len()
+                );
+                let _ = socket.write_all(header.as_bytes()).and_then(|()| socket.write_all(bytes));
             }
         });
         let stop_ref = &stop;
