@@ -1,14 +1,24 @@
 {
-  "checked_at": "2026-10-30T18:45:16.483780+00:00",
+  "checked_at": "2026-11-20T13:18:03.286031+00:00",
   "auditor": "cargo-audit 0.22.2",
-  "database_commit": "2295466c4e9df26647fd67d8fa1c705ac2fc7f81",
-  "manifest_sha256": "80645dae25eb0fb36fe5238b6c0cd3fc7c94bf4cbae32f6a72890cff2985f6a5",
-  "lockfile_sha256": "cbcf13fcd74d18613bf0f756099ff8fd712647e6788c3795a758baaeb2a81c4f",
+  "database_commit": "f291af9b1cc0d21dfcea1709d6b037963cef262b",
   "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "manifest_sha256": "d90c3f960e7fbabcbbb68ed7eb5d48cb4ae6ec550fa8f2d47607f7c92e8d09e8",
+  "lockfile_sha256": "b7136849a7e3a1e89a79ebe360e93592ed06362cac7992ca1ef17285f77f8137",
+  "vendor_files_sha256": {
+    "Cargo.toml": "c8569051a2ae737fc1f3d8f11d646b03c59d3fa64841e7dce2cf8b122d5279b2",
+    "LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+    "LICENSE-MIT": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "PROVENANCE.md": "1c9ed212ccb017f6eefc4318294b9fd8dd37f2373dc8a045ce4256a9292521f1",
+    "src/acme.rs": "fd5d9c179cdd783c9dc64439a7d0587323cc983c28f2b56443228a2f4c5d26ef",
+    "src/https_helper.rs": "05bb81b7eb36cd6d4be3ab488e5ac8ea9d815dae23ee4a195e66cd78f7ddcf41",
+    "src/jose.rs": "c8fe2b0ee1f8a687b0d0762138fdbf0b610dd8c39f301c3c2a5dbf7883046080",
+    "src/lib.rs": "d898b71308f8341ccfc61fe42ececb48f773680254589bebd52ca927293106a1"
+  },
   "reports": {
     "core": {
       "database": {
-        "advisory-count": 1395,
+        "advisory-count": 1555,
         "last-commit": null,
         "last-updated": null
       },
@@ -35,12 +45,12 @@
     },
     "server_candidate": {
       "database": {
-        "advisory-count": 1395,
+        "advisory-count": 1555,
         "last-commit": null,
         "last-updated": null
       },
       "lockfile": {
-        "dependency-count": 164
+        "dependency-count": 110
       },
       "settings": {
         "target_arch": [],
