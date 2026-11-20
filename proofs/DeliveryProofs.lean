@@ -192,6 +192,26 @@ theorem reuse_expired (c a : U64) (r d : Bool) (h : 120000 ≤ a.val) :
 theorem reuse_total (c a : U64) (r d : Bool) :
     ∃ b, delivery.reuse_allowed c a r d = ok b := ⟨_, reuse_eq c a r d⟩
 
+/-- Compose connection admission with the publication rules selected for this request. -/
+def grantAfterReuse (count age : U64) (requested draining : Bool) (m h c t : Slice U8)
+    (active : Slice rules.Publication) : RustM (Option serving.Grant) := do
+  let reuse ← delivery.reuse_allowed count age requested draining
+  if reuse then serving.authorize m h c t active else ok none
+
+theorem reused_grant_requires_current_mapping (count age : U64) (requested draining : Bool)
+    (m h c t : Slice U8) (active : Slice rules.Publication) (g : serving.Grant)
+    (hg : grantAfterReuse count age requested draining m h c t active = ok (some g)) :
+    ∃ p, serving.request_path t = ok (some p) ∧
+      ∃ rule ∈ active.val, p.val = rule.path.val ∧ rule.target = g.target := by
+  obtain ⟨b, hb⟩ := reuse_total count age requested draining
+  cases b with
+  | false => simp [grantAfterReuse, hb, bind_tc_ok] at hg
+  | true =>
+    have ha : serving.authorize m h c t active = ok (some g) := by
+      simpa [grantAfterReuse, hb, bind_tc_ok] using hg
+    obtain ⟨_, p, hp, _, rule, hm, he, ht⟩ := ServingProofs.granted_target_safe m h c t active g ha
+    exact ⟨p, hp, rule, hm, he, ht⟩
+
 theorem request_credit_eq (g p : U64) (d : Bool) :
     delivery.request_credit g p d = ok (decide (d = false ∧ 0 < g.val ∧ 0 < p.val)) := by
   cases d <;> simp [delivery.request_credit]

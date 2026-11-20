@@ -211,6 +211,7 @@ import UpstreamProofs
 #print axioms DeliveryProofs.reuse_no_draining
 #print axioms DeliveryProofs.reuse_expired
 #print axioms DeliveryProofs.reuse_total
+#print axioms DeliveryProofs.reused_grant_requires_current_mapping
 #print axioms DeliveryProofs.request_credit_eq
 #print axioms DeliveryProofs.request_credit_positive
 #print axioms DeliveryProofs.request_credit_no_draining

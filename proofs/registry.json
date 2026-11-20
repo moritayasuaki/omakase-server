@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "lean_toolchain": "leanprover/lean4:v4.31.0",
-  "theorem_count": 626,
+  "theorem_count": 627,
   "axiom_free_count": 100,
   "axiom_counts": {
-    "Classical.choice": 416,
-    "Quot.sound": 416,
-    "propext": 526
+    "Classical.choice": 417,
+    "Quot.sound": 417,
+    "propext": 527
   },
   "source_sha256": {
     "proofs/AuthorityProofs.lean": "78cab77f87ab19123a05725a6e1ec43dfcb3c7ea427031d60aa28d7e3804264f",
@@ -16,7 +16,7 @@
     "proofs/ContentProofs.lean": "f42c02ede522d988bc6e9413eae444759c26ee51cab6ec11645b2a6aa5afbda5",
     "proofs/ContractMigrationProofs.lean": "90b90df4b459e7f9d7ac7fb25098b17024c0457a98ffef8204501f347df67c69",
     "proofs/CutoverProofs.lean": "352f578413c2c57f315b058c93b22d1ed5f23811f2adb6440c44dd2e6fc98ad0",
-    "proofs/DeliveryProofs.lean": "eb9dfc75c69e7c9502634f50ec3e98c0e8061e60dd19f393b4f8769cc08834dd",
+    "proofs/DeliveryProofs.lean": "d975f9d35187198123bbee361b997954df959cbdf96c1faddc48fb4ab37f7184",
     "proofs/Generated/Pathward.lean": "bd8021753e47004fbec05e840b202dafaa84be8615ff69d17b45c7c4c54ad37f",
     "proofs/GuardUpgradeProofs.lean": "cd580b9c1bbd44aff63391244270d14cd01f30006590da4cc3b6b59dd50da5fb",
     "proofs/PathwardProofs.lean": "94ad7cb4763dc8d57da14253e30e16c1ad517d99d1bf1b2d387ad17575b90a67",
@@ -1988,9 +1988,21 @@
       "scope": "rust_contract_or_lemma"
     },
     {
+      "name": "DeliveryProofs.reused_grant_requires_current_mapping",
+      "source": "proofs/DeliveryProofs.lean",
+      "line": 201,
+      "statement": "theorem reused_grant_requires_current_mapping (count age : U64) (requested draining : Bool)\n    (m h c t : Slice U8) (active : Slice rules.Publication) (g : serving.Grant)\n    (hg : grantAfterReuse count age requested draining m h c t active = ok (some g)) :\n    ∃ p, serving.request_path t = ok (some p) ∧\n      ∃ rule ∈ active.val, p.val = rule.path.val ∧ rule.target = g.target",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
       "name": "DeliveryProofs.request_credit_eq",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 195,
+      "line": 215,
       "statement": "theorem request_credit_eq (g p : U64) (d : Bool) :\n    delivery.request_credit g p d = ok (decide (d = false ∧ 0 < g.val ∧ 0 < p.val))",
       "axioms": [
         "Classical.choice",
@@ -2002,7 +2014,7 @@
     {
       "name": "DeliveryProofs.request_credit_positive",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 200,
+      "line": 220,
       "statement": "theorem request_credit_positive (g p : U64) (d : Bool)\n    (h : delivery.request_credit g p d = ok true) :\n    0 < g.val ∧ 0 < p.val ∧ d = false",
       "axioms": [
         "Classical.choice",
@@ -2014,7 +2026,7 @@
     {
       "name": "DeliveryProofs.request_credit_no_draining",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 206,
+      "line": 226,
       "statement": "theorem request_credit_no_draining (g p : U64) :\n    delivery.request_credit g p true = ok false",
       "axioms": [
         "Classical.choice",
@@ -2026,7 +2038,7 @@
     {
       "name": "DeliveryProofs.request_credit_total",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 209,
+      "line": 229,
       "statement": "theorem request_credit_total (g p : U64) (d : Bool) :\n    ∃ b, delivery.request_credit g p d = ok b",
       "axioms": [
         "Classical.choice",
@@ -2038,7 +2050,7 @@
     {
       "name": "DeliveryProofs.task_slot_eq",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 212,
+      "line": 232,
       "statement": "theorem task_slot_eq (n : U64) :\n    delivery.task_slot n = ok (decide (n.val < 64))",
       "axioms": [
         "Classical.choice",
@@ -2050,7 +2062,7 @@
     {
       "name": "DeliveryProofs.tasks_bounded",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 215,
+      "line": 235,
       "statement": "theorem tasks_bounded (n : U64) (h : delivery.task_slot n = ok true) : n.val + 1 ≤ 64",
       "axioms": [
         "Classical.choice",
@@ -2062,7 +2074,7 @@
     {
       "name": "DeliveryProofs.encode_eq",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 219,
+      "line": 239,
       "statement": "theorem encode_eq (e : Bool) (n : U64) (s : U16) (m p r c t x : Bool) :\n    delivery.encode_allowed e n s m p r c t x = ok (decide\n      (e = true ∧ 1024 ≤ n.val ∧ n.val ≤ 4194304 ∧ s.val = 200 ∧ m = true ∧\n       p = false ∧ r = false ∧ c = false ∧ t = false ∧ x = true))",
       "axioms": [
         "Classical.choice",
@@ -2074,7 +2086,7 @@
     {
       "name": "DeliveryProofs.encode_safe",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 226,
+      "line": 246,
       "statement": "theorem encode_safe (e : Bool) (n : U64) (s : U16) (m p r c t x : Bool)\n    (h : delivery.encode_allowed e n s m p r c t x = ok true) :\n    n.val ≤ 4194304 ∧ p = false ∧ r = false ∧ c = false ∧ t = false",
       "axioms": [
         "Classical.choice",
@@ -2086,7 +2098,7 @@
     {
       "name": "DeliveryProofs.encode_total",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 232,
+      "line": 252,
       "statement": "theorem encode_total (e : Bool) (n : U64) (s : U16) (m p r c t x : Bool) :\n    ∃ b, delivery.encode_allowed e n s m p r c t x = ok b",
       "axioms": [
         "Classical.choice",
@@ -2098,7 +2110,7 @@
     {
       "name": "DeliveryProofs.multiplex_eq",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 235,
+      "line": 255,
       "statement": "theorem multiplex_eq (a n t : U64) (d : Bool) :\n    delivery.multiplex_slot a n t d = ok (decide (d = false ∧ a.val < 32 ∧ n.val < 100 ∧ t.val < 120000))",
       "axioms": [
         "Classical.choice",
@@ -2110,7 +2122,7 @@
     {
       "name": "DeliveryProofs.multiplex_bounded",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 240,
+      "line": 260,
       "statement": "theorem multiplex_bounded (a n t : U64) (d : Bool)\n    (h : delivery.multiplex_slot a n t d = ok true) :\n    a.val + 1 ≤ 32 ∧ n.val + 1 ≤ 100 ∧ t.val < 120000 ∧ d = false",
       "axioms": [
         "Classical.choice",
@@ -2122,7 +2134,7 @@
     {
       "name": "DeliveryProofs.multiplex_total",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 247,
+      "line": 267,
       "statement": "theorem multiplex_total (a n t : U64) (d : Bool) :\n    ∃ b, delivery.multiplex_slot a n t d = ok b",
       "axioms": [
         "Classical.choice",
@@ -2134,7 +2146,7 @@
     {
       "name": "DeliveryProofs.early_eq",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 250,
+      "line": 270,
       "statement": "theorem early_eq (c r p : Bool) (n : U64) (s : Bool) :\n    delivery.early_allowed c r p n s = ok (decide (c = true ∨ (r = true ∧ p = true ∧ n.val = 0 ∧ s = false)))",
       "axioms": [
         "Classical.choice",
@@ -2146,7 +2158,7 @@
     {
       "name": "DeliveryProofs.early_only_published_reads",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 255,
+      "line": 275,
       "statement": "theorem early_only_published_reads (r p : Bool) (n : U64) (s : Bool)\n    (h : delivery.early_allowed false r p n s = ok true) :\n    r = true ∧ p = true ∧ n.val = 0 ∧ s = false",
       "axioms": [
         "Classical.choice",
@@ -2158,7 +2170,7 @@
     {
       "name": "DeliveryProofs.early_no_proxy",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 259,
+      "line": 279,
       "statement": "theorem early_no_proxy (r : Bool) (n : U64) (s : Bool) :\n    delivery.early_allowed false r false n s = ok false",
       "axioms": [
         "Classical.choice",
@@ -2170,7 +2182,7 @@
     {
       "name": "DeliveryProofs.early_total",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 262,
+      "line": 282,
       "statement": "theorem early_total (c r p : Bool) (n : U64) (s : Bool) :\n    ∃ b, delivery.early_allowed c r p n s = ok b",
       "axioms": [
         "Classical.choice",
@@ -2182,7 +2194,7 @@
     {
       "name": "DeliveryProofs.wire_eq",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 265,
+      "line": 285,
       "statement": "theorem wire_eq (u n l : U64) :\n    delivery.wire_fits u n l = ok (decide (l.val ≤ 134283264 ∧ u.val + n.val ≤ l.val))",
       "axioms": [
         "Classical.choice",
@@ -2194,7 +2206,7 @@
     {
       "name": "DeliveryProofs.wire_bounded",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 277,
+      "line": 297,
       "statement": "theorem wire_bounded (u n l : U64) (h : delivery.wire_fits u n l = ok true) :\n    u.val + n.val ≤ l.val ∧ l.val ≤ 134283264 ∧ u.val + n.val < 2^64",
       "axioms": [
         "Classical.choice",
@@ -2206,7 +2218,7 @@
     {
       "name": "DeliveryProofs.wire_total",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 282,
+      "line": 302,
       "statement": "theorem wire_total (u n l : U64) :\n    ∃ b, delivery.wire_fits u n l = ok b",
       "axioms": [
         "Classical.choice",
@@ -2218,7 +2230,7 @@
     {
       "name": "DeliveryProofs.cancel_slot_eq",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 285,
+      "line": 305,
       "statement": "theorem cancel_slot_eq (n t : U64) :\n    delivery.cancel_slot n t = ok (decide (n.val < 256 ∧ t.val < 120000))",
       "axioms": [
         "Classical.choice",
@@ -2230,7 +2242,7 @@
     {
       "name": "DeliveryProofs.cancelled_heads_bounded",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 290,
+      "line": 310,
       "statement": "theorem cancelled_heads_bounded (n t : U64)\n    (h : delivery.cancel_slot n t = ok true) :\n    n.val + 1 ≤ 256 ∧ t.val < 120000 ∧ n.val + 1 < 2^64",
       "axioms": [
         "Classical.choice",
@@ -2242,7 +2254,7 @@
     {
       "name": "DeliveryProofs.cancel_slot_total",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 296,
+      "line": 316,
       "statement": "theorem cancel_slot_total (n t : U64) :\n    ∃ b, delivery.cancel_slot n t = ok b",
       "axioms": [
         "Classical.choice",
@@ -2254,7 +2266,7 @@
     {
       "name": "DeliveryProofs.multiplex_refusal_is_retirement",
       "source": "proofs/DeliveryProofs.lean",
-      "line": 299,
+      "line": 319,
       "statement": "theorem multiplex_refusal_is_retirement (a n t : U64) (d : Bool)\n    (ha : a.val < 32) (h : delivery.multiplex_slot a n t d = ok false) :\n    d = true ∨ 100 ≤ n.val ∨ 120000 ≤ t.val",
       "axioms": [
         "Classical.choice",

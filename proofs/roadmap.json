@@ -653,10 +653,11 @@
       "title": "通常のHTTP/1.1要求で接続を再利用する",
       "priority": "P1",
       "status": "proved",
-      "acceptance": "closeとupgradeは再利用を許さず、静止・回数・経過時間・世代再検査の既存条件を保つ。",
+      "acceptance": "closeとupgradeは再利用を許さず、停止・回数・経過時間の制限を保つ。再利用後の静的ファイルの許可には、その要求で選んだ公開規則にURLと対象の一致が必要。Linux実ソケットで接続中のURL撤回を検査する。",
       "theorems": [
         "DeliveryProofs.http1_persistence_exact",
         "DeliveryProofs.http1_close_blocks_reuse",
+        "DeliveryProofs.reused_grant_requires_current_mapping",
         "DeliveryProofs.reuse_no_draining",
         "DeliveryProofs.reuse_bounded"
       ]

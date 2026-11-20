@@ -82,8 +82,10 @@ valid on a static site and survives managed configuration generation/reload.
   `Connection: close` ends reuse. Errors, redirects and upgrades can close.
   No pipelining is supported. A connection is limited to 100
   exchanges, 120 seconds lifetime and five seconds idle. Reuse charges another
-  rate credit and takes a fresh configuration snapshot. Response framing is
-  complete before the next request is dispatched; POST is never replayed.
+  rate credit and takes a fresh configuration snapshot. Withdrawing a published
+  URL takes effect on the next exchange on an existing connection. Linux tests
+  this case even when another URL still publishes the same file. Each response
+  is framed before the next request is dispatched. POST is never replayed.
 - Normal TLS advertises `h2` and `http/1.1`. HTTP/2 uses at most 32 streams per
   connection, a 16 KiB header-list/stream window, 4 KiB HPACK table, 65,535-byte
   connection window, bounded resets and 16 KiB send buffers. Each stream charges

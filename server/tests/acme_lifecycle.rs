@@ -261,7 +261,8 @@ fn failed_group_does_not_block_another_groups_renewal() {
             )
         })
         .collect::<String>();
-    let config = ParsedConfig::parse(&text).unwrap().compile().unwrap();
+    let parsed = ParsedConfig::parse(&text).unwrap();
+    let config = parsed.compile().unwrap();
     let cache = temp.0.join("cache");
     let make = |order: [&str; 2]| {
         Groups::new(
