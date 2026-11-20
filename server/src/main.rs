@@ -380,12 +380,10 @@ fn run_service(
                     .name("pathward-monitor".into())
                     .spawn_scoped(scope, || {
                         let _stop = StopWorker(&signals.shutdown);
-                        let result = control::monitor(
+                        let result = control::monitor_groups(
                             listener,
                             server,
-                            identity
-                                .as_deref()
-                                .map(|i| i as &dyn tls::CertificateStatus),
+                            identity.as_deref(),
                             &signals.shutdown,
                             &done,
                         );

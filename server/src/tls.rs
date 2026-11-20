@@ -205,19 +205,6 @@ impl Identity {
 pub struct IdentitySet {
     groups: Vec<Arc<Identity>>,
 }
-pub trait CertificateStatus {
-    fn validity_interval(&self) -> Option<(u64, u64)>;
-}
-impl CertificateStatus for Identity {
-    fn validity_interval(&self) -> Option<(u64, u64)> {
-        self.certificate_times()
-    }
-}
-impl CertificateStatus for IdentitySet {
-    fn validity_interval(&self) -> Option<(u64, u64)> {
-        self.certificate_times()
-    }
-}
 impl IdentitySet {
     pub fn new(groups: Vec<Arc<Identity>>) -> io::Result<Self> {
         let mut names = std::collections::BTreeSet::new();
