@@ -39,7 +39,7 @@ with tempfile.TemporaryDirectory(prefix="pathward-smoke-") as temporary:
             ("POST", "/", 405, b""),
         ]:
             with socket.create_connection(("127.0.0.1", port), timeout=5) as stream:
-                stream.sendall(f"{method} {path} HTTP/1.1\r\nHost: example.com\r\n\r\n".encode())
+                stream.sendall(f"{method} {path} HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n".encode())
                 chunks = []
                 while chunk := stream.recv(8192):
                     chunks.append(chunk)

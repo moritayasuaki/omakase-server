@@ -103,7 +103,10 @@ with tempfile.TemporaryDirectory(prefix='pathward-streams-') as temporary, socke
                 backend.settimeout(3)
                 head(backend)
                 backend.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK')
-            assert receive(ordinary).endswith(b'OK')
+            ordinary_head = head(ordinary)
+            assert ordinary_head.startswith(b'HTTP/1.1 200 ')
+            assert b'\r\nContent-Length: 2\r\n' in ordinary_head
+            assert exact(ordinary, 2) == b'OK'
         replace(1)
         process.send_signal(signal.SIGHUP)
         event('reload_committed')
