@@ -8,6 +8,7 @@ import ContractMigrationProofs
 import CutoverProofs
 import DeliveryProofs
 import GuardUpgradeProofs
+import LinuxProofs
 import PathwardProofs
 import PlanMigrationProofs
 import PlatformProofs
@@ -256,6 +257,20 @@ import UpstreamProofs
 #print axioms GuardUpgradeProofs.retries_are_idempotent
 #print axioms GuardUpgradeProofs.interrupted_activation_preserves_safe
 #print axioms GuardUpgradeProofs.upgrade_preserves_application
+#print axioms LinuxProofs.all_emitted_guard_paths_are_scoped
+#print axioms LinuxProofs.callback_returns_or_unwinds_through_both_drops
+#print axioms LinuxProofs.acquire_after_publication_observes_complete_record
+#print axioms LinuxProofs.sleep_advances_only_boot_age
+#print axioms LinuxProofs.long_suspend_can_preserve_fresh_probe
+#print axioms LinuxProofs.instant_delta_within_kernel_brackets
+#print axioms LinuxProofs.first_report_retains_errno
+#print axioms LinuxProofs.first_report_retains_partial_count
+#print axioms LinuxProofs.fatal_first_report_spends_grant_with_original_cause
+#print axioms LinuxProofs.retryable_first_report_requires_live_generation
+#print axioms LinuxProofs.stopped_preserves_errno_and_suffix
+#print axioms LinuxProofs.foreign_socket_is_rejected
+#print axioms LinuxProofs.retryable_report_keeps_socket_cursor
+#print axioms LinuxProofs.fatal_after_partial_preserves_exact_unaccepted_suffix
 #print axioms PathwardProofs.name_byte_eq
 #print axioms PathwardProofs.step_eq
 #print axioms PathwardProofs.accepting_eq

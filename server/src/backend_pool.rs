@@ -1,8 +1,8 @@
 //! Local replica selection and the first application write. Probes carry no client data.
 use crate::{async_http, http, proxy};
 use pathward::upstream::{
-    FirstIo, FirstWriteGate, FirstWriter, PoolHealth, fresh_health, guarded_first_write,
-    healthy_response, pool_select, pool_tick, publish_health, retire_pool,
+    FirstIo, FirstWriteGate, FirstWriter, PoolHealth, first_write_report, fresh_health,
+    guarded_first_write, healthy_response, pool_select, pool_tick, publish_health, retire_pool,
 };
 use std::{
     io::{self, Write},
@@ -44,21 +44,10 @@ struct SocketWrite<'a> {
 }
 impl FirstWriter for SocketWrite<'_> {
     fn write_once(&mut self) -> FirstIo {
-        match self.socket.write(self.head) {
-            Ok(n) => FirstIo::Written(n),
-            Err(e)
-                if matches!(
-                    e.kind(),
-                    io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
-                ) =>
-            {
-                FirstIo::Wait
-            }
-            Err(e) => {
-                self.error = Some(e);
-                FirstIo::Failed
-            }
-        }
+        let (event, error) =
+            first_write_report(async_http::write_report(self.socket.write(self.head)));
+        self.error = error;
+        event
     }
 }
 
@@ -231,32 +220,35 @@ impl Pool {
         #[cfg(test)]
         self.notify(WritePoint::Connected);
         loop {
-            let outcome = {
-                let retired = self.retired.lock().map_err(|_| http::Rejection(503))?;
-                let health = member.health.lock().map_err(|_| http::Rejection(503))?;
-                http::remaining(deadline).map_err(|_| http::Rejection(504))?;
-                let gate = FirstWriteGate {
-                    peer: key(peer),
-                    health: *health,
-                    now: self.now(),
-                    draining: member.draining,
-                    retired: *retired,
-                };
-                let mut writer = SocketWrite {
-                    socket,
-                    head,
-                    error: None,
-                };
-                let outcome = guarded_first_write(&self.keys, index, &gate, sent, &mut writer);
-                if let Some(error) = writer.error {
-                    return Err(proxy::failure(error));
-                }
-                #[cfg(test)]
-                if matches!(outcome, Some(FirstIo::Written(_))) {
-                    self.notify(WritePoint::Written);
-                }
-                outcome
-            };
+            let outcome = crate::pool_locks::with_snapshot(
+                &self.retired,
+                &member.health,
+                |retired, health| {
+                    http::remaining(deadline).map_err(|_| http::Rejection(504))?;
+                    let gate = FirstWriteGate {
+                        peer: key(peer),
+                        health: *health,
+                        now: self.now(),
+                        draining: member.draining,
+                        retired: *retired,
+                    };
+                    let mut writer = SocketWrite {
+                        socket,
+                        head,
+                        error: None,
+                    };
+                    let outcome = guarded_first_write(&self.keys, index, &gate, sent, &mut writer);
+                    if let Some(error) = writer.error {
+                        return Err(proxy::failure(error));
+                    }
+                    #[cfg(test)]
+                    if matches!(outcome, Some(FirstIo::Written(_))) {
+                        self.notify(WritePoint::Written);
+                    }
+                    Ok(outcome)
+                },
+            )
+            .ok_or(http::Rejection(503))??;
             match outcome {
                 None => return Ok(None),
                 Some(FirstIo::Written(count)) => return Ok(Some(count)),

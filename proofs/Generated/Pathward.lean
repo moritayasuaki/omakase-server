@@ -3454,14 +3454,28 @@ inductive upstream.FirstIo where
 | Written : Std.Usize → upstream.FirstIo
 | Failed : upstream.FirstIo
 
+/-- [pathward::upstream::first_write_report]:
+    Source: 'src/upstream.rs', lines 139:0-145:1
+    Visibility: public -/
+def upstream.first_write_report
+  {E : Type} (report : core.result.Result (Option Std.Usize) E) :
+  RustM (upstream.FirstIo × (Option E))
+  := do
+  match report with
+  | core.result.Result.Ok o =>
+    match o with
+    | none => ok (upstream.FirstIo.Wait, none)
+    | some n => ok (upstream.FirstIo.Written n, none)
+  | core.result.Result.Err e => ok (upstream.FirstIo.Failed, some e)
+
 /-- Trait declaration: [pathward::upstream::FirstWriter]
-    Source: 'src/upstream.rs', lines 139:0-141:1
+    Source: 'src/upstream.rs', lines 149:0-151:1
     Visibility: public -/
 structure upstream.FirstWriter (Self : Type) where
   write_once : Self → RustM (upstream.FirstIo × Self)
 
 /-- [pathward::upstream::guarded_first_write]:
-    Source: 'src/upstream.rs', lines 143:0-162:1
+    Source: 'src/upstream.rs', lines 153:0-172:1
     Visibility: public -/
 def upstream.guarded_first_write
   {W : Type} (FirstWriterInst : upstream.FirstWriter W)

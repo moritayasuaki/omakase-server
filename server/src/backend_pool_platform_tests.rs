@@ -2,9 +2,15 @@ use super::*;
 use crate::http::Transport;
 use std::sync::TryLockError;
 
+#[cfg(target_os = "linux")]
+#[path = "pool_linux_tests.rs"]
+mod linux;
+
 // Observe the real nonblocking TcpStream without synthesizing a write result.
 struct ObservedSocket {
     stream: TcpStream,
+    #[cfg(target_os = "linux")]
+    cookie: u64,
     left: usize,
     writes: usize,
     waits: usize,
@@ -20,6 +26,11 @@ impl Read for ObservedSocket {
 impl Write for ObservedSocket {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         assert_eq!(buf.len(), self.left);
+        #[cfg(target_os = "linux")]
+        assert_eq!(
+            rustix::net::sockopt::socket_cookie(&self.stream)?,
+            self.cookie
+        );
         let result = self.stream.write(buf);
         match &result {
             Ok(n) => {
@@ -58,6 +69,8 @@ fn partial_write_and_would_block_preserve_the_exact_stream_across_retirement() {
     assert!(probe(&pool, &listener, 204));
     let mut socket = TcpStream::connect(addr).unwrap();
     socket.set_nonblocking(true).unwrap();
+    #[cfg(target_os = "linux")]
+    let cookie = rustix::net::sockopt::socket_cookie(&socket).unwrap();
     let (mut peer, client) = listener.accept().unwrap();
     assert_eq!(socket.local_addr().unwrap(), client);
     assert_eq!(socket.peer_addr().unwrap(), addr);
@@ -94,6 +107,8 @@ fn partial_write_and_would_block_preserve_the_exact_stream_across_retirement() {
             assert!(sent && first > 0 && first < bytes.len());
             let mut observed = ObservedSocket {
                 stream: socket,
+                #[cfg(target_os = "linux")]
+                cookie,
                 left: bytes.len() - first,
                 writes: 0,
                 waits: 0,

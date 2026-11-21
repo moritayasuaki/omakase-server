@@ -51,6 +51,9 @@ def registry(entries, axiom_map):
             raise SystemExit(f"Proved goal has no theorem: {goal['id']}")
     if not set(roadmap["model_only_theorems"]) <= names:
         raise SystemExit("Unknown model-only theorem")
+    mir = set(roadmap["pinned_mir_theorems"])
+    if not mir <= names or mir.intersection(roadmap["model_only_theorems"]):
+        raise SystemExit("Unknown or conflicting MIR theorem scope")
     modules = {entry["name"].split(".")[0] for entry in entries}
     if set(roadmap["areas"]) != modules:
         raise SystemExit("Proof area descriptions do not match modules")
@@ -58,9 +61,13 @@ def registry(entries, axiom_map):
     for entry in entries:
         entry = dict(entry, axioms=sorted(axiom_map[entry["name"]]))
         entry["scope"] = "transition_model" if entry["name"] in roadmap["model_only_theorems"] else "rust_contract_or_lemma"
+        if entry["name"] in mir:
+            entry["scope"] = "pinned_rust_mir"
         result.append(entry)
     source_files = sorted([*PROOFS.glob("*Proofs.lean"), *ROOT.glob("src/*.rs"),
-                           PROOFS / "Generated/Pathward.lean", ROOT / "scripts/extract.py"])
+                           *(PROOFS / "Generated").glob("*.lean"), ROOT / "scripts/extract.py",
+                           ROOT / "scripts/pool_guard_paths.mjs", ROOT / "server/src/pool_locks.rs",
+                           ROOT / "audit/pool-linux-target.json"])
     return {"schema": 1, "lean_toolchain": (PROOFS / "lean-toolchain").read_text().strip(),
             "theorem_count": len(result),
             "axiom_free_count": sum(not entry["axioms"] for entry in result),
