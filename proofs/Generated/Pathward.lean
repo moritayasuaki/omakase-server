@@ -3309,4 +3309,137 @@ def upstream.pool_select
 def upstream.begin_dispatch (sent : Bool) : RustM (Bool × Bool) := do
   ok (¬ sent, true)
 
+/-- [pathward::upstream::PoolHealth]
+    Source: 'src/upstream.rs', lines 50:0-54:1
+    Visibility: public -/
+structure upstream.PoolHealth where
+  revision : Std.U64
+  «at» : Std.U64
+  status : Std.U16
+
+/-- [pathward::upstream::publish_health]:
+    Source: 'src/upstream.rs', lines 56:0-65:1
+    Visibility: public -/
+def upstream.publish_health
+  (old : upstream.PoolHealth) (expected : Std.U64) (now : Std.U64)
+  (status : Std.U16) :
+  RustM upstream.PoolHealth
+  := do
+  if expected != old.revision
+  then ok old
+  else
+    if expected = core.num.U64.MAX
+    then ok old
+    else
+      if now < old.at
+      then ok old
+      else
+        let i ← expected + 1#u64
+        ok { revision := i, «at» := now, status }
+
+/-- [pathward::upstream::fresh_health]:
+    Source: 'src/upstream.rs', lines 67:0-73:1
+    Visibility: public -/
+def upstream.fresh_health
+  (h : upstream.PoolHealth) (now : Std.U64) : RustM Bool := do
+  if h.revision != 0#u64
+  then
+    if h.revision != core.num.U64.MAX
+    then
+      if now != core.num.U64.MAX
+      then
+        if now >= h.at
+        then let i ← now - h.at
+             ok (i < 5000000000#u64)
+        else ok false
+      else ok false
+    else ok false
+  else ok false
+
+/-- [pathward::upstream::healthy_response]:
+    Source: 'src/upstream.rs', lines 76:0-78:1
+    Visibility: public -/
+def upstream.healthy_response (status : Std.U16) : RustM Bool := do
+  if status >= 200#u16
+  then ok (status < 300#u16)
+  else ok false
+
+/-- [pathward::upstream::retire_pool]:
+    Source: 'src/upstream.rs', lines 80:0-82:1
+    Visibility: public -/
+def upstream.retire_pool (retired : Bool) : RustM Bool := do
+  ok true
+
+/-- [pathward::upstream::FirstWriteGate]
+    Source: 'src/upstream.rs', lines 84:0-90:1
+    Visibility: public -/
+structure upstream.FirstWriteGate where
+  peer : Std.U32
+  health : upstream.PoolHealth
+  now : Std.U64
+  draining : Bool
+  retired : Bool
+
+/-- [pathward::upstream::first_write_allowed]:
+    Source: 'src/upstream.rs', lines 92:0-101:1
+    Visibility: public -/
+def upstream.first_write_allowed
+  (members : Slice Std.U32) (index : Std.Usize)
+  (gate : upstream.FirstWriteGate) (sent : Bool) :
+  RustM Bool
+  := do
+  let b ← upstream.fresh_health gate.health gate.now
+  let ready ←
+    if b
+    then upstream.healthy_response gate.health.status
+    else ok false
+  if gate.peer != 0#u32
+  then
+    let b1 ← if gate.draining
+               then ok true
+               else ok gate.retired
+    let i ← upstream.pool_select members index ready b1 sent
+    ok (i = gate.peer)
+  else ok false
+
+/-- [pathward::upstream::FirstIo]
+    Source: 'src/upstream.rs', lines 104:0-108:1
+    Visibility: public -/
+@[discriminant isize]
+inductive upstream.FirstIo where
+| Wait : upstream.FirstIo
+| Written : Std.Usize → upstream.FirstIo
+| Failed : upstream.FirstIo
+
+/-- Trait declaration: [pathward::upstream::FirstWriter]
+    Source: 'src/upstream.rs', lines 112:0-114:1
+    Visibility: public -/
+structure upstream.FirstWriter (Self : Type) where
+  write_once : Self → RustM (upstream.FirstIo × Self)
+
+/-- [pathward::upstream::guarded_first_write]:
+    Source: 'src/upstream.rs', lines 116:0-135:1
+    Visibility: public -/
+def upstream.guarded_first_write
+  {W : Type} (FirstWriterInst : upstream.FirstWriter W)
+  (members : Slice Std.U32) (index : Std.Usize)
+  (gate : upstream.FirstWriteGate) (sent : Bool) (writer : W) :
+  RustM ((Option upstream.FirstIo) × Bool × W)
+  := do
+  let b ← upstream.first_write_allowed members index gate sent
+  if b
+  then
+    let (outcome, writer1) ← FirstWriterInst.write_once writer
+    match outcome with
+    | upstream.FirstIo.Wait => ok (some upstream.FirstIo.Wait, sent, writer1)
+    | upstream.FirstIo.Written i =>
+      let (_, sent1) ← upstream.begin_dispatch sent
+      match i.val with
+      | 0 => ok (some upstream.FirstIo.Failed, sent1, writer1)
+      | _ => ok (some outcome, sent1, writer1)
+    | upstream.FirstIo.Failed =>
+      let (_, sent1) ← upstream.begin_dispatch sent
+      ok (some upstream.FirstIo.Failed, sent1, writer1)
+  else ok (none, sent, writer)
+
 end pathward

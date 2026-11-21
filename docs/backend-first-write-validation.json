@@ -1,0 +1,71 @@
+{
+  "date_utc": "2026-11-21",
+  "base_revision": "3dc456d09de522c22dafbc948238f7c203712e79",
+  "environment": {
+    "guest": "Ubuntu 24.04 x86_64, Linux 6.8.0-147-generic",
+    "network": "QEMU with no network device; only guest loopback was up",
+    "process": "nobody:nogroup (65534:65534)",
+    "test_binary_sha256": "07b4fe2871ef42d59b3c13b8a3f4eda86197522d0391ae80dc29c0f264d5624d"
+  },
+  "source_sha256": {
+    "src/upstream.rs": "2293316a2f14c47905b4e0577ed43446b15857be7b3de3d89ee89139918aa04f",
+    "server/src/backend_pool.rs": "b3e1923b89694b27c1adb4b91bc3d7bd1600eda47bce34252c3d4080e683bc61",
+    "server/src/proxy.rs": "427585470a46784bf3c2495f940c54f08c4434875cc5860babd49bd19253c88e",
+    "proofs/Generated/Pathward.lean": "c7241f43355c7b7a7e357e9e53ba0696877b31698208600ce05a121cff5278c6"
+  },
+  "staging": {
+    "suite": "cargo +1.99.1 test --offline --locked --manifest-path server/Cargo.toml --lib backend_pool -- --test-threads=1 --nocapture",
+    "suite_passed": 10,
+    "suite_failed": 0,
+    "additional_race_repetitions": {"retirement_first": 8, "write_first": 8, "failed": 0},
+    "schedule_control": "Per-pool test barriers pause real operations at the connected socket, a parsed probe response, or just after the first write. The same production locks, TCP write, reload entry point and single-request state execute in each ordering.",
+    "cases": [
+      {
+        "test": "drain_after_dial_before_first_write_leaves_old_socket_empty",
+        "order": "A connected, reload retired A, then the POST resumed",
+        "old_http": 503, "old_peer_request_bytes": 0,
+        "subsequent_http": 200, "durable_posts": {"A": [], "B": ["new"]}
+      },
+      {
+        "test": "drain_contending_with_first_socket_write_preserves_only_its_exchange",
+        "order": "A accepted the first write, reload reached the contested lock, then the write released it",
+        "old_http": 200, "subsequent_http": 200,
+        "durable_posts": {"A": ["old"], "B": ["new"]}
+      },
+      {
+        "test": "full_tcp_send_buffer_rechecks_drain_before_retrying",
+        "order": "The TCP send buffer was filled with counted fixture bytes. The first application write returned WouldBlock and the generation retired before the next attempt.",
+        "peer_application_bytes": 0, "peer_prefill_bytes_verified": 2711168
+      },
+      {
+        "test": "real_negative_probe_after_dial_prevents_the_first_write",
+        "order": "An accepted TCP connection waited while its 204 sample expired and a real health GET returned 503. The first write then examined that negative sample.",
+        "peer_request_bytes": 0
+      },
+      {
+        "test": "delayed_successful_probe_cannot_overwrite_a_newer_real_connect_failure",
+        "order": "A fresh probe parsed HTTP 200. Before it could publish, the application dial actually failed. Resuming the older probe preserved the new unhealthy revision.",
+        "http_rejection": 503, "dispatched": false
+      }
+    ],
+    "regressions": "The same suite covers refused connects, response loss after a durable POST, route membership, drain and background recovery."
+  },
+  "proof_audit": {
+    "command": "make proof-check",
+    "lean": "4.31.0",
+    "new_statements": 18,
+    "total_statements": 650,
+    "axiom_free": 102,
+    "axioms_added": [],
+    "axiom_counts": {"Classical.choice": 438, "Quot.sound": 438, "propext": 548},
+    "scope": "The extracted Rust driver is quantified over the state and return value of its writer effect. Denial preserves the writer state. Authorization executes the effect exactly once. Retirement and health publication serialize with the call in the adapter.",
+    "platform_boundary": "Mutex exclusion, the identity of the connected descriptor, the monotonic sample under both locks and the OS semantics of the single nonblocking write are trusted. A valid snapshot does not guarantee the backend survives until delivery. A separate client retry requires application deduplication."
+  },
+  "dependency_audit": {
+    "checked_at": "2026-11-21T03:24:55Z",
+    "auditor": "cargo-audit 0.22.2",
+    "rustsec_database": "f291af9b1cc0d21dfcea1709d6b037963cef262b",
+    "external_packages": {"core": 0, "configuration": 8, "http_server": 156, "native_administrator": 36, "server_candidate": 107},
+    "added_packages": 0, "known_vulnerabilities": 0, "warnings": 0
+  }
+}

@@ -38,7 +38,7 @@ fn forwarded_authority(req: &Request<'_>, external_port: u16, encrypted: bool) -
 fn invalid() -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, "invalid upstream response")
 }
-fn failure(e: io::Error) -> Rejection {
+pub(crate) fn failure(e: io::Error) -> Rejection {
     Rejection(
         if matches!(
             e.kind(),
@@ -185,19 +185,6 @@ pub(crate) async fn forward_async(
     }
     http::remaining(body_deadline).map_err(|_| Rejection(408))?;
     let deadline = accepted + Duration::from_millis(limits.total_ms);
-    let mut dispatched = false;
-    let mut socket = connect_upstream(
-        upstream,
-        routes,
-        req,
-        local_port,
-        encrypted,
-        external_port,
-        deadline,
-        limits,
-        &mut dispatched,
-    )
-    .await?;
     let method = std::str::from_utf8(req.method).map_err(|_| Rejection(400))?;
     let target = std::str::from_utf8(req.target).map_err(|_| Rejection(400))?;
     let authority = forwarded_authority(req, external_port, encrypted);
@@ -231,7 +218,21 @@ pub(crate) async fn forward_async(
         head.push_str(&format!("X-Forwarded-For: {peer}\r\n"));
     }
     head.push_str("\r\n");
-    crate::async_http::write_all(&mut socket, head.as_bytes(), deadline)
+    let mut dispatched = false;
+    let (mut socket, written) = start_upstream(
+        upstream,
+        routes,
+        req,
+        local_port,
+        encrypted,
+        external_port,
+        deadline,
+        limits,
+        head.as_bytes(),
+        &mut dispatched,
+    )
+    .await?;
+    crate::async_http::write_all(&mut socket, &head.as_bytes()[written..], deadline)
         .await
         .map_err(failure)?;
     crate::async_http::write_all(&mut socket, &body, deadline)
@@ -618,7 +619,7 @@ pub(crate) fn allowed_endpoint(addr: SocketAddr, local_port: u16) -> bool {
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn connect_upstream(
+async fn start_upstream(
     default: Option<SocketAddr>,
     routes: &[UpstreamRoute],
     req: &Request<'_>,
@@ -627,8 +628,9 @@ async fn connect_upstream(
     external_port: u16,
     deadline: Instant,
     limits: ProxyLimits,
+    head: &[u8],
     dispatched: &mut bool,
-) -> Result<TcpStream, Rejection> {
+) -> Result<(TcpStream, usize), Rejection> {
     let path = &req.target[..pathward::serving::path_length(req.target)];
     let route = routes
         .iter()
@@ -648,6 +650,7 @@ async fn connect_upstream(
             .min(Duration::from_millis(limits.connect_ms));
         crate::async_http::connect(addr, timeout)
             .await
+            .map(|socket| (socket, 0))
             .map_err(failure)
     };
     let Some(route) = route else {
@@ -655,10 +658,11 @@ async fn connect_upstream(
     };
     if let Some(pool) = &route.pool {
         return pool
-            .connect(
+            .start(
                 local_port,
                 deadline,
                 Duration::from_millis(limits.connect_ms),
+                head,
                 dispatched,
             )
             .await;
