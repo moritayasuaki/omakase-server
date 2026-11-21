@@ -2,7 +2,7 @@
 use crate::{async_http, http, proxy};
 use pathward::upstream::{
     FirstIo, FirstWriteGate, FirstWriter, PoolHealth, fresh_health, guarded_first_write,
-    healthy_response, pool_select, publish_health, retire_pool,
+    healthy_response, pool_select, pool_tick, publish_health, retire_pool,
 };
 use std::{
     io::{self, Write},
@@ -131,7 +131,11 @@ impl Pool {
     }
 
     fn now(&self) -> u64 {
-        u64::try_from(self.clock.elapsed().as_nanos()).unwrap_or(u64::MAX)
+        pool_tick(
+            Instant::now()
+                .checked_duration_since(self.clock)
+                .map(|d| d.as_nanos()),
+        )
     }
 
     #[cfg(test)]

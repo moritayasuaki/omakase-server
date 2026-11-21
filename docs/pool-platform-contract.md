@@ -1,0 +1,25 @@
+# Local pool writes on Linux
+
+Suppose a POST begins on replica A and its first nonblocking write accepts only part of the request head. PathWard spends the request's dispatch permission at that point. On the same connection it offers the remaining bytes. If the socket fills up, the offset stays put. Retiring A during this wait still permits this exchange to finish. If the first call had returned `WouldBlock` before accepting any bytes, retirement would instead prevent A from starting the exchange. [Rust driver](../src/upstream.rs) · [socket adapter](../server/src/backend_pool.rs) · [continuation](../server/src/async_http.rs)
+
+| Boundary | What Lean checks | What the runtime supplies |
+| --- | --- | --- |
+| Generation and member health | In the lock model the writer acquires generation then health and releases in reverse order. While it owns both, any finite sequence of competing events leaves the snapshot intact. A successful first-write effect requires the owning actor, a live generation and a fresh 2xx observation. | All mutations use the same mutex instances. Acquiring excludes another guard, makes earlier protected writes visible and dropping releases the lock. A health publication in the model stands for a completed protected update. The adapter declines dispatch if either lock reports poison. [Rust mutex contract](https://doc.rust-lang.org/std/sync/struct.Mutex.html) |
+| Health age | The extracted conversion preserves ordered samples up to the reserved maximum. An unavailable or exhausted sample denies dispatch. Once an observation is five seconds old, later ordered samples of that observation cannot make it fresh. | Each pool uses one `Instant` origin and samples under both locks. Linux monotonic samples may be equal. `CLOCK_MONOTONIC` excludes suspended time. A thread can be descheduled between the sample and kernel acceptance. A backwards reading relative to the origin maps to the invalid sentinel. [Rust Instant](https://doc.rust-lang.org/std/time/struct.Instant.html) · [Linux clocks](https://man7.org/linux/man-pages/man2/clock_gettime.2.html) |
+| Nonblocking TCP | A reported positive count consumes exactly that prefix. A retryable error preserves the entire remaining slice. Zero success or an excessive count terminates the transfer. Across any finite successful sequence, accepted bytes followed by the remaining suffix equal the original buffer. A positive first count consumes the grant for every alternate writer. | A successful `write` of length `n` accepts the first `n` offered bytes in order. An error accepts zero. The adapter maps `WouldBlock` and `Interrupted` to no progress, returns other errors, and keeps exclusive use of the same connected stream. The kernel can report a short write and later refuse further progress. [Rust Write](https://doc.rust-lang.org/std/io/trait.Write.html) · [Linux write](https://man7.org/linux/man-pages/man2/write.2.html) · [Linux TCP](https://man7.org/linux/man-pages/man7/tcp.7.html) |
+
+The byte and clock gates are extracted from production Rust. The lock and finite-transfer histories are Lean models over explicit events. Their premises are visible in the theorem statements. The [theorem registry](../proofs/registry.json) records the logical axioms for each proof. The [proof module](../proofs/PlatformProofs.lean) and [roadmap](../proofs/roadmap.json) identify the remaining verification of the Rust standard library and OS adapter.
+
+## Isolated reproduction
+
+Run the following on Linux with the project's pinned server toolchain and reviewed crate cache. The tests open only guest loopback sockets.
+
+```sh
+cargo +1.99.1 test --offline --locked --manifest-path server/Cargo.toml --lib backend_pool -- --test-threads=1 --nocapture
+```
+
+The partial-write fixture offers a position-dependent 16 MiB transport buffer to the same first-write and continuation functions the proxy uses. It holds the reader back until the kernel actually returns `WouldBlock`, retires the pool, then compares every received byte. The reader's socket pair is checked at both ends of the write. A separate prefill test retires the pool after the first application attempt returns `WouldBlock`; the peer compares the prefill and observes zero request bytes. The clock test orders 4,096 observations from four threads and waits for a real health sample to expire. Exact counts and the binary digest are in the [Linux run record](pool-platform-validation.json).
+
+## Remaining guarantees
+
+The mutex contract gives no fairness bound for scheduling a waiter. The five-second threshold applies at the protected clock read. Progress after send-buffer exhaustion depends on the reader, the network and scheduling. The proof covers finite histories, including ones which stop early. Success at the socket reports local acceptance. Determining whether a remote application committed after a lost reply still requires an application receipt or an idempotency protocol. [Linux send semantics](https://man7.org/linux/man-pages/man2/send.2.html)
