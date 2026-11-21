@@ -3277,4 +3277,36 @@ def upstream.query_match (exact : Bool) (ambiguous : Bool) : RustM Bool := do
   then ok true
   else ok ambiguous
 
+/-- [pathward::upstream::pool_select]:
+    Source: 'src/upstream.rs', lines 32:0-38:1
+    Visibility: public -/
+def upstream.pool_select
+  (members : Slice Std.U32) (index : Std.Usize) (ready : Bool)
+  (draining : Bool) (sent : Bool) :
+  RustM Std.U32
+  := do
+  if ready
+  then
+    if draining
+    then ok 0#u32
+    else
+      if sent
+      then ok 0#u32
+      else
+        let i := Slice.len members
+        if i <= 32#usize
+        then
+          let i1 := Slice.len members
+          if index < i1
+          then Slice.index_usize members index
+          else ok 0#u32
+        else ok 0#u32
+  else ok 0#u32
+
+/-- [pathward::upstream::begin_dispatch]:
+    Source: 'src/upstream.rs', lines 41:0-45:1
+    Visibility: public -/
+def upstream.begin_dispatch (sent : Bool) : RustM (Bool × Bool) := do
+  ok (¬ sent, true)
+
 end pathward

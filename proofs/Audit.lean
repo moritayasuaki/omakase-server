@@ -651,3 +651,8 @@ import UpstreamProofs
 #print axioms UpstreamProofs.server_error_is_not_owner
 #print axioms UpstreamProofs.query_eq
 #print axioms UpstreamProofs.encoded_query_applies
+#print axioms UpstreamProofs.pool_closed
+#print axioms UpstreamProofs.pool_selected_member
+#print axioms UpstreamProofs.dispatch_once
+#print axioms UpstreamProofs.dispatched_write_cannot_repeat
+#print axioms UpstreamProofs.dispatched_write_has_no_alternate

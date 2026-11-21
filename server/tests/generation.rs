@@ -176,6 +176,35 @@ fn generation_retains_typed_cache_policy() {
 }
 
 #[test]
+fn generation_retains_pool_members_health_path_drains_and_limits() {
+    let input = ParsedConfig::parse("site \"app.example\" {\ntls \"auto\"\nroot \"/srv/old\"\npublish \"/\" \"index.html\"\nproxy-drain \"/api\" \"[::1]:8001\"\nproxy-pool \"/api\" \"/ready\" \"[::1]:8001,127.0.0.1:8002\"\nproxy-limit \"connections\" \"6\"\n}\n").unwrap();
+    let out = generate(
+        &input.compile().unwrap(),
+        "app.example",
+        "/srv/new",
+        "index.html\n",
+        Some("index.html"),
+    )
+    .unwrap();
+    let parsed = ParsedConfig::parse(&out).unwrap();
+    let compiled = parsed.compile().unwrap();
+    let site = &compiled.sites()[0];
+    assert!(site.upstream().is_none());
+    assert_eq!(site.proxy_limits().connections, 6);
+    let rule = &site.proxy_routes()[0];
+    assert_eq!(rule.health_path, Some("/ready"));
+    assert_eq!(rule.prefix, "/api");
+    assert_eq!(
+        rule.candidates
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>(),
+        ["[::1]:8001", "127.0.0.1:8002"]
+    );
+    assert_eq!(rule.drained, rule.candidates[..1]);
+}
+
+#[test]
 fn generation_retains_upstream_ownership_routes_and_header_scopes() {
     let p=ParsedConfig::parse("site \"app.example\" {\nroot \"/srv/www\"\ntls \"auto\"\npublish \"/\" \"index.html\"\nreverse-proxy \"127.0.0.1:3000\"\nproxy-route \"/feedback\" \"127.0.0.1:3002\"\nproxy-resource \"/rooms\" \"12\" \"127.0.0.1:3000,127.0.0.1:3001\"\nheader-prefix \"/rooms\" \"x-robots-tag\" \"noindex\"\nheader-query \"room\" \"x-robots-tag\" \"noindex\"\n}\n").unwrap();
     let out = generate(

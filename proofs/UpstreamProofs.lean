@@ -53,4 +53,45 @@ theorem query_eq (e a : Bool) : upstream.query_match e a = ok (e || a) := by
   cases e <;> cases a <;> rfl
 
 theorem encoded_query_applies (e : Bool) : upstream.query_match e true = ok true := by simp [query_eq]
+
+theorem pool_closed (m : Slice U32) (i : Usize) (r d s : Bool)
+    (h : r = false ∨ d = true ∨ s = true) :
+    upstream.pool_select m i r d s = ok 0#u32 := by
+  rcases h with h | h | h
+  · subst r; rfl
+  · subst d; cases r <;> rfl
+  · subst s; cases r <;> cases d <;> rfl
+
+theorem pool_selected_member (m : Slice U32) (i : Usize) (r d s : Bool) (out : U32)
+    (select : upstream.pool_select m i r d s = ok out) (nonzero : out ≠ 0#u32) :
+    out ∈ m.val ∧ r = true ∧ d = false ∧ s = false := by
+  by_cases closed : r = false ∨ d = true ∨ s = true
+  · rw [pool_closed m i r d s closed] at select
+    simp_all
+  · have hr : r = true := by cases r <;> simp_all
+    have hd : d = false := by cases d <;> simp_all
+    have hs : s = false := by cases s <;> simp_all
+    subst r; subst d; subst s
+    by_cases cap : Slice.len m ≤ 32#usize
+    · by_cases bound : i < Slice.len m
+      · have hi : i.val < m.val.length := by simpa using bound
+        have eq : m.val[i.val] = out := by
+          simpa [upstream.pool_select, cap, bound, PathwardProofs.index_eq m i hi] using select
+        exact ⟨eq ▸ List.getElem_mem hi, rfl, rfl, rfl⟩
+      · simp_all [upstream.pool_select]
+    · simp_all [upstream.pool_select]
+
+theorem dispatch_once (before : Bool) :
+    upstream.begin_dispatch before = ok (!before, true) := by cases before <;> rfl
+
+theorem dispatched_write_cannot_repeat (before after : Bool)
+    (h : upstream.begin_dispatch before = ok (true, after)) :
+    upstream.begin_dispatch after = ok (false, true) := by
+  cases before <;> cases after <;> first | rfl | cases h
+
+theorem dispatched_write_has_no_alternate (m : Slice U32) (i : Usize) (r d before after : Bool)
+    (h : upstream.begin_dispatch before = ok (true, after)) :
+    upstream.pool_select m i r d after = ok 0#u32 := by
+  have ha : after = true := by cases before <;> cases after <;> first | rfl | cases h
+  exact pool_closed m i r d after (Or.inr (Or.inr ha))
 end UpstreamProofs

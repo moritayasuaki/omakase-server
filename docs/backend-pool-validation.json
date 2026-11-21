@@ -1,0 +1,69 @@
+{
+  "date_utc": "2026-11-21",
+  "base_revision": "9e3764d769fd4baa14c36cdbd71918bc1df9828c",
+  "staging": {
+    "environment": "Ubuntu 24.04 x86_64, Linux 6.8.0-147-generic, QEMU with no network device; only guest loopback was up",
+    "identity": "nobody:nogroup (65534:65534)",
+    "transport": "Real TCP connections to the PathWard HTTP listener and two independent loopback application listeners. Each application recorded POST bodies in its own file and called sync_data before responding or disconnecting.",
+    "test_binary_sha256": "26b38a903a5d492b9aac1688dcf8a82fd446142e2996e3b5ac6f229f6449f9c5",
+    "fresh_guest_runs": 2,
+    "pool_tests_passed_each_run": 5,
+    "tests": [
+      {
+        "name": "refused_before_send_switches_and_records_one_write",
+        "fault": "A closes its listening socket before returning 204 to the outstanding health check. Its subsequent application connect is refused.",
+        "http_status": 200,
+        "responding_member": "B",
+        "durable_posts": {"A": [], "B": ["move-42"]}
+      },
+      {
+        "name": "lost_response_after_durable_write_does_not_replay",
+        "fault": "A commits the POST and closes its connection before sending any response headers.",
+        "http_status": 502,
+        "durable_posts": {"A": ["move-42"], "B": []},
+        "independent_get": {"member": "B", "http_status": 200}
+      },
+      {
+        "name": "drain_preserves_dispatched_work_and_excludes_new_writes",
+        "observed": "A held its first response during reload and completed it. A previously captured generation refused a new dispatch. B handled the second POST. Draining both returned 503. Reactivating A allowed the fourth POST.",
+        "durable_posts": {"A": ["first", "fourth"], "B": ["second"]}
+      },
+      {
+        "name": "longest_route_owns_its_members_and_an_empty_pool_never_falls_through",
+        "observed": "Healthy members alternated on the parent route. The nested route selected its own member. After draining it, the nested POST returned 503 and all three ledgers were empty."
+      },
+      {
+        "name": "unhealthy_members_are_skipped_and_recover_while_idle",
+        "observed": "With both health endpoints returning 503 the POST was refused. B recovered on a background probe with no new frontend traffic. The next POST was recorded only on B."
+      }
+    ],
+    "reproduce_on_linux": "cargo +1.99.1 test --offline --locked --manifest-path server/Cargo.toml --lib proxy::tests::backend_pool:: -- --test-threads=1 --nocapture"
+  },
+  "publication_staging": {
+    "server_generation_tests_passed": 9,
+    "native_publication_regression": "reviewed_pool_and_drain_survive_publication passed",
+    "entry_points": "Unprivileged pathward-hosting build read the root-owned fixture policy and used the real pathward-server check. The generated KDL contained the complete route membership, health path and drain. A second direct pathward-server check accepted that candidate.",
+    "candidate_sha256": "15b356d1f73fbc505a6b8bf2955083bc9ffad4c2d3269600b6204352c24b8475",
+    "server_binary_sha256": "fae2686716e6b6c2dad22401b93b1d5f3c2d405b01553b3354724af553a89e7b",
+    "hosting_binary_sha256": "5e8b7eec44cbe56a7f262c71139f5691f56daf841870c74f340c4bdd7dbe8b8d"
+  },
+  "proofs": {
+    "command": "make proof-check",
+    "lean": "4.31.0",
+    "named_statements": 632,
+    "axiom_free": 102,
+    "new_statements": 5,
+    "axioms_added": [],
+    "scope": "The extracted Rust selector returns only a ready, undrained member of the supplied route before dispatch. The first dispatch consumes a per-request grant. Later selection and dispatch cannot grant another write for that request.",
+    "open": "Runtime lock, health, and socket correspondence is tracked as LOCAL-POOL-ADAPTER-REFINEMENT in proofs/roadmap.json. Independently retried requests require an application operation ID and deduplication."
+  },
+  "dependencies": {
+    "checked_at": "2026-11-21T02:40:55Z",
+    "auditor": "cargo-audit 0.22.2",
+    "rustsec_database_commit": "f291af9b1cc0d21dfcea1709d6b037963cef262b",
+    "external_packages": {"core": 0, "configuration": 8, "http_server": 156, "native_administrator": 36, "server_candidate": 107},
+    "changed_manifests_lockfiles_or_vendored_sources": [],
+    "known_vulnerabilities": 0,
+    "warnings": 0
+  }
+}

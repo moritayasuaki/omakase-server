@@ -32,6 +32,8 @@ const DIRECTIVES: &[&str] = &[
     "deny",
     "proxy-route",
     "proxy-resource",
+    "proxy-pool",
+    "proxy-drain",
     "reverse-proxy",
     "proxy-limit",
     "proxy-timeout",

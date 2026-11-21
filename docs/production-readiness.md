@@ -109,8 +109,10 @@ advisory scan does not replace integration review.
 
 ## Deliberate limitations
 
-No upstream health checks, general-purpose streaming, arbitrary WebSocket extensions,
-context-takeover compression, automatic load balancing,
+[Local backend pools](reverse-proxy.md#local-backend-pools) provide HTTP health
+checks, round-robin selection and per-route drain for interchangeable replicas.
+Remaining limits include general-purpose streaming, arbitrary WebSocket extensions,
+context-takeover compression, cross-machine load balancing,
 remote HTTPS upstreams, authentication, wildcard
 domains, environment expansion, includes, directory grants or implicit indexes.
 The KDL profile supports ordinary quoted values and line comments, with 1 MiB,

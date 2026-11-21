@@ -183,6 +183,7 @@ impl ParsedConfig {
             let mut denies = Vec::new();
             let mut proxy_paths = Vec::new();
             let mut proxy_routes = Vec::new();
+            let mut drains = std::collections::BTreeMap::new();
             let mut websocket_origins = Vec::new();
             let mut limits = ProxyLimits::default();
             let mut limit_names = std::collections::BTreeSet::new();
@@ -250,10 +251,20 @@ impl ParsedConfig {
                             return Err(self.at(child, "invalid or duplicate proxy limit/timeout"));
                         }
                     }
-                    "proxy-route" | "proxy-resource" => {
-                        let resource = child.name().value() == "proxy-resource";
-                        let v = self.arguments(child, if resource { 3 } else { 2 })?;
-                        let route = ProxyRoute::parse(&v, resource).ok_or_else(|| {
+                    "proxy-drain" => {
+                        let v = self.arguments(child, 2)?;
+                        let endpoints = upstream::endpoints(v[1])
+                            .ok_or_else(|| self.at(child, "invalid drain endpoints"))?;
+                        if drains.len() == MAX_ROUTE_RULES
+                            || drains.insert(v[0], endpoints).is_some()
+                        {
+                            return Err(self.at(child, "duplicate or excessive pool drain"));
+                        }
+                    }
+                    "proxy-route" | "proxy-resource" | "proxy-pool" => {
+                        let kind = child.name().value();
+                        let v = self.arguments(child, if kind == "proxy-route" { 2 } else { 3 })?;
+                        let route = ProxyRoute::parse(&v, kind).ok_or_else(|| {
                             self.at(child, "invalid loopback route or resource probe policy")
                         })?;
                         if proxy_routes.len() == MAX_ROUTE_RULES
@@ -459,14 +470,29 @@ impl ParsedConfig {
                 }
             }
             let tls = tls.ok_or_else(|| self.at(node, "site is missing tls"))?;
-            if upstream.is_some() && redirects.iter().any(|r| r.fallback) {
+            for (prefix, members) in drains {
+                let pool = proxy_routes
+                    .iter_mut()
+                    .find(|r| r.prefix == prefix && r.health_path.is_some())
+                    .ok_or_else(|| self.at(node, "drain must name a configured pool route"))?;
+                if !members
+                    .iter()
+                    .all(|member| pool.candidates.contains(member))
+                {
+                    return Err(self.at(node, "drain endpoint is not a member of that route"));
+                }
+                pool.drained = members;
+            }
+            let has_proxy =
+                upstream.is_some() || proxy_routes.iter().any(|r| r.health_path.is_some());
+            if has_proxy && redirects.iter().any(|r| r.fallback) {
                 return Err(self.at(node, "redirect fallback cannot coexist with a proxy"));
             }
             if !pathward::proxy::site_mode_allowed(
                 root.is_some(),
                 !publications.is_empty(),
                 !redirects.is_empty(),
-                upstream.is_some(),
+                has_proxy,
             ) {
                 return Err(self.at(
                     node,
@@ -480,7 +506,8 @@ impl ParsedConfig {
                         .iter()
                         .any(|(_, key)| key.starts_with("stream-") || *key == "streams"))
                 || !limits.valid()
-                || (upstream.is_none()
+                || (upstream.is_none() && proxy_routes.iter().any(|r| r.health_path.is_none()))
+                || (!has_proxy
                     && (!proxy_paths.is_empty()
                         || !proxy_routes.is_empty()
                         || !limit_names.is_empty()))
@@ -491,7 +518,7 @@ impl ParsedConfig {
                 ));
             }
             if (!publications.is_empty() && rules::compile(&publications).is_none())
-                || (publications.is_empty() && redirects.is_empty() && upstream.is_none())
+                || (publications.is_empty() && redirects.is_empty() && !has_proxy)
             {
                 return Err(self.at(node, "site requires 1 to 4096 valid, distinct publish URLs"));
             }
@@ -649,6 +676,9 @@ impl<'a> CompiledSite<'a> {
     }
     pub fn upstream(&self) -> Option<SocketAddr> {
         self.upstream
+    }
+    pub fn has_proxy(&self) -> bool {
+        self.upstream.is_some() || !self.proxy_routes.is_empty()
     }
     pub fn tls(&self) -> TlsPolicy {
         self.tls

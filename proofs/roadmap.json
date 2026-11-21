@@ -649,6 +649,28 @@
       ]
     },
     {
+      "id": "LOCAL-POOL-DISPATCH",
+      "title": "ルートに登録された稼働レプリカへの一度限りの送信",
+      "priority": "P0",
+      "status": "proved",
+      "acceptance": "抽出したRust選択関数の非ゼロの結果が渡されたルートのメンバーに属し、未送信・準備完了・ドレイン外である。送信権を消費すると別レプリカの選択と二度目の送信が拒否される。ソケット操作とヘルス観測は隔離試験で確認する。",
+      "theorems": [
+        "UpstreamProofs.pool_selected_member",
+        "UpstreamProofs.pool_closed",
+        "UpstreamProofs.dispatch_once",
+        "UpstreamProofs.dispatched_write_cannot_repeat",
+        "UpstreamProofs.dispatched_write_has_no_alternate"
+      ]
+    },
+    {
+      "id": "LOCAL-POOL-ADAPTER-REFINEMENT",
+      "title": "プールの世代切替・ソケット送信と抽出済み判断との対応",
+      "priority": "P1",
+      "status": "planned",
+      "acceptance": "実際のロック、ヘルス観測、世代切替と最初のソケット書込みを状態遷移へ結び付ける。アプリ内の処理回数やクライアント再送をプロキシの保証と混同しない。",
+      "theorems": []
+    },
+    {
       "id": "HTTP1-DEFAULT-PERSISTENCE",
       "title": "通常のHTTP/1.1要求で接続を再利用する",
       "priority": "P1",

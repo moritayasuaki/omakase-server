@@ -89,7 +89,27 @@ pub fn generate(
                 .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join(",");
-            if route.width == 0 {
+            if let Some(health) = route.health_path {
+                out.push_str(&format!(
+                    "    proxy-pool {} {} {}\n",
+                    quoted(route.prefix),
+                    quoted(health),
+                    quoted(&endpoints)
+                ));
+                if !route.drained.is_empty() {
+                    let members = route
+                        .drained
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    out.push_str(&format!(
+                        "    proxy-drain {} {}\n",
+                        quoted(route.prefix),
+                        quoted(&members)
+                    ));
+                }
+            } else if route.width == 0 {
                 out.push_str(&format!(
                     "    proxy-route {} {}\n",
                     quoted(route.prefix),
@@ -110,7 +130,7 @@ pub fn generate(
         for path in site.proxy_paths() {
             out.push_str(&format!("    proxy-path {}\n", quoted(path)));
         }
-        if site.upstream().is_some() {
+        if site.has_proxy() {
             let l = site.proxy_limits();
             for origin in site.websocket_origins() {
                 out.push_str(&format!("    websocket-origin {}\n", quoted(origin)));
@@ -377,6 +397,7 @@ impl Server {
                 if next == state.generation {
                     return Err(error());
                 }
+                state.snapshot.retire_pools();
                 candidate.install_limits();
                 state.snapshot = candidate;
                 state.generation = next;

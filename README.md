@@ -75,6 +75,8 @@ This explicitly delegates the entire hostname to one numeric loopback endpoint,
 with bounded request/response buffering and regenerated forwarding headers.
 Use [mixed routing and per-service limits](docs/routing-and-limits.md) to combine
 denied subtrees, explicit local files and proxy scopes, with bounded service budgets.
+For interchangeable local replicas, configure a [per-route backend pool](docs/reverse-proxy.md#local-backend-pools)
+with HTTP readiness checks, pre-send failover and graceful drain through reload.
 See the [proxy guide and audit](docs/reverse-proxy.md) for the trust boundary,
 Lean proofs and limits. Opt in to [WebSocket/SSE streaming](docs/streaming.md) with
 bounded buffers, session budgets and shutdown cancellation.

@@ -99,6 +99,8 @@ def main():
                         "--start-from", "pathward::upstream::probe_next",
                         "--start-from", "pathward::upstream::probe_owned",
                         "--start-from", "pathward::upstream::query_match",
+                        "--start-from", "pathward::upstream::pool_select",
+                        "--start-from", "pathward::upstream::begin_dispatch",
                         "--start-from", "pathward::delivery::reserve_allowed",
                         "--start-from", "pathward::delivery::multiplex_te_allowed",
                         "--start-from", "pathward::delivery::multiplex_body_allowed",
