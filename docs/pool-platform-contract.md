@@ -22,4 +22,6 @@ The partial-write fixture offers a position-dependent 16 MiB transport buffer to
 
 ## Remaining guarantees
 
+If an unavailable or exhausted clock value is recorded as a health observation, its timestamp is the reserved maximum. Subsequent finite samples cannot replace that timestamp within the same pool. Reloading the configuration starts a new generation with a new clock origin and fresh probes.
+
 The mutex contract gives no fairness bound for scheduling a waiter. The five-second threshold applies at the protected clock read. Progress after send-buffer exhaustion depends on the reader, the network and scheduling. The proof covers finite histories, including ones which stop early. Success at the socket reports local acceptance. Determining whether a remote application committed after a lost reply still requires an application receipt or an idempotency protocol. [Linux send semantics](https://man7.org/linux/man-pages/man2/send.2.html)

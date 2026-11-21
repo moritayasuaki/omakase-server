@@ -52,7 +52,7 @@ PathWardは送信直前に、接続先を照合し、世代とヘルス観測の
 Linuxのミューテックス、時計、TCPが満たす必要のある前提と、実際に観測した結果を対応付けています。
 [OSとの契約](pool-platform-contract.md)・[隔離Linuxの実測値](pool-platform-validation.json)
 
-これらはLeanの標準公理で、独自のセキュリティ上の仮定を公理として追加してはいません。
+定理台帳の「使用公理」には、Leanが各証明に使った次の三つの標準公理が現れます。
 `Classical.choice` は存在する対象の非構成的な選択、`propext` は命題の外延性、
 `Quot.sound` は商型の等式に関する公理です。後者は関数外延性経由でも現れます。
 まず有限・決定可能な判断から不要な `Classical.choice` 依存の削減を検討します。
