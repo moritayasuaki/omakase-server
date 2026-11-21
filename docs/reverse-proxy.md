@@ -91,7 +91,8 @@ and a completed first write spends the grant. OS mutex exclusion, the monotonic
 clock sample and the kernel's byte count and error semantics form the platform
 boundary. The frontend can observe a healthy replica that fails immediately
 after the sample. See the [Rust driver](../src/upstream.rs), [Lean proofs](../proofs/UpstreamProofs.lean),
-[failover evidence](backend-pool-validation.json) and [first-write races](backend-first-write-validation.json).
+[failover evidence](backend-pool-validation.json), [first-write races](backend-first-write-validation.json)
+and [the OS contract and isolated Linux observations](pool-platform-contract.md).
 
 ## Delegation and trust
 

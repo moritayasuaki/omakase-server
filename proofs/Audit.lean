@@ -10,6 +10,7 @@ import DeliveryProofs
 import GuardUpgradeProofs
 import PathwardProofs
 import PlanMigrationProofs
+import PlatformProofs
 import ProxyProofs
 import PublicationProofs
 import RecoveryProofs
@@ -316,6 +317,27 @@ import UpstreamProofs
 #print axioms PlanMigrationProofs.interrupted_collection_preserves_roots
 #print axioms PlanMigrationProofs.current_and_parent_survive
 #print axioms PlanMigrationProofs.reachable_is_marked
+#print axioms PlatformProofs.missing_tick_refuses_health
+#print axioms PlatformProofs.tick_value
+#print axioms PlatformProofs.ordered_ticks_do_not_reverse
+#print axioms PlatformProofs.exhausted_tick_refuses_health
+#print axioms PlatformProofs.expired_sample_stays_expired
+#print axioms PlatformProofs.suffix_at_count
+#print axioms PlatformProofs.wait_keeps_every_byte
+#print axioms PlatformProofs.zero_terminates
+#print axioms PlatformProofs.overreport_terminates
+#print axioms PlatformProofs.accepted_prefix_and_suffix
+#print axioms PlatformProofs.positive_count_uses_suffix
+#print axioms PlatformProofs.positive_write_strictly_shortens
+#print axioms PlatformProofs.finite_trace_conserves_bytes
+#print axioms PlatformProofs.completed_after_first_write_is_original
+#print axioms PlatformProofs.partial_dispatch_cannot_replay
+#print axioms PlatformProofs.health_lock_requires_generation_first
+#print axioms PlatformProofs.owner_releases_health_before_generation
+#print axioms PlatformProofs.competing_events_preserve_both_guards
+#print axioms PlatformProofs.foreign_interleavings_keep_snapshot
+#print axioms PlatformProofs.retirement_survives_events
+#print axioms PlatformProofs.effect_needs_owned_snapshot
 #print axioms ProxyProofs.mode_eq
 #print axioms ProxyProofs.publications_require_root
 #print axioms ProxyProofs.endpoint_eq

@@ -72,6 +72,33 @@ pub fn fresh_health(h: PoolHealth, now: u64) -> bool {
         && now - h.at < 5_000_000_000
 }
 
+/// The reserved maximum makes an unrepresentable or unavailable sample stale.
+pub fn pool_tick(nanos: Option<u128>) -> u64 {
+    match nanos {
+        Some(n) if n < u64::MAX as u128 => n as u64,
+        _ => u64::MAX,
+    }
+}
+
+/// Resume an already-started write on its connected transport.
+pub fn write_suffix(bytes: &[u8], accepted: usize) -> Option<&[u8]> {
+    if accepted <= bytes.len() {
+        Some(&bytes[accepted..])
+    } else {
+        None
+    }
+}
+
+/// A retryable error accepted no bytes. Zero progress reported as success or
+/// a count larger than the offered slice terminates the transfer.
+pub fn remaining_after_write(bytes: &[u8], count: Option<usize>) -> Option<&[u8]> {
+    match count {
+        None => Some(bytes),
+        Some(0) => None,
+        Some(n) => write_suffix(bytes, n),
+    }
+}
+
 #[allow(clippy::manual_range_contains)]
 pub fn healthy_response(status: u16) -> bool {
     status >= 200 && status < 300

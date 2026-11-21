@@ -104,6 +104,8 @@ def main():
                         "--start-from", "pathward::upstream::publish_health",
                         "--start-from", "pathward::upstream::retire_pool",
                         "--start-from", "pathward::upstream::guarded_first_write",
+                        "--start-from", "pathward::upstream::pool_tick",
+                        "--start-from", "pathward::upstream::remaining_after_write",
                         "--start-from", "pathward::delivery::reserve_allowed",
                         "--start-from", "pathward::delivery::multiplex_te_allowed",
                         "--start-from", "pathward::delivery::multiplex_body_allowed",

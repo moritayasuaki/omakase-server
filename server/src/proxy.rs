@@ -232,7 +232,7 @@ pub(crate) async fn forward_async(
         &mut dispatched,
     )
     .await?;
-    crate::async_http::write_all(&mut socket, &head.as_bytes()[written..], deadline)
+    crate::async_http::write_all_from(&mut socket, head.as_bytes(), written, deadline)
         .await
         .map_err(failure)?;
     crate::async_http::write_all(&mut socket, &body, deadline)

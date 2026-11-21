@@ -4,6 +4,9 @@ use std::{io::Read, net::TcpListener, sync::mpsc, thread};
 const HEAD: &[u8] = b"POST /write HTTP/1.1\r\nHost: app.example\r\nContent-Length: 0\r\n\r\n";
 const WAIT: Duration = Duration::from_secs(15);
 
+#[path = "backend_pool_platform_tests.rs"]
+mod platform;
+
 fn accept_probe(listener: &TcpListener) -> TcpStream {
     let (mut peer, _) = listener.accept().unwrap();
     peer.set_read_timeout(Some(WAIT)).unwrap();
@@ -198,6 +201,8 @@ fn full_tcp_send_buffer_rechecks_drain_before_retrying() {
             (result.unwrap(), sent)
         });
         hit.recv_timeout(WAIT).unwrap();
+        assert!(pool.retired.try_lock().is_ok());
+        assert!(pool.members[0].health.try_lock().is_ok());
         pool.retire();
         release.send(()).unwrap();
         assert_eq!(exchange.join().unwrap(), (None, false));

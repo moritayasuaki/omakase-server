@@ -1,0 +1,136 @@
+{
+  "date_utc": "2026-11-21",
+  "base_revision": "06319d1bfff55fea8be080881d16c9e6ed55a234",
+  "environment": {
+    "guest": "Ubuntu 24.04.5 LTS, Linux 6.8.0-147-generic x86_64",
+    "isolation": "QEMU with no network device, writable guest overlay, loopback up",
+    "uid": 65534,
+    "gid": 65534,
+    "tcp_wmem_bytes": [
+      4096,
+      16384,
+      4194304
+    ],
+    "test_binary_sha256": "e00f1acce87ba0dfb6851508a6c69382184457b823a9c67bcc33d3bc51c4063a"
+  },
+  "source_sha256": {
+    "src/upstream.rs": "69a96bc87fb9cce0e74e73e8ef3182f34b2d91a143da47387b558e695a0079ad",
+    "server/src/async_http.rs": "3de78a5eccd44a7f0a20f59201be539f7010a280ea951fc714cdc7dad9d692ed",
+    "server/src/backend_pool.rs": "031f76f3780461fd5bae8e99b8ff2c559011660f54a93a8cbea409668c1eb258",
+    "server/src/proxy.rs": "ecb76c61f4b6e5ccb2f3618d13eedeb685fddf87c473d7533b55e488e78be738",
+    "server/src/backend_pool_io_tests.rs": "db4c634342a0d56dedb68b32f359b7b236302a4806ad0df7ccc3682736b7af2b",
+    "server/src/backend_pool_platform_tests.rs": "5f78e4f2795bf27f59366fd3b19eadf80c8a6240b166d952091cab668a984569",
+    "proofs/Generated/Pathward.lean": "946c132d7a9ce0b9b5819b89c28cb77a529e4b02e61c14c3021e895caa21a6d1",
+    "proofs/PlatformProofs.lean": "4163ca58e7eeee39063a2c1d666741ba7243066211a416fa43365d27956529e9"
+  },
+  "staging": {
+    "suite": "cargo +1.99.1 test --offline --locked --manifest-path server/Cargo.toml --lib backend_pool -- --test-threads=1 --nocapture",
+    "passed": 12,
+    "failed": 0,
+    "additional_partial_transfer_repetitions": 4,
+    "partial_transfers": [
+      {
+        "offered": 16777216,
+        "first_accepted": 2613675,
+        "continuation_writes": 7,
+        "would_block": 8,
+        "peer_bytes_equal": true,
+        "both_locks_contended": true
+      },
+      {
+        "offered": 16777216,
+        "first_accepted": 2613675,
+        "continuation_writes": 8,
+        "would_block": 7,
+        "peer_bytes_equal": true,
+        "both_locks_contended": true
+      },
+      {
+        "offered": 16777216,
+        "first_accepted": 2613675,
+        "continuation_writes": 8,
+        "would_block": 8,
+        "peer_bytes_equal": true,
+        "both_locks_contended": true
+      },
+      {
+        "offered": 16777216,
+        "first_accepted": 2613675,
+        "continuation_writes": 9,
+        "would_block": 10,
+        "peer_bytes_equal": true,
+        "both_locks_contended": true
+      },
+      {
+        "offered": 16777216,
+        "first_accepted": 2613675,
+        "continuation_writes": 8,
+        "would_block": 8,
+        "peer_bytes_equal": true,
+        "both_locks_contended": true
+      }
+    ],
+    "first_attempt_would_block_then_retirement": {
+      "prefill_bytes": 2711168,
+      "request_bytes": 0,
+      "both_locks_released_before_retry": true
+    },
+    "monotonic_clock": {
+      "serialized_samples": 4096,
+      "threads": 4,
+      "observed_expired_age_ns": 5009599000,
+      "ttl_ns": 5000000000
+    },
+    "lost_response_after_durable_post": {
+      "http": 502,
+      "writes_A": 1,
+      "writes_B": 0
+    }
+  },
+  "scope": "Socket results were real Linux loopback observations. Anomalous clock samples, out-of-range counts and Interrupted were covered by the contract or adapter review, not induced in the guest. The finite traces assume one exclusive connection and the stated write and lock semantics.",
+  "proofs": {
+    "new_statements": 21,
+    "theorem_count": 671,
+    "axiom_free_count": 102,
+    "axiom_counts": {
+      "Classical.choice": 447,
+      "Quot.sound": 454,
+      "propext": 569
+    }
+  },
+  "dependency_audit": {
+    "auditor": "cargo-audit 0.22.2",
+    "database_commit": "f291af9b1cc0d21dfcea1709d6b037963cef262b",
+    "advisories": 1555,
+    "findings": {
+      "core": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "server_candidate": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "configuration": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "http_server": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "native_administrator": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      }
+    },
+    "added_external_packages": 0,
+    "external_package_counts": {
+      "core": 0,
+      "configuration": 8,
+      "http_server": 156,
+      "native_administrator": 36,
+      "server_candidate": 107
+    }
+  }
+}

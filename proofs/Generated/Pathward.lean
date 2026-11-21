@@ -3356,8 +3356,51 @@ def upstream.fresh_health
     else ok false
   else ok false
 
+/-- [pathward::upstream::pool_tick]:
+    Source: 'src/upstream.rs', lines 76:0-81:1
+    Visibility: public -/
+def upstream.pool_tick (nanos : Option Std.U128) : RustM Std.U64 := do
+  match nanos with
+  | none => ok core.num.U64.MAX
+  | some n =>
+    let i ← lift (UScalar.cast .U128 core.num.U64.MAX)
+    if n < i
+    then ok (UScalar.cast .U64 n)
+    else ok core.num.U64.MAX
+
+/-- [pathward::upstream::write_suffix]:
+    Source: 'src/upstream.rs', lines 84:0-90:1
+    Visibility: public -/
+def upstream.write_suffix
+  (bytes : Slice Std.U8) (accepted : Std.Usize) :
+  RustM (Option (Slice Std.U8))
+  := do
+  let i := Slice.len bytes
+  if accepted <= i
+  then
+    let s ←
+      core.slice.index.Slice.index
+        (core.slice.index.SliceIndexRangeFromUsizeSlice Std.U8) bytes
+        { start := accepted }
+    ok (some s)
+  else ok none
+
+/-- [pathward::upstream::remaining_after_write]:
+    Source: 'src/upstream.rs', lines 94:0-100:1
+    Visibility: public -/
+def upstream.remaining_after_write
+  (bytes : Slice Std.U8) (count : Option Std.Usize) :
+  RustM (Option (Slice Std.U8))
+  := do
+  match count with
+  | none => ok (some bytes)
+  | some n =>
+    match n.val with
+    | 0 => ok none
+    | _ => upstream.write_suffix bytes n
+
 /-- [pathward::upstream::healthy_response]:
-    Source: 'src/upstream.rs', lines 76:0-78:1
+    Source: 'src/upstream.rs', lines 103:0-105:1
     Visibility: public -/
 def upstream.healthy_response (status : Std.U16) : RustM Bool := do
   if status >= 200#u16
@@ -3365,13 +3408,13 @@ def upstream.healthy_response (status : Std.U16) : RustM Bool := do
   else ok false
 
 /-- [pathward::upstream::retire_pool]:
-    Source: 'src/upstream.rs', lines 80:0-82:1
+    Source: 'src/upstream.rs', lines 107:0-109:1
     Visibility: public -/
 def upstream.retire_pool (retired : Bool) : RustM Bool := do
   ok true
 
 /-- [pathward::upstream::FirstWriteGate]
-    Source: 'src/upstream.rs', lines 84:0-90:1
+    Source: 'src/upstream.rs', lines 111:0-117:1
     Visibility: public -/
 structure upstream.FirstWriteGate where
   peer : Std.U32
@@ -3381,7 +3424,7 @@ structure upstream.FirstWriteGate where
   retired : Bool
 
 /-- [pathward::upstream::first_write_allowed]:
-    Source: 'src/upstream.rs', lines 92:0-101:1
+    Source: 'src/upstream.rs', lines 119:0-128:1
     Visibility: public -/
 def upstream.first_write_allowed
   (members : Slice Std.U32) (index : Std.Usize)
@@ -3403,7 +3446,7 @@ def upstream.first_write_allowed
   else ok false
 
 /-- [pathward::upstream::FirstIo]
-    Source: 'src/upstream.rs', lines 104:0-108:1
+    Source: 'src/upstream.rs', lines 131:0-135:1
     Visibility: public -/
 @[discriminant isize]
 inductive upstream.FirstIo where
@@ -3412,13 +3455,13 @@ inductive upstream.FirstIo where
 | Failed : upstream.FirstIo
 
 /-- Trait declaration: [pathward::upstream::FirstWriter]
-    Source: 'src/upstream.rs', lines 112:0-114:1
+    Source: 'src/upstream.rs', lines 139:0-141:1
     Visibility: public -/
 structure upstream.FirstWriter (Self : Type) where
   write_once : Self → RustM (upstream.FirstIo × Self)
 
 /-- [pathward::upstream::guarded_first_write]:
-    Source: 'src/upstream.rs', lines 116:0-135:1
+    Source: 'src/upstream.rs', lines 143:0-162:1
     Visibility: public -/
 def upstream.guarded_first_write
   {W : Type} (FirstWriterInst : upstream.FirstWriter W)
