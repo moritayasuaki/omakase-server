@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "lean_toolchain": "leanprover/lean4:v4.31.0",
-  "theorem_count": 685,
+  "theorem_count": 693,
   "axiom_free_count": 104,
   "axiom_counts": {
-    "Classical.choice": 453,
-    "Quot.sound": 466,
-    "propext": 581
+    "Classical.choice": 460,
+    "Quot.sound": 473,
+    "propext": 589
   },
   "source_sha256": {
     "audit/pool-linux-target.json": "88647d84f929b1751cd980970b7d7949f5765ff8f1fc4827cb4d0525951681ea",
@@ -19,9 +19,9 @@
     "proofs/CutoverProofs.lean": "352f578413c2c57f315b058c93b22d1ed5f23811f2adb6440c44dd2e6fc98ad0",
     "proofs/DeliveryProofs.lean": "d975f9d35187198123bbee361b997954df959cbdf96c1faddc48fb4ab37f7184",
     "proofs/Generated/GuardPaths.lean": "3d9fdb1e9bd9256dacbf55cfc14c0e327ab105d65d00dee1e32c3ec4f6c72bce",
-    "proofs/Generated/Pathward.lean": "dd1b7c83903f19908238a343bab3d3bb7323dc5d29ea1d3a624346e127311044",
+    "proofs/Generated/Pathward.lean": "c6a729c224e8ab008e6046444d08ea88b1f1cefc1d1cf56626406e0551946e8c",
     "proofs/GuardUpgradeProofs.lean": "cd580b9c1bbd44aff63391244270d14cd01f30006590da4cc3b6b59dd50da5fb",
-    "proofs/LinuxProofs.lean": "014c30542ccae2fd2515fa21668b74dabc9c77af5cec5fdb6f1690e335fe5152",
+    "proofs/LinuxProofs.lean": "ab1bf36200280fabca827e8a4b80516bd79cc57dc4361356a33affb1b6f3c79f",
     "proofs/PathwardProofs.lean": "94ad7cb4763dc8d57da14253e30e16c1ad517d99d1bf1b2d387ad17575b90a67",
     "proofs/PlanMigrationProofs.lean": "13e8dffab53a690381384dc14ab825c5c82d4e3d4454d80f62245d36eb83e031",
     "proofs/PlatformProofs.lean": "4163ca58e7eeee39063a2c1d666741ba7243066211a416fa43365d27956529e9",
@@ -37,8 +37,8 @@
     "proofs/ServingProofs.lean": "7a4a1b0f7fe826402024350d81c9d2afa058d5fe4d43db224bcbf6067097ca3e",
     "proofs/StreamingProofs.lean": "07ac50b458bd8a6e83a34aeace3ba8b53a40911add293c24577fe491822b8ebd",
     "proofs/TlsProofs.lean": "55adcddb5cd9ca110e57c851652dbc6e7f0f396184cb99199fc64b82db948023",
-    "proofs/UpstreamProofs.lean": "62be40293bab5307c71290d690e5c51bb8446a0323aab93011fa9331ba9ee86e",
-    "scripts/extract.py": "4d0fba0fbbd5dbd9c39b51f844788c368f5e78c39c8174b9af5d1946c391a80d",
+    "proofs/UpstreamProofs.lean": "a95e83a3caa039d96763fc4e4e3346dfc51ca1b241f5f9ccdbf2329bb7b968de",
+    "scripts/extract.py": "f05af86eaee841b1607f38ef61eb66286695504c95f1b5a01f9c9e6b0cb35687",
     "scripts/pool_guard_paths.mjs": "34ea5aa000291cdc3d03a05114c463d82e902ec80436b9eb173a3afa61e32a2f",
     "server/src/pool_locks.rs": "dee90bb64996e68a7c663bcb5f7492afc9841cf482a8fd290424204d9a2ebf26",
     "src/bootstrap.rs": "0e2efcce51aed2270e5e52b448afd7a452d212e6362a18d21097bc93d1a6e15a",
@@ -58,7 +58,7 @@
     "src/serving.rs": "019358430607bb367639c6e2c1ccd56795ed85a2cd43152df26ff1986e37ca67",
     "src/streaming.rs": "7ce627b8afbf1fcb4956b1d0b8a40e11c23248839dcf6a774dbfc3459f4e7741",
     "src/tls.rs": "f443f6750448b1734272eea13ba085b6eb6ce420f3a4fd74145470683f35d7ba",
-    "src/upstream.rs": "430507323bd81bd1ec7a5d17fc0cde0cfbe8a3f69bdc5206513ccf09d80e8c8f"
+    "src/upstream.rs": "5dd99f513aa0b62411295eda4f1d07a34192a125c23723111d1f4eb3c5408487"
   },
   "theorems": [
     {
@@ -2548,10 +2548,20 @@
       "scope": "transition_model"
     },
     {
-      "name": "LinuxProofs.sleep_advances_only_boot_age",
+      "name": "LinuxProofs.sleep_advances_health_clock",
       "source": "proofs/LinuxProofs.lean",
-      "line": 56,
-      "statement": "theorem sleep_advances_only_boot_age (c : Clocks) (ns : Nat) (h : upstream.PoolHealth) :\n    boot (sleepFor c ns) = boot c + ns ∧ healthAt h (sleepFor c ns) = healthAt h c",
+      "line": 51,
+      "statement": "theorem sleep_advances_health_clock (c : Clocks) (ns : Nat) :\n    boot (sleepFor c ns) = boot c + ns",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.resume_expiry_preserves_writer",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 54,
+      "statement": "theorem resume_expiry_preserves_writer {W} (writer : upstream.FirstWriter W) (state : W)\n    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent : Bool)\n    (c : Clocks) (ns : Nat) (raw : U128) (sample : raw.val = boot (sleepFor c ns))\n    (adapter : upstream.pool_tick (some raw) = ok g.now)\n    (expired : g.health.at.val + 5000000000 ≤ boot c + ns) :\n    upstream.guarded_first_write writer m i g sent state = ok (none, sent, state)",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -2560,10 +2570,22 @@
       "scope": "transition_model"
     },
     {
-      "name": "LinuxProofs.long_suspend_can_preserve_fresh_probe",
+      "name": "LinuxProofs.healthy_record_has_probe",
       "source": "proofs/LinuxProofs.lean",
-      "line": 60,
-      "statement": "theorem long_suspend_can_preserve_fresh_probe (c : Clocks) (ns : Nat) (h : upstream.PoolHealth)\n    (fresh : healthAt h c = ok true) (long : 5000000000 ≤ ns) :\n    5000000000 ≤ boot (sleepFor c ns) - boot c ∧ healthAt h (sleepFor c ns) = ok true",
+      "line": 89,
+      "statement": "theorem healthy_record_has_probe {old next : upstream.PoolHealth} {events : List HealthEvent}\n    (history : HealthHistory old events next) (healthy : 200 ≤ next.status.val) :\n    next = old ∨ ∃ expected start finish status, HealthEvent.probe expected start finish status ∈ events ∧\n      UpstreamProofs.WithinTTL start finish ∧ next.at = start ∧ next.status = status",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.first_effect_after_expiry_requires_recheck",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 110,
+      "statement": "theorem first_effect_after_expiry_requires_recheck {W} (writer : upstream.FirstWriter W) (state : W)\n    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent spent : Bool)\n    (io : upstream.FirstIo) (state' : W) (initial : upstream.PoolHealth) (events : List HealthEvent)\n    (history : HealthHistory initial events g.health) (expired : initial.at.val + 5000000000 ≤ g.now.val)\n    (effect : upstream.guarded_first_write writer m i g sent state = ok (some io, spent, state')) :\n    ∃ expected start finish status, HealthEvent.probe expected start finish status ∈ events ∧\n      UpstreamProofs.WithinTTL start finish ∧ UpstreamProofs.WithinTTL start g.now ∧\n      200 ≤ status.val ∧ status.val < 300",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -2574,7 +2596,7 @@
     {
       "name": "LinuxProofs.instant_delta_within_kernel_brackets",
       "source": "proofs/LinuxProofs.lean",
-      "line": 67,
+      "line": 126,
       "statement": "theorem instant_delta_within_kernel_brackets (lo₀ read₀ hi₀ lo₁ read₁ hi₁ origin : Nat)\n    (a : lo₀ ≤ read₀) (b : read₀ ≤ hi₀) (c : lo₁ ≤ read₁) (d : read₁ ≤ hi₁)\n    (originBound : origin ≤ lo₀) (ordered : hi₀ ≤ lo₁) :\n    lo₁ - hi₀ ≤ (read₁-origin) - (read₀-origin) ∧\n      (read₁-origin) - (read₀-origin) ≤ hi₁ - lo₀",
       "axioms": [
         "Classical.choice",
@@ -2586,7 +2608,7 @@
     {
       "name": "LinuxProofs.first_report_retains_errno",
       "source": "proofs/LinuxProofs.lean",
-      "line": 73,
+      "line": 132,
       "statement": "theorem first_report_retains_errno {E} (e : E) :\n    upstream.first_write_report (.Err e) = ok (.Failed, some e) ∧\n    upstream.first_write_report (E",
       "axioms": [],
       "scope": "rust_contract_or_lemma"
@@ -2594,7 +2616,7 @@
     {
       "name": "LinuxProofs.first_report_retains_partial_count",
       "source": "proofs/LinuxProofs.lean",
-      "line": 77,
+      "line": 136,
       "statement": "theorem first_report_retains_partial_count (E : Type) (n : Usize) :\n    upstream.first_write_report (E",
       "axioms": [],
       "scope": "rust_contract_or_lemma"
@@ -2602,7 +2624,7 @@
     {
       "name": "LinuxProofs.fatal_first_report_spends_grant_with_original_cause",
       "source": "proofs/LinuxProofs.lean",
-      "line": 83,
+      "line": 142,
       "statement": "theorem fatal_first_report_spends_grant_with_original_cause {E : Type} (e : E)\n    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (permit : UpstreamProofs.MayWrite m i g false) :\n    upstream.guarded_first_write (reportedWriter (.Err e)) m i g false none = ok (some .Failed, true, some e)",
       "axioms": [
         "Classical.choice",
@@ -2614,7 +2636,7 @@
     {
       "name": "LinuxProofs.retryable_first_report_requires_live_generation",
       "source": "proofs/LinuxProofs.lean",
-      "line": 89,
+      "line": 148,
       "statement": "theorem retryable_first_report_requires_live_generation {E : Type}\n    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (permit : UpstreamProofs.MayWrite m i g false) :\n    (do let (_, spent, next) ← upstream.guarded_first_write (reportedWriter (E",
       "axioms": [
         "Classical.choice",
@@ -2626,7 +2648,7 @@
     {
       "name": "LinuxProofs.stopped_preserves_errno_and_suffix",
       "source": "proofs/LinuxProofs.lean",
-      "line": 125,
+      "line": 184,
       "statement": "theorem stopped_preserves_errno_and_suffix {E} (id : U64) (why : Option E) (buf : Slice U8)\n    (tail : List (Report E)) : socketRun id (.stopped why buf) tail = ok (.stopped why buf)",
       "axioms": [
         "Quot.sound",
@@ -2637,7 +2659,7 @@
     {
       "name": "LinuxProofs.foreign_socket_is_rejected",
       "source": "proofs/LinuxProofs.lean",
-      "line": 131,
+      "line": 190,
       "statement": "theorem foreign_socket_is_rejected {E} (id other : U64) (different : other ≠ id) (buf : Slice U8)\n    (result : core.result.Result (Option Usize) E) :\n    socketStep id (.live buf) (other, result) = ok .wrongSocket",
       "axioms": [
         "Quot.sound",
@@ -2648,7 +2670,7 @@
     {
       "name": "LinuxProofs.retryable_report_keeps_socket_cursor",
       "source": "proofs/LinuxProofs.lean",
-      "line": 135,
+      "line": 194,
       "statement": "theorem retryable_report_keeps_socket_cursor {E} (id : U64) (buf : Slice U8) (tail : List (Report E)) :\n    socketRun id (.live buf) ((id, .Ok none) :: tail) = socketRun id (.live buf) tail",
       "axioms": [
         "Quot.sound",
@@ -2659,7 +2681,7 @@
     {
       "name": "LinuxProofs.fatal_after_partial_preserves_exact_unaccepted_suffix",
       "source": "proofs/LinuxProofs.lean",
-      "line": 139,
+      "line": 198,
       "statement": "theorem fatal_after_partial_preserves_exact_unaccepted_suffix {E} (id : U64) (buf rest : Slice U8)\n    (n : Usize) (positive : 0 < n.val)\n    (accepted : upstream.remaining_after_write buf (some n) = ok (some rest))\n    (e : E) (tail : List (Report E)) :\n    socketRun id (.live buf) ((id, .Ok (some n)) :: (id, .Err e) :: tail) = ok (.stopped (some e) rest) ∧\n    buf.val.take n.val ++ rest.val = buf.val",
       "axioms": [
         "Quot.sound",
@@ -7407,9 +7429,21 @@
       "scope": "rust_contract_or_lemma"
     },
     {
+      "name": "UpstreamProofs.within_health_ttl_eq",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 105,
+      "statement": "theorem within_health_ttl_eq (start now : U64) :\n    upstream.within_health_ttl start now = ok (decide (WithinTTL start now))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
       "name": "UpstreamProofs.fresh_at_eq",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 102,
+      "line": 114,
       "statement": "theorem fresh_at_eq (h : upstream.PoolHealth) (now : U64) :\n    upstream.fresh_health h now = ok (decide (FreshAt h now))",
       "axioms": [
         "Classical.choice",
@@ -7421,7 +7455,7 @@
     {
       "name": "UpstreamProofs.health_status_eq",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 115,
+      "line": 119,
       "statement": "theorem health_status_eq (s : U16) :\n    upstream.healthy_response s = ok (decide (200 ≤ s.val ∧ s.val < 300))",
       "axioms": [
         "Classical.choice",
@@ -7433,7 +7467,7 @@
     {
       "name": "UpstreamProofs.stale_probe_keeps_health",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 119,
+      "line": 123,
       "statement": "theorem stale_probe_keeps_health (h : upstream.PoolHealth) (expected now : U64) (s : U16)\n    (stale : expected ≠ h.revision) : upstream.publish_health h expected now s = ok h",
       "axioms": [
         "Classical.choice",
@@ -7445,8 +7479,56 @@
     {
       "name": "UpstreamProofs.health_update_advances",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 123,
+      "line": 127,
       "statement": "theorem health_update_advances (h : upstream.PoolHealth) (now : U64) (s : U16)\n    (live : h.revision.val < 18446744073709551615) (ordered : h.at.val ≤ now.val) :\n    ∃ h', upstream.publish_health h h.revision now s = ok h' ∧\n    h'.revision.val = h.revision.val + 1 ∧ h'.at = now ∧ h'.status = s",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.publication_cases",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 137,
+      "statement": "theorem publication_cases (old next : upstream.PoolHealth) (expected tick : U64) (status : U16)\n    (out : upstream.publish_health old expected tick status = ok next) :\n    next = old ∨ (expected = old.revision ∧ next.revision.val = old.revision.val + 1 ∧\n      next.at = tick ∧ next.status = status)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.late_probe_preserves_record",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 161,
+      "statement": "theorem late_probe_preserves_record (old : upstream.PoolHealth) (expected start finish : U64)\n    (status : U16) (late : ¬ WithinTTL start finish) :\n    upstream.publish_probe old expected start finish status = ok old",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.probe_publication_cases",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 166,
+      "statement": "theorem probe_publication_cases (old next : upstream.PoolHealth) (expected start finish : U64)\n    (status : U16) (out : upstream.publish_probe old expected start finish status = ok next) :\n    next = old ∨ (WithinTTL start finish ∧ expected = old.revision ∧\n      next.revision.val = old.revision.val + 1 ∧ next.at = start ∧ next.status = status)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.timely_probe_can_refresh",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 176,
+      "statement": "theorem timely_probe_can_refresh (old : upstream.PoolHealth) (start finish : U64) (status : U16)\n    (window : WithinTTL start finish) (live : old.revision.val < 18446744073709551615)\n    (ordered : old.at.val ≤ start.val) :\n    ∃ next, upstream.publish_probe old old.revision start finish status = ok next ∧\n      next.revision.val = old.revision.val + 1 ∧ next.at = start ∧ next.status = status",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -7457,7 +7539,7 @@
     {
       "name": "UpstreamProofs.late_success_cannot_revive_failure",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 133,
+      "line": 184,
       "statement": "theorem late_success_cannot_revive_failure (h : upstream.PoolHealth) (failed later : U64) (status : U16)\n    (live : h.revision.val < 18446744073709551615) (ordered : h.at.val ≤ failed.val) :\n    ∃ down, upstream.publish_health h h.revision failed 0#u16 = ok down ∧ down.status = 0#u16 ∧\n      upstream.publish_health down h.revision later status = ok down",
       "axioms": [
         "Classical.choice",
@@ -7469,7 +7551,7 @@
     {
       "name": "UpstreamProofs.pool_select_exact",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 148,
+      "line": 199,
       "statement": "theorem pool_select_exact (m : Slice U32) (i : Usize) (ready drain sent : Bool) :\n    upstream.pool_select m i ready drain sent = ok\n      (if ready && !drain && !sent then memberAt m i else 0#u32)",
       "axioms": [
         "Classical.choice",
@@ -7481,8 +7563,20 @@
     {
       "name": "UpstreamProofs.first_write_contract",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 164,
+      "line": 215,
       "statement": "theorem first_write_contract (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent : Bool) :\n    upstream.first_write_allowed m i g sent = ok (decide (MayWrite m i g sent))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.timely_2xx_restores_permission",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 224,
+      "statement": "theorem timely_2xx_restores_permission (old : upstream.PoolHealth) (start finish now : U64)\n    (status : U16) (m : Slice U32) (i : Usize) (peer : U32)\n    (during : WithinTTL start finish) (current : WithinTTL start now)\n    (live : old.revision.val + 1 < 18446744073709551615) (forward : old.at.val ≤ start.val)\n    (code : 200 ≤ status.val ∧ status.val < 300) (nz : peer ≠ 0#u32) (selected : memberAt m i = peer) :\n    (do let next ← upstream.publish_probe old old.revision start finish status\n        upstream.first_write_allowed m i ⟨peer, next, now, false, false⟩ false) = ok true",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
@@ -7493,7 +7587,7 @@
     {
       "name": "UpstreamProofs.refused_preserves_writer",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 176,
+      "line": 246,
       "statement": "theorem refused_preserves_writer (closed : ¬ MayWrite m i g sent) :\n    upstream.guarded_first_write effect m i g sent w = ok (none, sent, w)",
       "axioms": [
         "Classical.choice",
@@ -7505,7 +7599,7 @@
     {
       "name": "UpstreamProofs.effect_result_requires_permission",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 180,
+      "line": 250,
       "statement": "theorem effect_result_requires_permission (event : upstream.FirstIo) (s : Bool) (next : W)\n    (out : upstream.guarded_first_write effect m i g sent w = ok (some event, s, next)) :\n    MayWrite m i g sent",
       "axioms": [
         "Classical.choice",
@@ -7517,7 +7611,7 @@
     {
       "name": "UpstreamProofs.effect_targets_registered_healthy_peer",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 187,
+      "line": 257,
       "statement": "theorem effect_targets_registered_healthy_peer (event : upstream.FirstIo) (s : Bool) (next : W)\n    (out : upstream.guarded_first_write effect m i g sent w = ok (some event, s, next)) :\n    g.peer ∈ m.val ∧ FreshAt g.health g.now ∧ (200 ≤ g.health.status.val ∧ g.health.status.val < 300) ∧\n    g.draining = false ∧ g.retired = false ∧ sent = false",
       "axioms": [
         "Classical.choice",
@@ -7529,7 +7623,7 @@
     {
       "name": "UpstreamProofs.retirement_prevents_first_write",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 197,
+      "line": 267,
       "statement": "theorem retirement_prevents_first_write (old : Bool) :\n    (do let retired ← upstream.retire_pool old\n        upstream.guarded_first_write effect m i {g with retired} sent w) = ok (none, sent, w)",
       "axioms": [
         "Classical.choice",
@@ -7541,7 +7635,7 @@
     {
       "name": "UpstreamProofs.unusable_health_preserves_writer",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 202,
+      "line": 272,
       "statement": "theorem unusable_health_preserves_writer\n    (bad : ¬ FreshAt g.health g.now ∨ ¬ (200 ≤ g.health.status.val ∧ g.health.status.val < 300)) :\n    upstream.guarded_first_write effect m i g sent w = ok (none, sent, w)",
       "axioms": [
         "Classical.choice",
@@ -7553,7 +7647,7 @@
     {
       "name": "UpstreamProofs.allowed_executes_one_write",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 208,
+      "line": 278,
       "statement": "theorem allowed_executes_one_write (permit : MayWrite m i g sent) :\n    upstream.guarded_first_write effect m i g sent w = (do\n      let (event, w') ← effect.write_once w\n      match event with\n      | .Wait => ok (some .Wait, sent, w')\n      | .Written n => match n.val with\n        | 0 => ok (some .Failed, true, w')\n        | _ => ok (some (.Written n), true, w')\n      | .Failed => ok (some .Failed, true, w'))",
       "axioms": [
         "Classical.choice",
@@ -7565,7 +7659,7 @@
     {
       "name": "UpstreamProofs.positive_write_spends_grant",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 221,
+      "line": 291,
       "statement": "theorem positive_write_spends_grant (permit : MayWrite m i g sent) (n : Usize) (npos : 0 < n.val) (w' : W)\n    (io : effect.write_once w = ok (.Written n, w')) :\n    upstream.guarded_first_write effect m i g sent w = ok (some (.Written n), true, w')",
       "axioms": [
         "Classical.choice",
@@ -7577,7 +7671,7 @@
     {
       "name": "UpstreamProofs.empty_or_failed_write_is_terminal",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 227,
+      "line": 297,
       "statement": "theorem empty_or_failed_write_is_terminal (permit : MayWrite m i g sent) (w' : W)\n    (io : effect.write_once w = ok (.Written 0#usize, w') ∨ effect.write_once w = ok (.Failed, w')) :\n    upstream.guarded_first_write effect m i g sent w = ok (some .Failed, true, w')",
       "axioms": [
         "Classical.choice",
@@ -7589,7 +7683,7 @@
     {
       "name": "UpstreamProofs.wait_then_retirement_cannot_write",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 233,
+      "line": 303,
       "statement": "theorem wait_then_retirement_cannot_write (permit : MayWrite m i g sent) (w' : W)\n    (io : effect.write_once w = ok (.Wait, w')) :\n    (do let (_, s, next) ← upstream.guarded_first_write effect m i g sent w\n        let retired ← upstream.retire_pool g.retired\n        upstream.guarded_first_write effect m i {g with retired} s next) = ok (none, sent, w')",
       "axioms": [
         "Classical.choice",
@@ -7601,7 +7695,7 @@
     {
       "name": "UpstreamProofs.spent_never_calls_another_writer",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 241,
+      "line": 311,
       "statement": "theorem spent_never_calls_another_writer :\n    upstream.guarded_first_write effect m i g true w = ok (none, true, w)",
       "axioms": [
         "Classical.choice",
@@ -7613,7 +7707,7 @@
     {
       "name": "UpstreamProofs.write_then_retire_cannot_dispatch_again",
       "source": "proofs/UpstreamProofs.lean",
-      "line": 246,
+      "line": 316,
       "statement": "theorem write_then_retire_cannot_dispatch_again (permit : MayWrite m i g sent)\n    (n : Usize) (npos : 0 < n.val) (w' : W) (io : effect.write_once w = ok (.Written n, w')) :\n    (do let (_, s, next) ← upstream.guarded_first_write effect m i g sent w\n        let retired ← upstream.retire_pool g.retired\n        upstream.guarded_first_write effect m i {g with retired} s next) = ok (none, true, w')",
       "axioms": [
         "Classical.choice",

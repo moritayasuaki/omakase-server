@@ -102,6 +102,7 @@ def main():
                         "--start-from", "pathward::upstream::pool_select",
                         "--start-from", "pathward::upstream::begin_dispatch",
                         "--start-from", "pathward::upstream::publish_health",
+                        "--start-from", "pathward::upstream::publish_probe",
                         "--start-from", "pathward::upstream::retire_pool",
                         "--start-from", "pathward::upstream::guarded_first_write",
                         "--start-from", "pathward::upstream::pool_tick",

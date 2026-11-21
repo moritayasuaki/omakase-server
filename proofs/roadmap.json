@@ -34,8 +34,10 @@
   ],
   "model_only_theorems": [
     "LinuxProofs.acquire_after_publication_observes_complete_record",
-    "LinuxProofs.sleep_advances_only_boot_age",
-    "LinuxProofs.long_suspend_can_preserve_fresh_probe",
+    "LinuxProofs.sleep_advances_health_clock",
+    "LinuxProofs.resume_expiry_preserves_writer",
+    "LinuxProofs.healthy_record_has_probe",
+    "LinuxProofs.first_effect_after_expiry_requires_recheck",
     "LinuxProofs.instant_delta_within_kernel_brackets",
     "LinuxProofs.stopped_preserves_errno_and_suffix",
     "LinuxProofs.foreign_socket_is_rejected",
@@ -752,8 +754,7 @@
         "LinuxProofs.all_emitted_guard_paths_are_scoped",
         "LinuxProofs.callback_returns_or_unwinds_through_both_drops",
         "LinuxProofs.acquire_after_publication_observes_complete_record",
-        "LinuxProofs.sleep_advances_only_boot_age",
-        "LinuxProofs.long_suspend_can_preserve_fresh_probe",
+        "LinuxProofs.sleep_advances_health_clock",
         "LinuxProofs.instant_delta_within_kernel_brackets",
         "LinuxProofs.first_report_retains_errno",
         "LinuxProofs.first_report_retains_partial_count",
@@ -766,11 +767,30 @@
       ]
     },
     {
+      "id": "LOCAL-POOL-SUSPEND-TTL",
+      "title": "Linuxの休止を含むヘルス期限と復帰後の初回送信",
+      "priority": "P1",
+      "status": "proved",
+      "acceptance": "観測の開始から5秒ちょうどで失効し、休止をまたいで届いた古い応答を採用しない。期限切れの旧観測からの任意のプローブ・接続失敗の履歴について、実際の初回書込みゲートが許可したなら、有効で新鮮な2xxの再チェックが履歴にある。固定LinuxゲストのS3で、待機中の接続と解析済みの応答、503・204での再チェックを照合する。",
+      "theorems": [
+        "UpstreamProofs.within_health_ttl_eq",
+        "UpstreamProofs.publication_cases",
+        "UpstreamProofs.late_probe_preserves_record",
+        "UpstreamProofs.probe_publication_cases",
+        "UpstreamProofs.timely_probe_can_refresh",
+        "UpstreamProofs.timely_2xx_restores_permission",
+        "LinuxProofs.sleep_advances_health_clock",
+        "LinuxProofs.resume_expiry_preserves_writer",
+        "LinuxProofs.healthy_record_has_probe",
+        "LinuxProofs.first_effect_after_expiry_requires_recheck"
+      ]
+    },
+    {
       "id": "LOCAL-POOL-KERNEL-SEMANTICS",
       "title": "固定した標準ライブラリとカーネルの契約そのものの検証",
       "priority": "P2",
       "status": "planned",
-      "acceptance": "MIRの分岐・標準ライブラリ内部でのdrop・Acquire/Releaseとカーネルのfutex、時刻源・電源管理、TCP・errno・記述子所有権に至る対応を機械化する。現状はガード関数のMIR検査、実コードから抽出したI/O判断、ソース照合と固定ゲストの実測。別のCPU・カーネル・休止方式は個別に検証する。",
+      "acceptance": "MIRの分岐・標準ライブラリ内部でのdrop・Acquire/Releaseとカーネルのfutex、時刻源・電源管理、TCP・errno・記述子所有権に至る対応を機械化する。Linuxのブート時計の正規化された値と休止時間の加算、保護下の時計読取りからソケット呼出しまでに生じうる休止はOS境界に残る。S4・別のCPUやカーネルでの再現は個別に検証する。",
       "theorems": []
     },
     {
