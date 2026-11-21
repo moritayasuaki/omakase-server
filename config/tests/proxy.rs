@@ -3,6 +3,47 @@ use pathward_config::ParsedConfig;
 fn valid(text: &str) -> bool {
     ParsedConfig::parse(text).is_ok_and(|p| p.compile().is_ok())
 }
+
+#[test]
+fn pools_have_canonical_members_and_route_specific_order_independent_drains() {
+    let site =
+        |directives: &str| format!("site \"app.example\" {{\ntls \"auto\"\n{directives}\n}}\n");
+    let pool = r#"proxy-pool "/a" "/ready" "127.0.0.1:8001,[::1]:8002""#;
+    let drain = r#"proxy-drain "/a" "[::1]:8002""#;
+    assert!(valid(&site(&format!("{drain}\n{pool}"))));
+    for rule in [
+        r#"proxy-drain "/b" "[::1]:8002""#,
+        r#"proxy-drain "/a" "127.0.0.1:8002""#,
+        r#"proxy-drain "/a" "[::1]:8002,[::1]:8002""#,
+        r#"proxy-route "/a" "127.0.0.1:8001""#,
+    ] {
+        assert!(!valid(&site(&format!("{pool}\n{rule}"))));
+    }
+    for invalid in [
+        r#"proxy-pool "/a" "/ready?key=x" "127.0.0.1:8001""#,
+        r#"proxy-pool "/a" "/ready" "192.0.2.1:8001""#,
+        r#"proxy-pool "/a" "/ready" "localhost:8001""#,
+        r#"proxy-pool "/a" "/ready" "127.0.0.1:0""#,
+        r#"proxy-pool "/a" "/ready" "[::1%1]:8001""#,
+        r#"proxy-pool "/a" "/ready" "127.0.0.1:8001,127.0.0.1:8001""#,
+    ] {
+        assert!(!valid(&site(invalid)));
+    }
+    let members = |n| {
+        (1..=n)
+            .map(|p| format!("127.0.0.1:{p}"))
+            .collect::<Vec<_>>()
+            .join(",")
+    };
+    assert!(valid(&site(&format!(
+        "proxy-pool \"/\" \"/ready\" \"{}\"",
+        members(32)
+    ))));
+    assert!(!valid(&site(&format!(
+        "proxy-pool \"/\" \"/ready\" \"{}\"",
+        members(33)
+    ))));
+}
 #[test]
 fn proxy_requires_a_literal_loopback_and_publications_require_a_root() {
     for endpoint in ["127.0.0.1:8080", "[::1]:65535"] {

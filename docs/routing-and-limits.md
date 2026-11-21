@@ -1,8 +1,8 @@
 # Mixed routing and per-service limits
 
-A site can now combine denied subtrees, explicitly published local files,
-configured redirects and one loopback HTTP upstream. One hostname is one proxy
-service: every `proxy-path` in that site shares its upstream and budgets.
+A site can combine denied subtrees, explicitly published files, redirects and
+a default loopback HTTP upstream. Each hostname shares one set of service budgets
+across its proxy routes. A route can also select its own [local backend pool](reverse-proxy.md#local-backend-pools).
 
 ```kdl
 site "app.example" {

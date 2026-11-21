@@ -7,6 +7,7 @@ mod browser_fixture;
 pub mod acme;
 mod admission;
 mod async_http;
+mod backend_pool;
 pub mod control;
 mod delivery;
 pub mod deployment;
@@ -249,6 +250,7 @@ impl Server {
         if next == state.generation {
             return Err(io::Error::other("reload commit rejected"));
         }
+        state.snapshot.retire_pools();
         candidate.install_limits();
         state.snapshot = candidate;
         state.generation = next;
@@ -332,7 +334,7 @@ impl Server {
         if let Err(e) = encoding::validate(&req, site.encoding) {
             return Self::reject(stream, encoding::rejection(&e)).await;
         }
-        let path = if site.upstream.is_some() && pathward::proxy::target_allowed(req.target) {
+        let path = if site.has_proxy() && pathward::proxy::target_allowed(req.target) {
             &req.target[..pathward::serving::path_length(req.target)]
         } else {
             pathward::serving::request_path(req.target).unwrap_or(b"")
@@ -389,7 +391,7 @@ impl Server {
             // denials and ambiguous spellings in routing sites remain generic 404.
             return reject(
                 stream,
-                if !pathward::proxy::target_allowed(req.target) && site.upstream.is_some() {
+                if !pathward::proxy::target_allowed(req.target) && site.has_proxy() {
                     400
                 } else {
                     404
@@ -401,9 +403,6 @@ impl Server {
             return reject(stream, 404).await;
         }
         if route == pathward::routing::Route::Proxy {
-            let upstream = site
-                .upstream
-                .ok_or_else(|| io::Error::other("proxy route without upstream"))?;
             if !pathward::proxy::method_allowed(req.method) {
                 return reject(stream, 405).await;
             }
@@ -487,7 +486,7 @@ impl Server {
                 None
             };
             let mut response = match proxy::forward_async(
-                upstream,
+                site.upstream,
                 &req,
                 prefetched,
                 stream,
@@ -973,6 +972,13 @@ impl Server {
         if let Some(redirect) = &redirect {
             redirect.set_nonblocking(true)?;
         }
+        let local_ports = [
+            listener.local_addr()?.port(),
+            match &redirect {
+                Some(l) => l.local_addr()?.port(),
+                None => 0,
+            },
+        ];
         {
             let state = self
                 .state
@@ -1183,9 +1189,19 @@ impl Server {
                     }
                 }
             }
+            let mut health = std::pin::pin!(self.refresh_backend_pools(local_ports, shutdown));
             let result = 'accept: loop {
                 if shutdown.load(Ordering::Acquire) {
                     break Ok(());
+                }
+                if futures_lite::future::block_on(futures_lite::future::poll_once(health.as_mut()))
+                    .is_some()
+                {
+                    break if shutdown.load(Ordering::Acquire) {
+                        Ok(())
+                    } else {
+                        Err(io::Error::other("backend health worker stopped"))
+                    };
                 }
                 let mut accepted_any = false;
                 for (listener, redirect_only) in

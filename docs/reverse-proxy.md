@@ -30,11 +30,66 @@ curl -H 'Host: app.example' http://127.0.0.1:8080/api/
 readiness measures the frontend/configuration/certificate, not application health.
 Probe a representative application URL separately before switching traffic.
 
+## Local backend pools
+
+Declare a pool on a route whose replicas can handle the same requests. This
+example serves only the `/api` subtree. The second replica drains when the
+configuration is activated. Remove the drain directive and reload to return it
+to rotation after a successful health check.
+
+```kdl
+site "app.example" {
+    tls "auto"
+    proxy-pool "/api" "/ready" "127.0.0.1:3001,127.0.0.1:3002"
+    proxy-drain "/api" "127.0.0.1:3002"
+}
+```
+
+Denials, exact publications, redirects and explicit `proxy-path` restrictions
+are evaluated first. The longest matching upstream route owns the request.
+A pool accepts 1–32 distinct unscoped loopback endpoints. When all eligible
+members are exhausted it returns 503. With a pool-only site, an unmatched path
+returns 404. A configured default or shorter route cannot take over a matched
+pool's failed request. Existing `proxy-resource` routes keep their explicit
+ownership probes and single-owner dispatch.
+
+PathWard checks each enabled member with an anonymous, bodyless HTTP/1 GET of
+the configured health path. Implement that path as a cheap read-only operation.
+The probe uses the configured hostname, validates the bounded response head
+and accepts a 2xx status. Each probe has a 500 ms deadline. The accept loop
+polls a bounded background scan, yielding after each member and waiting one
+second between scans. Other slow members can lengthen the interval between
+background probes. Positive and negative observations expire after five
+seconds. A request needing a fresh observation can run or join a probe under
+its original deadline. There is at most one outstanding probe per member of a
+route generation. The process readiness endpoint keeps its frontend meaning.
+
+Round-robin selection starts at the next member for each request. At most two
+application TCP connects share the original service deadline. A refused connect
+marks that member unavailable. Once the proxy reserves a connected socket for
+dispatch, every header, body and response error ends that exchange. A client
+can therefore receive 502 even when the application committed its write.
+Application operation IDs are needed for clients that retry an ambiguous write.
+
+Activating a configuration retires the previous generation's pool dispatch
+permissions. Requests already granted a socket can finish, including streams
+under their normal limits. A previously captured pool cannot start another
+dispatch after its retirement. A validated rollback builds a fresh generation
+and checks health again. Drain scope is per route. If several routes point to
+one process, drain all of them before stopping it and observe its outstanding
+work. The service does not persist application sessions or move a room owner.
+
+The [Rust gates](../src/upstream.rs), [Lean proofs](../proofs/UpstreamProofs.lean)
+and [verification record](backend-pool-validation.json) cover the selection and dispatch
+policy. They assume the adapter supplied the compiled route and observed health
+and drain state. DNS, remote origins and transport connection reuse fall outside
+the pool configuration.
+
 ## Delegation and trust
 
 - Only canonical `127.0.0.1:PORT` and `[::1]:PORT` are accepted, with nonzero ports.
   No DNS, URLs, remote/private-network addresses, credentials, redirects followed,
-  retries, connection pooling, CONNECT tunnels or socket paths are used.
+  application-request replays, connection pooling, CONNECT tunnels or socket paths are used.
 - Mixed sites select denials before local publications/redirects, then the proxy.
   `proxy-path` optionally restricts its subtrees. Selected local failures never
   fall back to the proxy; upstream failures never fall back to files. The automatic

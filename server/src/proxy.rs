@@ -1,5 +1,5 @@
 //! Bounded, one-exchange HTTP/1 proxy to a configured numeric loopback address.
-//! No DNS, pooling, retries, redirects, arbitrary tunnels or decompression.
+//! Pool failover is confined to establishing one socket before the application write.
 use crate::http::{self, Rejection, Request, Transport};
 use crate::streaming::{self, Live, Mode};
 use pathward::proxy as policy;
@@ -62,7 +62,7 @@ fn field_value(value: &[u8]) -> bool {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn forward_async(
-    upstream: SocketAddr,
+    upstream: Option<SocketAddr>,
     req: &Request<'_>,
     prefetched: &[u8],
     client: &mut impl Transport,
@@ -95,9 +95,8 @@ pub(crate) async fn forward_async(
         external_port,
     )?;
     // Repeat the extraction-backed gate at the only connect call's boundary.
-    if !policy::endpoint_allowed(upstream.ip().to_string().as_bytes(), upstream.port())
-        || upstream.port() == client.local_port().map_err(|_| Rejection(502))?
-    {
+    let local_port = client.local_port().map_err(|_| Rejection(502))?;
+    if upstream.is_some_and(|addr| !allowed_endpoint(addr, local_port)) {
         return Err(Rejection(502));
     }
     if !pathward::routing::request_framing(req.content_length, limits.request_bytes, false, false) {
@@ -186,23 +185,19 @@ pub(crate) async fn forward_async(
     }
     http::remaining(body_deadline).map_err(|_| Rejection(408))?;
     let deadline = accepted + Duration::from_millis(limits.total_ms);
-    let upstream = select_upstream(
+    let mut dispatched = false;
+    let mut socket = connect_upstream(
         upstream,
         routes,
         req,
-        client.local_port().map_err(|_| Rejection(502))?,
+        local_port,
         encrypted,
         external_port,
         deadline,
         limits,
+        &mut dispatched,
     )
     .await?;
-    let timeout = http::remaining(deadline)
-        .map_err(failure)?
-        .min(Duration::from_millis(limits.connect_ms));
-    let mut socket = crate::async_http::connect(upstream, timeout)
-        .await
-        .map_err(failure)?;
     let method = std::str::from_utf8(req.method).map_err(|_| Rejection(400))?;
     let target = std::str::from_utf8(req.target).map_err(|_| Rejection(400))?;
     let authority = forwarded_authority(req, external_port, encrypted);
@@ -614,11 +609,17 @@ pub(crate) struct UpstreamRoute {
     pub prefix: String,
     pub width: usize,
     pub candidates: Vec<SocketAddr>,
+    pub pool: Option<crate::backend_pool::Pool>,
+}
+
+pub(crate) fn allowed_endpoint(addr: SocketAddr, local_port: u16) -> bool {
+    addr.port() != local_port
+        && policy::endpoint_allowed(addr.ip().to_string().as_bytes(), addr.port())
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn select_upstream(
-    default: SocketAddr,
+async fn connect_upstream(
+    default: Option<SocketAddr>,
     routes: &[UpstreamRoute],
     req: &Request<'_>,
     local_port: u16,
@@ -626,33 +627,51 @@ async fn select_upstream(
     external_port: u16,
     deadline: Instant,
     limits: ProxyLimits,
-) -> Result<SocketAddr, Rejection> {
+    dispatched: &mut bool,
+) -> Result<TcpStream, Rejection> {
     let path = &req.target[..pathward::serving::path_length(req.target)];
     let route = routes
         .iter()
         .filter(|r| pathward::routing::subtree(path, r.prefix.as_bytes()))
         .max_by_key(|r| r.prefix.len());
     let endpoint = |addr: SocketAddr| {
-        if policy::endpoint_allowed(addr.ip().to_string().as_bytes(), addr.port())
-            && addr.port() != local_port
-        {
+        if allowed_endpoint(addr, local_port) {
             Ok(addr)
         } else {
             Err(Rejection(502))
         }
     };
-    let Some(route) = route else {
-        return endpoint(default);
+    let connect = async |address| {
+        let addr = endpoint(address)?;
+        let timeout = http::remaining(deadline)
+            .map_err(failure)?
+            .min(Duration::from_millis(limits.connect_ms));
+        crate::async_http::connect(addr, timeout)
+            .await
+            .map_err(failure)
     };
+    let Some(route) = route else {
+        return connect(default.ok_or(Rejection(404))?).await;
+    };
+    if let Some(pool) = &route.pool {
+        return pool
+            .connect(
+                local_port,
+                deadline,
+                Duration::from_millis(limits.connect_ms),
+                dispatched,
+            )
+            .await;
+    }
     if route.width == 0 {
         if route.candidates.len() != 1 {
             return Err(Rejection(502));
         }
-        return endpoint(route.candidates[0]);
+        return connect(route.candidates[0]).await;
     }
     // The collection belongs to the configured default (e.g. POST creation).
     if path == route.prefix.as_bytes() {
-        return endpoint(default);
+        return connect(default.ok_or(Rejection(502))?).await;
     }
     let tail = &path[route.prefix.len() + 1..];
     let key = tail.split(|b| *b == b'/').next().unwrap_or(b"");
@@ -691,7 +710,7 @@ async fn select_upstream(
             .await
             .map_err(failure)?;
         if pathward::upstream::probe_owned(status) {
-            return Ok(candidate);
+            return connect(candidate).await;
         }
         let remaining = (route.candidates.len() - index - 1) as u64;
         if pathward::upstream::probe_next(status, remaining) {
@@ -702,7 +721,7 @@ async fn select_upstream(
     Err(Rejection(404))
 }
 
-async fn probe_status(socket: &mut TcpStream, deadline: Instant) -> io::Result<u16> {
+pub(crate) async fn probe_status(socket: &mut TcpStream, deadline: Instant) -> io::Result<u16> {
     let raw = crate::async_http::read_head(socket, deadline).await?;
     http::remaining(deadline)?;
     let end = raw

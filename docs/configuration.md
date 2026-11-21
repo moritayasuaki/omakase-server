@@ -58,7 +58,9 @@ DNS, certificate eligibility, or root confinement.
 | `publish "/url" "relative/file"` | One exact URL-to-target pair | 0–4096 per site; zero requires a redirect or proxy mode; duplicate URLs rejected even when targets are identical |
 | `reverse-proxy "127.0.0.1:3000"` | Whole-host delegation to local HTTP app | One numeric loopback endpoint per site; may coexist with local/denied routes; see [routing and limits](routing-and-limits.md) |
 | `deny "/admin"` | Denied subtree, before all local/proxy routes | Up to 64 distinct canonical paths; `/` rejects all routable paths |
-| `proxy-path "/api"` | Allowed proxy subtree | Up to 64 distinct canonical paths; requires reverse-proxy |
+| `proxy-path "/api"` | Allowed proxy subtree | Up to 64 distinct canonical paths on a proxy site |
+| `proxy-pool "/api" "/ready" "127.0.0.1:3001,[::1]:3002"` | Round-robin local replicas for this subtree | One canonical HTTP health path and 1–32 distinct numeric loopback endpoints. Shares the 64-route limit with fixed routes and resource discovery |
+| `proxy-drain "/api" "127.0.0.1:3001"` | Exclude members from new dispatches after reload | One list per pool, with every endpoint present in that pool. Directive order is immaterial |
 | `proxy-limit "request-body" "16KiB"` | Service body or concurrency limit | Bounded, unit-bearing values; see [limits](routing-and-limits.md) |
 | `proxy-timeout "total" "90s"` | Service phase/total timeout | Bounded milliseconds/seconds; see [limits](routing-and-limits.md) |
 | `tls "auto"` | Automatic TLS policy | Exactly one per site; only `auto` is accepted |
@@ -107,10 +109,10 @@ input allocation. A linear, nonrecursive preflight admits only:
   before `}`. A top-level closing brace may be followed by EOF.
 - `//` line comments, including Unicode text. Comment/newline handling uses the
   same newline set as KDL, so a Unicode newline cannot hide a following directive.
-- A single children level (sites only); at most 16 sites and 4482 directives per
+- A single children level (sites only); at most 16 sites and 4994 directives per
   site before the upstream parser runs. Compilation separately enforces 4096 URLs,
-  64 redirects, 32 headers, one root, one TLS directive, one upstream, 64 denials,
-  64 proxy scopes, 64 cache rules, 64 upstream routes, 12 budget settings, two stream opt-ins, one compression policy
+  512 redirects, 32 headers, one root, one TLS directive, one default upstream, 64 denials,
+  64 proxy scopes, 64 cache rules, 64 upstream routes, 64 pool drain lists, 12 budget settings, two stream opt-ins, one compression policy
   and 16 additional WebSocket origins. Publications require a root.
 
 Raw/multiline strings, block comments, slashdash (`/-`), quoted node names,

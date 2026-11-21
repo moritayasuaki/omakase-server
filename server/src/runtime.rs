@@ -55,6 +55,9 @@ impl Drop for ServicePermit {
     }
 }
 impl Site {
+    pub fn has_proxy(&self) -> bool {
+        self.upstream.is_some() || !self.proxy_routes.is_empty()
+    }
     pub fn cache_policy(&self, path: &[u8]) -> pathward_config::CachePolicy {
         self.cache
             .iter()
@@ -101,7 +104,7 @@ impl Site {
             || !self.proxy_routes.is_empty();
         let stem = pathward::routing::stem(raw);
         let path = stem.unwrap_or(b"");
-        let transport_valid = if self.upstream.is_some() {
+        let transport_valid = if self.has_proxy() {
             pathward::proxy::target_allowed(target)
         } else {
             pathward::serving::request_path(target).is_some()
@@ -127,7 +130,11 @@ impl Site {
         let redirect = self.redirects.iter().any(|r| {
             r.fallback || pathward::response::route_matches(path, r.from.as_bytes(), r.prefix)
         });
-        let proxy = self.upstream.is_some()
+        let pool_matches = self
+            .proxy_routes
+            .iter()
+            .any(|r| r.pool.is_some() && pathward::routing::subtree(path, r.prefix.as_bytes()));
+        let proxy = (self.upstream.is_some() || pool_matches)
             && (self.proxy_paths.is_empty()
                 || self
                     .proxy_paths
@@ -144,7 +151,7 @@ impl Site {
         encrypted: bool,
     ) -> String {
         let mut out = crate::http::response_head(status, length, content_type);
-        if self.upstream.is_some() && status == 405 {
+        if self.has_proxy() && status == 405 {
             out = out.replace(
                 "Allow: GET, HEAD\r\n",
                 "Allow: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS\r\n",
@@ -335,6 +342,13 @@ pub(crate) struct Snapshot {
     pub source: String,
 }
 impl Snapshot {
+    pub fn retire_pools(&self) {
+        for route in self.sites.iter().flat_map(|site| &site.proxy_routes) {
+            if let Some(pool) = &route.pool {
+                pool.retire();
+            }
+        }
+    }
     /// Preparation never changes the active cap. Install only at the commit point.
     pub fn inherit_budgets(&mut self, old: &Snapshot) {
         for site in &mut self.sites {
@@ -348,12 +362,12 @@ impl Snapshot {
             // A poisoned budget refuses admission. No I/O or fallible work follows
             // installation at either commit point.
             if let Ok(mut state) = site.budget.0.lock() {
-                state.1 = if site.upstream.is_some() {
+                state.1 = if site.has_proxy() {
                     site.limits.connections
                 } else {
                     0
                 };
-                state.3 = if site.upstream.is_some() && (site.limits.websocket || site.limits.sse) {
+                state.3 = if site.has_proxy() && (site.limits.websocket || site.limits.sse) {
                     site.limits.streams
                 } else {
                     0
@@ -400,6 +414,14 @@ impl Snapshot {
                             prefix: r.prefix.to_owned(),
                             width: r.width,
                             candidates: r.candidates.clone(),
+                            pool: r.health_path.map(|path| {
+                                crate::backend_pool::Pool::new(
+                                    site.host(),
+                                    path,
+                                    &r.candidates,
+                                    &r.drained,
+                                )
+                            }),
                         })
                         .collect(),
                     limits: site.proxy_limits(),
@@ -410,13 +432,13 @@ impl Snapshot {
                         .collect(),
                     budget: Arc::new(ServiceBudget(Mutex::new((
                         0,
-                        if site.upstream().is_some() {
+                        if site.has_proxy() {
                             site.proxy_limits().connections
                         } else {
                             0
                         },
                         0,
-                        if site.upstream().is_some()
+                        if site.has_proxy()
                             && (site.proxy_limits().websocket || site.proxy_limits().sse)
                         {
                             site.proxy_limits().streams

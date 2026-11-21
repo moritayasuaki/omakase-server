@@ -1,4 +1,6 @@
 use crate::Server;
+#[path = "backend_pool_tests.rs"]
+mod backend_pool;
 use pathward_config::ParsedConfig;
 use std::{
     io::{Read, Write},

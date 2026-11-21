@@ -26,3 +26,20 @@ pub fn probe_owned(status: u16) -> bool {
 pub fn query_match(exact: bool, ambiguous: bool) -> bool {
     exact || ambiguous
 }
+
+/// Return the actual route member, never an address supplied by the request.
+/// Zero is outside the encoding of a permitted loopback socket address.
+pub fn pool_select(members: &[u32], index: usize, ready: bool, draining: bool, sent: bool) -> u32 {
+    if ready && !draining && !sent && members.len() <= 32 && index < members.len() {
+        members[index]
+    } else {
+        0
+    }
+}
+
+/// Consume this request's only dispatch permission before its first socket write.
+pub fn begin_dispatch(sent: &mut bool) -> bool {
+    let allowed = !*sent;
+    *sent = true;
+    allowed
+}

@@ -180,6 +180,24 @@ impl System for Mock {
     }
 }
 #[test]
+fn reviewed_pool_and_drain_survive_publication() -> Result<()> {
+    let mut x = Fixture::new()?;
+    x.policy["sites"][0]["directives"] = json!([
+        ["proxy-drain", "/api", "127.0.0.1:3002"],
+        [
+            "proxy-pool",
+            "/api",
+            "/ready",
+            "127.0.0.1:3001,127.0.0.1:3002"
+        ]
+    ]);
+    let (path, _) = x.bridge().build(&x.policy, &mut |_| Ok(()))?;
+    let candidate = fs::read_to_string(path)?;
+    assert!(candidate.contains(r#"  proxy-drain "/api" "127.0.0.1:3002""#));
+    assert!(candidate.contains(r#"  proxy-pool "/api" "/ready" "127.0.0.1:3001,127.0.0.1:3002""#));
+    Ok(())
+}
+#[test]
 fn captures_explicit_files_directory_aliases_and_synthetic_policy() -> Result<()> {
     let x = Fixture::new()?;
     let mut bridge = x.bridge();

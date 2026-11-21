@@ -104,8 +104,10 @@ valid on a static site and survives managed configuration generation/reload.
   windows, crypto buffers, pending handshakes and send buffers are explicitly
   finite. DATAGRAM/WebTransport/extended CONNECT are disabled.
 - WebSockets continue over HTTP/1.1 Upgrade. RFC 8441/9220 extended CONNECT is
-  not advertised. Upstreams remain numeric loopback HTTP/1, without pooling,
-  HTTPS, remote DNS or upstream HTTP/2/3.
+  not advertised. Upstreams use numeric loopback HTTP/1 with one socket per
+  exchange. [Backend pools](reverse-proxy.md#local-backend-pools) can distribute
+  requests across local replicas. Remote HTTPS, DNS and upstream HTTP/2/3
+  require a different transport.
 
 The adapters retain the raw path/query, validate `:authority` against SNI, reject
 ambiguous Host/content-length/hop fields and trailers, then call the same policy
