@@ -141,17 +141,21 @@ fn sample(pool: &Pool) -> (u128, u128, u128, u128) {
     (lo, tick, hi, nanos(ClockId::Monotonic))
 }
 
-fn suspend_and_measure(pool: &Pool) {
+fn wait_for_resume() {
     let dir = fixture_dir();
-    let h = *pool.members[0].health.lock().unwrap();
-    let before = sample(pool);
-    assert!(fresh_health(h, u64::try_from(before.1).unwrap()));
     fs::write(dir.join("sampled"), b"ready").unwrap();
     let limit = Instant::now() + WAIT;
     while !dir.join("resumed").exists() {
         assert!(Instant::now() < limit);
         thread::sleep(Duration::from_millis(5));
     }
+}
+
+fn suspend_and_measure(pool: &Pool) {
+    let h = *pool.members[0].health.lock().unwrap();
+    let before = sample(pool);
+    assert!(fresh_health(h, u64::try_from(before.1).unwrap()));
+    wait_for_resume();
     let after = sample(pool);
     let tick = after.1 - before.1;
     let lower = after.0 - before.2;
@@ -173,7 +177,7 @@ fn dispatch(pool: &Pool) -> (Result<(TcpStream, usize), http::Rejection>, bool) 
 }
 
 #[test]
-#[ignore = "guest supervisor performs a real suspend and RTC wake"]
+#[ignore = "guest supervisor suspends and resumes this process"]
 fn suspended_pool_samples_expire_and_require_a_successful_recheck() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let pool = Pool::new(
@@ -184,7 +188,7 @@ fn suspended_pool_samples_expire_and_require_a_successful_recheck() {
     );
     assert!(probe(&pool, &listener, 204));
 
-    // Park a connected dispatch and a second pool's already parsed 204 across the same S3.
+    // Park a connected dispatch and a second pool's already parsed 204 across sleep.
     let (pause, connected, release_socket) = rendezvous();
     let first = AtomicBool::new(true);
     assert!(
@@ -269,6 +273,70 @@ fn suspended_pool_samples_expire_and_require_a_successful_recheck() {
     println!(
         "RESUME expired_request_bytes=0 delayed_204_published=false failed_recheck_dials=0 recovered_requests=1"
     );
+}
+
+#[test]
+#[ignore = "S4 guest supervisor hibernates immediately after the protected clock sample"]
+fn hibernated_after_clock_read_exposes_the_socket_boundary() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let pool = Pool::new(
+        "app.example",
+        "/ready",
+        &[listener.local_addr().unwrap()],
+        &[],
+    );
+    assert!(probe(&pool, &listener, 204));
+    let health = *pool.members[0].health.lock().unwrap();
+    let (timestamp, sampled) = mpsc::channel();
+    let (pause, parked, resume_writer) = rendezvous();
+    assert!(
+        pool.at_write
+            .set(Box::new(move |point| {
+                if let WritePoint::ClockSampled(tick) = point {
+                    timestamp.send(tick).unwrap();
+                    pause();
+                }
+            }))
+            .is_ok()
+    );
+    thread::scope(|s| {
+        let request = s.spawn(|| dispatch(&pool));
+        let tick = sampled.recv_timeout(WAIT).unwrap();
+        parked.recv_timeout(WAIT).unwrap();
+        assert!(fresh_health(health, tick));
+        let (mut peer, _) = listener.accept().unwrap();
+        let cookie = socket_cookie(&peer).unwrap();
+        peer.set_nonblocking(true).unwrap();
+        assert_eq!(
+            peer.read(&mut [0]).unwrap_err().kind(),
+            io::ErrorKind::WouldBlock
+        );
+        wait_for_resume();
+        let later = pool.now();
+        assert!(later != u64::MAX && later - tick >= 5_000_000_000);
+        assert!(!fresh_health(health, later));
+        assert_eq!(socket_cookie(&peer).unwrap(), cookie);
+        assert_eq!(
+            peer.read(&mut [0]).unwrap_err().kind(),
+            io::ErrorKind::WouldBlock
+        );
+        peer.set_nonblocking(false).unwrap();
+        peer.set_read_timeout(Some(WAIT)).unwrap();
+        resume_writer.send(()).unwrap();
+        let (result, sent) = request.join().unwrap();
+        let (socket, accepted) = result.unwrap();
+        assert!(sent && accepted > 0);
+        drop(socket);
+        let mut received = Vec::new();
+        peer.read_to_end(&mut received).unwrap();
+        assert_eq!(received, HEAD[..accepted]);
+        println!(
+            "POST_SAMPLE age_at_read_ns={} age_at_release_ns={} first_write_bytes={accepted} peer_bytes={} same_cookie=true",
+            tick - health.at,
+            later - health.at,
+            received.len()
+        );
+    });
 }
 
 #[test]

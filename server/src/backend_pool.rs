@@ -58,6 +58,7 @@ pub(crate) enum WritePoint {
     BeforeDial,
     ProbeResponse(u16),
     Connected,
+    ClockSampled(u64),
     Written,
     Waiting,
     Retiring,
@@ -247,6 +248,8 @@ impl Pool {
                         draining: member.draining,
                         retired: *retired,
                     };
+                    #[cfg(test)]
+                    self.notify(WritePoint::ClockSampled(gate.now));
                     let mut writer = SocketWrite {
                         socket,
                         head,

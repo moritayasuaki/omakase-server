@@ -38,6 +38,7 @@
     "LinuxProofs.resume_expiry_preserves_writer",
     "LinuxProofs.healthy_record_has_probe",
     "LinuxProofs.first_effect_after_expiry_requires_recheck",
+    "LinuxProofs.saved_sample_can_write_at_expiry",
     "LinuxProofs.instant_delta_within_kernel_brackets",
     "LinuxProofs.stopped_preserves_errno_and_suffix",
     "LinuxProofs.foreign_socket_is_rejected",
@@ -786,11 +787,24 @@
       ]
     },
     {
+      "id": "LOCAL-POOL-S4-WRITE-BOUNDARY",
+      "title": "S4復元時の初回送信と時計読取り後の停止",
+      "priority": "P1",
+      "status": "proved",
+      "acceptance": "期限切れで再採時したゲートと、休止前の時刻を保存したゲートを実際のRust判断で比較する。許可時の観測がソケット受理時にも新鮮であるための必要十分な時間差と、保存した時刻で正の書込みができる具体例を示す。固定Linuxでスワップ上の休止イメージを復元し、両方の停止位置で実ソケットの受信を照合する。",
+      "theorems": [
+        "LinuxProofs.fresh_at_io_iff_delay_fits",
+        "LinuxProofs.resampling_at_expiry_skips_write",
+        "LinuxProofs.wait_then_resume_expiry_preserves_grant",
+        "LinuxProofs.saved_sample_can_write_at_expiry"
+      ]
+    },
+    {
       "id": "LOCAL-POOL-KERNEL-SEMANTICS",
       "title": "固定した標準ライブラリとカーネルの契約そのものの検証",
       "priority": "P2",
       "status": "planned",
-      "acceptance": "MIRの分岐・標準ライブラリ内部でのdrop・Acquire/Releaseとカーネルのfutex、時刻源・電源管理、TCP・errno・記述子所有権に至る対応を機械化する。Linuxのブート時計の正規化された値と休止時間の加算、保護下の時計読取りからソケット呼出しまでに生じうる休止はOS境界に残る。S4・別のCPUやカーネルでの再現は個別に検証する。",
+      "acceptance": "MIRの分岐・標準ライブラリ内部でのdrop・Acquire/Releaseとカーネルのfutex、時刻源・電源管理、TCP・errno・記述子所有権に至る対応を機械化する。固定ゲストのS3・S4でCLOCK_BOOTTIMEを照合した。ソケット受理時にも新鮮と保証するには、保護下の読取りから受理までの経過時間が観測の残り寿命未満になる仕組みが必要。一般のLinuxスケジューラにはこの上限を置けない。物理機・別のアーキテクチャやカーネルでの時計復元も引き続き個別に検証する。",
       "theorems": []
     },
     {

@@ -2,11 +2,14 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {createReadStream, copyFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync} from 'node:fs';
+import {closeSync, createReadStream, copyFileSync, ftruncateSync, mkdirSync, openSync, readFileSync, readSync, realpathSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 
-assert.equal(process.argv.length, 4, 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY');
+assert([4,5].includes(process.argv.length), 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY [s3|s4]');
+const mode = process.argv[4] ?? 's3';
+assert(['s3','s4'].includes(mode));
 const root = fileURLToPath(new URL('../', import.meta.url));
 const pin = JSON.parse(readFileSync(join(root, 'audit/pool-linux-target.json')));
 const image = realpathSync(process.argv[2]);
@@ -30,6 +33,9 @@ mkdirSync(out, {mode:0o700});
 mkdirSync(seed, {mode:0o700});
 copyFileSync(artifacts[0].executable, join(seed, 'pool-tests'));
 copyFileSync(join(root,'scripts/pool_linux_guest.sh'), join(seed,'run'));
+if (mode === 's4') {
+    copyFileSync(join(root,'scripts/pool_linux_s4_guest.sh'), join(seed,'run-s4'));
+}
 function file(name, contents) { writeFileSync(join(seed, name), contents + '\n'); }
 file('release', pin.guest.release);
 file('version-signature', pin.guest.version_signature);
@@ -42,11 +48,56 @@ file('user-data', '#cloud-config\npackage_update: false\npackage_upgrade: false\
 const run = (bin,args, opts={}) => execFileSync(bin,args,{cwd:out,stdio:'inherit',...opts});
 run('xorriso',['-as','mkisofs','-quiet','-o','seed.iso','-V','cidata','-J','-r','seed']);
 run('qemu-img',['create','-q','-f','qcow2','-F','qcow2','-b',image,'overlay.qcow2']);
-run('qemu-system-x86_64',['-machine','pc','-accel','tcg,thread=multi','-m','1024','-smp','2',
-    '-display','none','-monitor','none','-serial','file:serial.log','-nic','none','-no-reboot',
+const machine = ['-machine','pc','-accel','tcg,thread=multi','-m','1024','-smp','2',
+    '-display','none','-monitor','none','-nic','none','-no-reboot',
     '-rtc','base=utc,clock=host','-smbios','type=1,product=PathWardPoolLab',
-    '-drive','file=overlay.qcow2,format=qcow2,if=virtio,cache=none',
-    '-drive','file=seed.iso,format=raw,media=cdrom,readonly=on'],{timeout:600000,killSignal:'SIGKILL'});
-assert(readFileSync(join(out,'serial.log'),'utf8').split(/\r?\n/).includes('POOL_LINUX_REFINEMENT_PASSED'),
-    'guest checks failed; see ' + join(out,'serial.log'));
-console.log('POOL_LINUX_REFINEMENT_PASSED',join(out,'serial.log'));
+    '-drive','file=seed.iso,format=raw,media=cdrom,readonly=on'];
+function boot(serial) {
+    run('qemu-system-x86_64',[...machine,'-serial','file:' + serial],{timeout:600000,killSignal:'SIGKILL'});
+    return readFileSync(join(out,serial),'utf8').replaceAll('\r','').split('\n');
+}
+if (mode === 's3') {
+    machine.push('-drive','file=overlay.qcow2,format=qcow2,if=virtio,cache=none');
+    assert(boot('serial.log').includes('POOL_LINUX_REFINEMENT_PASSED'), 'guest checks failed; see serial.log');
+    console.log('POOL_LINUX_REFINEMENT_PASSED',join(out,'serial.log'));
+} else {
+    // The guest formats only this new scratch disk. Keep both disks unchanged while powered off.
+    const path = join(out,'swap.raw');
+    const swap = openSync(path,'wx',0o600);
+    try { ftruncateSync(swap, 1024 ** 3); } finally { closeSync(swap); }
+    machine.push('-drive','if=none,id=systemdisk,file=overlay.qcow2,format=qcow2,cache=none',
+        '-device','virtio-blk-pci,drive=systemdisk,addr=0x5,bootindex=1',
+        '-drive','if=none,id=hibswap,file=swap.raw,format=raw,cache=none',
+        '-device','virtio-blk-pci,drive=hibswap,addr=0x6,serial=PathWardS4Swap');
+    function signature() {
+        const fd = openSync(path,'r');
+        try {
+            const bytes = Buffer.alloc(10);
+            assert.equal(readSync(fd,bytes,0,10,4096-10),10);
+            return bytes.toString('ascii');
+        } finally { closeSync(fd); }
+    }
+    for (let cycle=0; cycle<=2; cycle++) {
+        const lines = boot('serial-' + cycle + '.log');
+        if (cycle > 0) {
+            assert(lines.some(s => s.includes('Kernel command line:') && s.includes('resume=/dev/vdb resumewait') &&
+                s.includes('root=/dev/pathward-no-root')), 'restore-only kernel did not boot');
+            assert(lines.some(s => /PM: hibernation: Read [1-9]\d* kbytes/.test(s)), 'kernel did not read a disk image');
+            assert(lines.includes('S4_CONTINUITY trial=' + cycle + ' same_boot_id=true both_workers_alive=true'));
+            assert(lines.includes('S4_RESTORED trial=' + cycle), 'hibernated tests did not continue');
+        }
+        if (cycle < 2) {
+            assert(lines.includes('S4_HIBERNATE trial=' + (cycle+1)), 'guest did not request hibernation');
+            assert.equal(signature(),'S1SUSPEND\0','Linux swap hibernation image');
+            const off = process.hrtime.bigint();
+            await delay(7000);
+            const elapsed = process.hrtime.bigint() - off;
+            assert(elapsed >= 5000000000n);
+            console.log('S4_IMAGE trial=%d signature=S1SUSPEND powered_off_ns=%s',cycle+1,elapsed.toString());
+        } else {
+            assert(lines.includes('POOL_LINUX_S4_PASSED'));
+            assert.equal(signature(),'SWAPSPACE2','consumed hibernation image');
+        }
+    }
+    console.log('POOL_LINUX_S4_PASSED',out);
+}

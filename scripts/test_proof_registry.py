@@ -7,6 +7,14 @@ import proof_registry
 
 
 class RegistryTests(unittest.TestCase):
+    def test_header_retains_nested_assignments(self):
+        header = '''theorem saved (h : P (n := 1)) :
+    /- first := /- nested -/ end -/ let t := {h with now := 5};
+    Q (E := Unit) t ":=" -- ignore this := by
+    '''
+        source = header + ':= by trivial'
+        self.assertEqual(proof_registry.statement_end(source, len('theorem saved'), len(source)), len(header))
+
     def test_attributes_do_not_hide_theorems_from_axiom_inventory(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
