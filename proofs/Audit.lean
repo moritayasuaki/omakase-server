@@ -267,6 +267,10 @@ import UpstreamProofs
 #print axioms LinuxProofs.instant_delta_within_kernel_brackets
 #print axioms LinuxProofs.first_report_retains_errno
 #print axioms LinuxProofs.first_report_retains_partial_count
+#print axioms LinuxProofs.fresh_at_io_iff_delay_fits
+#print axioms LinuxProofs.resampling_at_expiry_skips_write
+#print axioms LinuxProofs.wait_then_resume_expiry_preserves_grant
+#print axioms LinuxProofs.saved_sample_can_write_at_expiry
 #print axioms LinuxProofs.fatal_first_report_spends_grant_with_original_cause
 #print axioms LinuxProofs.retryable_first_report_requires_live_generation
 #print axioms LinuxProofs.stopped_preserves_errno_and_suffix

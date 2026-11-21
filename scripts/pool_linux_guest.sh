@@ -17,6 +17,9 @@ run() { setpriv --reuid=nobody --regid=nogroup --clear-groups "$@"; }
 run id
 uname -srvmo
 cat /proc/version_signature
+if test -f "$seed/run-s4"; then
+    exec /bin/sh "$seed/run-s4" "$bin"
+fi
 run "$bin" backend_pool --test-threads=1 --nocapture
 
 wait_file() {

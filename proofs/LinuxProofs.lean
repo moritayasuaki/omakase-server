@@ -139,6 +139,68 @@ theorem first_report_retains_partial_count (E : Type) (n : Usize) :
 def reportedWriter {E : Type} (report : core.result.Result (Option Usize) E) :
     upstream.FirstWriter (Option E) := ⟨fun _ => upstream.first_write_report report⟩
 
+/-- For the record used by an actual first-write effect, this is the exact
+    budget left between its clock read and a later observation of socket I/O. -/
+theorem fresh_at_io_iff_delay_fits {W} (writer : upstream.FirstWriter W) (state : W)
+    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent spent : Bool)
+    (event : upstream.FirstIo) (state' : W) (ioTime : U64)
+    (out : upstream.guarded_first_write writer m i g sent state = ok (some event, spent, state'))
+    (ordered : g.now.val ≤ ioTime.val) (finite : ioTime ≠ core.num.U64.MAX) :
+    UpstreamProofs.FreshAt g.health ioTime ↔
+      ioTime.val - g.now.val < 5000000000 - (g.now.val - g.health.at.val) := by
+  obtain ⟨_, fresh, _⟩ := UpstreamProofs.effect_targets_registered_healthy_peer
+    writer m i g sent state event spent state' out
+  obtain ⟨live, current, _, observed, young⟩ := fresh
+  have elapsed : ioTime.val - g.health.at.val =
+      (g.now.val - g.health.at.val) + (ioTime.val - g.now.val) := by omega
+  have budget := Nat.sub_add_cancel (Nat.le_of_lt young)
+  constructor
+  · intro stillFresh
+    have short := stillFresh.2.2.2.2
+    omega
+  · intro inBudget
+    exact ⟨live, current, finite, Nat.le_trans observed ordered, by omega⟩
+
+theorem resampling_at_expiry_skips_write {W} (writer : upstream.FirstWriter W) (state : W)
+    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (later : U64) (sent : Bool)
+    (expired : g.health.at.val + 5000000000 ≤ later.val) :
+    upstream.guarded_first_write writer m i {g with now := later} sent state = ok (none, sent, state) := by
+  apply UpstreamProofs.unusable_health_preserves_writer
+  left
+  change ¬ UpstreamProofs.FreshAt g.health later
+  unfold UpstreamProofs.FreshAt
+  omega
+
+/-- A no-progress first attempt must face the restored clock on its next turn. -/
+theorem wait_then_resume_expiry_preserves_grant {W} (writer : upstream.FirstWriter W) (state next : W)
+    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (later : U64)
+    (permit : UpstreamProofs.MayWrite m i g false) (waited : writer.write_once state = ok (.Wait, next))
+    (expired : g.health.at.val + 5000000000 ≤ later.val) :
+    (do let (_, spent, w) ← upstream.guarded_first_write writer m i g false state
+        upstream.guarded_first_write writer m i {g with now := later} spent w) = ok (none, false, next) := by
+  rw [UpstreamProofs.allowed_executes_one_write writer m i g false state permit, waited]
+  exact resampling_at_expiry_skips_write writer next m i g later false expired
+
+/-- A concrete eligible member can produce a positive effect from a saved
+    sample, even when re-evaluation exactly five seconds later denies it. -/
+theorem saved_sample_can_write_at_expiry :
+    ∃ (m : Slice U32) (g : upstream.FirstWriteGate) (later : U64),
+      g.now.val + 5000000000 = later.val ∧
+      upstream.fresh_health g.health later = ok false ∧
+      upstream.guarded_first_write (reportedWriter (E := Unit) (.Ok (some 1#usize)))
+        m 0#usize g false none = ok (some (.Written 1#usize), true, none) ∧
+      upstream.guarded_first_write (reportedWriter (E := Unit) (.Ok (some 1#usize)))
+        m 0#usize {g with now := later} false none = ok (none, false, none) := by
+  let m : Slice U32 := ⟨[8080#u32], by simp; scalar_tac⟩
+  let g : upstream.FirstWriteGate := ⟨8080#u32, ⟨1#u64, 0#u64, 204#u16⟩, 0#u64, false, false⟩
+  have permit : UpstreamProofs.MayWrite m 0#usize g false := by
+    simp [m, g, UpstreamProofs.MayWrite, UpstreamProofs.FreshAt, UpstreamProofs.memberAt,
+      Slice.len, core.num.U64.MAX, U64.rMax]
+  refine ⟨m, g, 5000000000#u64, by decide, ?_, ?_, ?_⟩
+  · apply PlatformProofs.expired_sample_stays_expired g.health 5000000000#u64 <;> decide
+  · exact UpstreamProofs.positive_write_spends_grant _ _ _ _ false none permit 1#usize (by decide) none rfl
+  · exact resampling_at_expiry_skips_write _ none _ _ g _ false (by decide)
+
 theorem fatal_first_report_spends_grant_with_original_cause {E : Type} (e : E)
     (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (permit : UpstreamProofs.MayWrite m i g false) :
     upstream.guarded_first_write (reportedWriter (.Err e)) m i g false none = ok (some .Failed, true, some e) := by

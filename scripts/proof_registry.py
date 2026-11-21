@@ -8,6 +8,37 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 PROOFS = ROOT / "proofs"
 
+# Assignment syntax in a binder, a record update or a named argument belongs
+# to the statement. Preserve its source spelling in the readable inventory.
+HEADER_TOKEN = re.compile(r'''--[^\n]*|/-|"(?:\\.|[^"\\])*"|«[^»]*»|'(?:\\.|[^'\\\n])'|:=|\blet\b|[(){}\[\]⟨⟩⦃⦄]''')
+BLOCK_COMMENT = re.compile(r'/-|-/')
+
+
+def statement_end(source, start, stop):
+    depth = binding = 0
+    while match := HEADER_TOKEN.search(source, start, stop):
+        token = match.group()
+        start = match.end()
+        if token == '/-':
+            comments = 1
+            while comments:
+                mark = BLOCK_COMMENT.search(source, start, stop)
+                if not mark:
+                    raise ValueError("Unclosed Lean block comment in theorem header")
+                comments += 1 if mark.group() == '/-' else -1
+                start = mark.end()
+        elif token in ('(', '[', '{', '⟨', '⦃'):
+            depth += 1
+        elif token in (')', ']', '}', '⟩', '⦄'):
+            depth -= 1
+        elif depth == 0 and token == 'let':
+            binding += 1
+        elif depth == 0 and token == ':=':
+            if binding == 0:
+                return match.start()
+            binding -= 1
+    raise ValueError("Missing top-level theorem body")
+
 
 def declarations():
     entries = []
@@ -16,10 +47,10 @@ def declarations():
         namespaces = set(re.findall(r"^namespace (\w+)$", source, re.M))
         if namespaces != {path.stem}:
             raise SystemExit(f"Review namespace discovery for {path.name}")
-        for match in re.finditer(r"^(?:@\[[^\]]*\]\s*)*(?:theorem|lemma) (\w+)\b", source, re.M):
-            end = source.find(":=", match.end())
-            if end < 0:
-                raise SystemExit(f"Missing theorem body in {path.name}")
+        matches = list(re.finditer(r"^(?:@\[[^\]]*\]\s*)*(?:theorem|lemma) (\w+)\b", source, re.M))
+        for i, match in enumerate(matches):
+            stop = matches[i + 1].start() if i + 1 < len(matches) else len(source)
+            end = statement_end(source, match.end(), stop)
             entries.append({"name": path.stem + "." + match[1],
                             "source": str(path.relative_to(ROOT)),
                             "line": source.count("\n", 0, match.start()) + 1,
