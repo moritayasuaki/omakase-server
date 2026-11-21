@@ -41,28 +41,87 @@ theorem acquire_after_publication_observes_complete_record (s : LockedState) (pu
         ok (acquired.guards, acquired.health, acquired.retired)) = ok (.both reader, h, s.retired) := by
   simp [published, lockRun, lockStep, free]
 
-/- Active nanoseconds are relative to one pool origin. Linux supplies the
-   suspend-excluding monotonic clock and the suspend-inclusive boot clock. -/
+/- Linux boot time advances by both active and suspended time in one boot. -/
 structure Clocks where
   active : U128
   suspended : Nat
 
 def boot (c : Clocks) := c.active.val + c.suspended
 def sleepFor (c : Clocks) (ns : Nat) : Clocks := {c with suspended := c.suspended + ns}
-def healthAt (h : upstream.PoolHealth) (c : Clocks) : RustM Bool := do
-  let t ← upstream.pool_tick (some c.active)
-  upstream.fresh_health h t
+theorem sleep_advances_health_clock (c : Clocks) (ns : Nat) :
+    boot (sleepFor c ns) = boot c + ns := by simp [boot, sleepFor, Nat.add_assoc]
 
-theorem sleep_advances_only_boot_age (c : Clocks) (ns : Nat) (h : upstream.PoolHealth) :
-    boot (sleepFor c ns) = boot c + ns ∧ healthAt h (sleepFor c ns) = healthAt h c := by
-  exact ⟨by simp [boot, sleepFor, Nat.add_assoc], rfl⟩
+theorem resume_expiry_preserves_writer {W} (writer : upstream.FirstWriter W) (state : W)
+    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent : Bool)
+    (c : Clocks) (ns : Nat) (raw : U128) (sample : raw.val = boot (sleepFor c ns))
+    (adapter : upstream.pool_tick (some raw) = ok g.now)
+    (expired : g.health.at.val + 5000000000 ≤ boot c + ns) :
+    upstream.guarded_first_write writer m i g sent state = ok (none, sent, state) := by
+  apply UpstreamProofs.unusable_health_preserves_writer
+  left
+  have value := PlatformProofs.tick_value raw
+  rw [adapter] at value
+  have tick : g.now.val = min raw.val 18446744073709551615 := by simpa using value
+  by_cases fits : raw.val < 18446744073709551615
+  · rw [Nat.min_eq_left (Nat.le_of_lt fits)] at tick
+    rw [sleep_advances_health_clock] at sample
+    unfold UpstreamProofs.FreshAt
+    omega
+  · rw [Nat.min_eq_right (Nat.le_of_not_gt fits)] at tick
+    have invalid : g.now = core.num.U64.MAX := by
+      apply UScalar.eq_of_val_eq; simpa [core.num.U64.MAX, U64.rMax] using tick
+    exact fun fresh => fresh.2.2.1 invalid
 
-theorem long_suspend_can_preserve_fresh_probe (c : Clocks) (ns : Nat) (h : upstream.PoolHealth)
-    (fresh : healthAt h c = ok true) (long : 5000000000 ≤ ns) :
-    5000000000 ≤ boot (sleepFor c ns) - boot c ∧ healthAt h (sleepFor c ns) = ok true := by
-  obtain ⟨delta, same⟩ := sleep_advances_only_boot_age c ns h
-  rw [delta, same]
-  exact ⟨by omega, fresh⟩
+inductive HealthEvent where
+  | probe (expected start finish : U64) (status : U16)
+  | dialFailure (tick : U64)
+
+/-- Newest event first. These are the two ways the adapter can publish a member record. -/
+inductive HealthHistory (initial : upstream.PoolHealth) : List HealthEvent → upstream.PoolHealth → Prop where
+  | empty : HealthHistory initial [] initial
+  | checked (prev : HealthHistory initial events old)
+      (out : upstream.publish_probe old expected start finish status = ok next) :
+      HealthHistory initial (.probe expected start finish status :: events) next
+  | failed (prev : HealthHistory initial events old)
+      (out : upstream.publish_health old old.revision tick 0#u16 = ok next) :
+      HealthHistory initial (.dialFailure tick :: events) next
+
+theorem healthy_record_has_probe {old next : upstream.PoolHealth} {events : List HealthEvent}
+    (history : HealthHistory old events next) (healthy : 200 ≤ next.status.val) :
+    next = old ∨ ∃ expected start finish status, HealthEvent.probe expected start finish status ∈ events ∧
+      UpstreamProofs.WithinTTL start finish ∧ next.at = start ∧ next.status = status := by
+  induction history with
+  | empty => exact Or.inl rfl
+  | checked prev out ih =>
+    rcases UpstreamProofs.probe_publication_cases _ _ _ _ _ _ out with same | ⟨window, _, _, time, code⟩
+    · subst_vars
+      rcases ih healthy with same | ⟨e,s,f,n,mem,rest⟩
+      · exact Or.inl same
+      · exact Or.inr ⟨e,s,f,n,List.mem_cons_of_mem _ mem,rest⟩
+    · exact Or.inr ⟨_,_,_,_,List.mem_cons_self,window,time,code⟩
+  | failed prev out ih =>
+    rcases UpstreamProofs.publication_cases _ _ _ _ _ out with same | ⟨_,_,_,code⟩
+    · subst_vars
+      rcases ih healthy with same | ⟨e,s,f,n,mem,rest⟩
+      · exact Or.inl same
+      · exact Or.inr ⟨e,s,f,n,List.mem_cons_of_mem _ mem,rest⟩
+    · simp [code] at healthy
+
+theorem first_effect_after_expiry_requires_recheck {W} (writer : upstream.FirstWriter W) (state : W)
+    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent spent : Bool)
+    (io : upstream.FirstIo) (state' : W) (initial : upstream.PoolHealth) (events : List HealthEvent)
+    (history : HealthHistory initial events g.health) (expired : initial.at.val + 5000000000 ≤ g.now.val)
+    (effect : upstream.guarded_first_write writer m i g sent state = ok (some io, spent, state')) :
+    ∃ expected start finish status, HealthEvent.probe expected start finish status ∈ events ∧
+      UpstreamProofs.WithinTTL start finish ∧ UpstreamProofs.WithinTTL start g.now ∧
+      200 ≤ status.val ∧ status.val < 300 := by
+  obtain ⟨_, fresh, code, _⟩ := UpstreamProofs.effect_targets_registered_healthy_peer
+    writer m i g sent state io spent state' effect
+  rcases healthy_record_has_probe history code.1 with same | ⟨e,s,f,n,mem,window,time,status⟩
+  · rw [same] at fresh
+    unfold UpstreamProofs.FreshAt at fresh
+    omega
+  · exact ⟨e,s,f,n,mem,window,time ▸ fresh.2.2,status ▸ code⟩
 
 theorem instant_delta_within_kernel_brackets (lo₀ read₀ hi₀ lo₁ read₁ hi₁ origin : Nat)
     (a : lo₀ ≤ read₀) (b : read₀ ≤ hi₀) (c : lo₁ ≤ read₁) (d : read₁ ≤ hi₁)

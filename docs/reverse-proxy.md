@@ -59,8 +59,12 @@ The probe uses the configured hostname, validates the bounded response head
 and accepts a 2xx status. Each probe has a 500 ms deadline. The accept loop
 polls a bounded background scan, yielding after each member and waiting one
 second between scans. Other slow members can lengthen the interval between
-background probes. Positive and negative observations expire after five
-seconds. A request needing a fresh observation can run or join a probe under
+background probes. Positive and negative probe results expire five seconds
+after the probe starts. Linux counts time spent suspended with `CLOCK_BOOTTIME`.
+A response that has already aged five seconds is discarded even if it was a 2xx.
+An already connected request checks the same clock before its first write and
+after any no-progress retry. An expired member must pass a fresh check before
+it can receive a request. A request needing a fresh observation can run or join a probe under
 its original deadline. There is at most one outstanding probe per member of a
 route generation. The process readiness endpoint keeps its frontend meaning.
 

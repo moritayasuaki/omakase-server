@@ -2,7 +2,8 @@
 use crate::{async_http, http, proxy};
 use pathward::upstream::{
     FirstIo, FirstWriteGate, FirstWriter, PoolHealth, first_write_report, fresh_health,
-    guarded_first_write, healthy_response, pool_select, pool_tick, publish_health, retire_pool,
+    guarded_first_write, healthy_response, pool_select, pool_tick, publish_health, publish_probe,
+    retire_pool,
 };
 use std::{
     io::{self, Write},
@@ -74,6 +75,7 @@ pub(crate) struct Pool {
     /// Bit 16 selects IPv6 loopback. The low sixteen bits are a nonzero port.
     keys: Vec<u32>,
     probe: String,
+    #[cfg(not(target_os = "linux"))]
     clock: Instant,
     next: AtomicUsize,
     /// Hold this and then member.health through one nonblocking write only.
@@ -113,12 +115,25 @@ impl Pool {
             ),
             next: AtomicUsize::new(0),
             retired: Mutex::new(false),
+            #[cfg(not(target_os = "linux"))]
             clock: Instant::now(),
             #[cfg(test)]
             at_write: Default::default(),
         }
     }
 
+    #[cfg(target_os = "linux")]
+    fn now(&self) -> u64 {
+        // Health must age even while the machine is suspended. A failed or
+        // unrepresentable clock sample closes the gate through pool_tick.
+        use rustix::time::{DynamicClockId, clock_gettime_dynamic};
+        let time = clock_gettime_dynamic(DynamicClockId::Boottime)
+            .ok()
+            .and_then(|t| Duration::try_from(t).ok());
+        pool_tick(time.map(|d| d.as_nanos()))
+    }
+
+    #[cfg(not(target_os = "linux"))]
     fn now(&self) -> u64 {
         pool_tick(
             Instant::now()
@@ -167,8 +182,8 @@ impl Pool {
                 let Ok(expected) = member.health.lock().map(|h| h.revision) else {
                     return false;
                 };
-                let start = Instant::now();
-                let probe_deadline = start + PROBE_TIMEOUT;
+                let probe_deadline = Instant::now() + PROBE_TIMEOUT;
+                let probe_started = self.now();
                 let status = self
                     .check(member, deadline.min(probe_deadline))
                     .await
@@ -181,7 +196,7 @@ impl Pool {
                     || probe_deadline <= deadline)
                     && let Ok(mut h) = member.health.lock()
                 {
-                    *h = publish_health(*h, expected, self.now(), status);
+                    *h = publish_probe(*h, expected, probe_started, self.now(), status);
                 }
                 return member.cached(self.now()) == Some(true);
             }

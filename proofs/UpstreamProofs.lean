@@ -99,18 +99,22 @@ abbrev FreshAt (h : upstream.PoolHealth) (now : U64) : Prop :=
   h.revision ≠ 0#u64 ∧ h.revision ≠ core.num.U64.MAX ∧ now ≠ core.num.U64.MAX ∧ h.at.val ≤ now.val ∧
   now.val - h.at.val < 5000000000
 
+abbrev WithinTTL (start now : U64) : Prop :=
+  now ≠ core.num.U64.MAX ∧ start.val ≤ now.val ∧ now.val - start.val < 5000000000
+
+theorem within_health_ttl_eq (start now : U64) :
+    upstream.within_health_ttl start now = ok (decide (WithinTTL start now)) := by
+  by_cases hx : now = core.num.U64.MAX
+  · simp [upstream.within_health_ttl, WithinTTL, hx]
+  by_cases ht : start.val ≤ now.val
+  · obtain ⟨age, ha, hv, _⟩ := WP.spec_imp_exists (U64.sub_bv_spec (x := now) (y := start) ht)
+    simp [upstream.within_health_ttl, WithinTTL, hx, ht, ha, hv]
+  · simp [upstream.within_health_ttl, WithinTTL, hx, ht]
+
 theorem fresh_at_eq (h : upstream.PoolHealth) (now : U64) :
     upstream.fresh_health h now = ok (decide (FreshAt h now)) := by
-  by_cases hz : h.revision = 0#u64
-  · simp [upstream.fresh_health, FreshAt, hz]
-  by_cases hm : h.revision = core.num.U64.MAX
-  · simp [upstream.fresh_health, FreshAt, hm]
-  by_cases hx : now = core.num.U64.MAX
-  · simp [upstream.fresh_health, FreshAt, hx]
-  by_cases ht : h.at.val ≤ now.val
-  · obtain ⟨age, ha, hv, _⟩ := WP.spec_imp_exists (U64.sub_bv_spec (x := now) (y := h.at) ht)
-    simp [upstream.fresh_health, FreshAt, hz, hm, hx, ht, ha, hv]
-  · simp [upstream.fresh_health, FreshAt, hz, hm, hx, ht]
+  by_cases hz : h.revision = 0#u64 <;> by_cases hm : h.revision = core.num.U64.MAX <;>
+    simp [upstream.fresh_health, within_health_ttl_eq, FreshAt, WithinTTL, hz, hm]
 
 theorem health_status_eq (s : U16) :
     upstream.healthy_response s = ok (decide (200 ≤ s.val ∧ s.val < 300)) := by
@@ -129,6 +133,53 @@ theorem health_update_advances (h : upstream.PoolHealth) (now : U64) (s : U16)
     intro e; rw [e] at live; simp [core.num.U64.MAX, U64.rMax] at live
   have hn : ¬ now < h.at := by simpa using ordered
   exact ⟨⟨v, now, s⟩, by simp [upstream.publish_health, hm, hn, hv], by simpa using hvv, rfl, rfl⟩
+
+theorem publication_cases (old next : upstream.PoolHealth) (expected tick : U64) (status : U16)
+    (out : upstream.publish_health old expected tick status = ok next) :
+    next = old ∨ (expected = old.revision ∧ next.revision.val = old.revision.val + 1 ∧
+      next.at = tick ∧ next.status = status) := by
+  by_cases same : expected = old.revision
+  · subst expected
+    by_cases exhausted : old.revision = core.num.U64.MAX
+    · simp [upstream.publish_health, exhausted] at out; exact Or.inl out.symm
+    by_cases back : tick < old.at
+    · simp [upstream.publish_health, exhausted, back] at out; exact Or.inl out.symm
+    have live : old.revision.val < 18446744073709551615 := by
+      by_contra full
+      apply exhausted
+      apply UScalar.eq_of_val_eq
+      have bound := U64.lt_succ_max old.revision
+      simp [core.num.U64.MAX, U64.rMax]
+      omega
+    obtain ⟨record, recorded, fields⟩ := health_update_advances old tick status live (by simpa using back)
+    rw [recorded] at out
+    cases out
+    exact Or.inr ⟨rfl, fields⟩
+  · rw [stale_probe_keeps_health old expected tick status same] at out
+    cases out; exact Or.inl rfl
+
+theorem late_probe_preserves_record (old : upstream.PoolHealth) (expected start finish : U64)
+    (status : U16) (late : ¬ WithinTTL start finish) :
+    upstream.publish_probe old expected start finish status = ok old := by
+  simp [upstream.publish_probe, within_health_ttl_eq, late]
+
+theorem probe_publication_cases (old next : upstream.PoolHealth) (expected start finish : U64)
+    (status : U16) (out : upstream.publish_probe old expected start finish status = ok next) :
+    next = old ∨ (WithinTTL start finish ∧ expected = old.revision ∧
+      next.revision.val = old.revision.val + 1 ∧ next.at = start ∧ next.status = status) := by
+  by_cases window : WithinTTL start finish
+  · simp [upstream.publish_probe, within_health_ttl_eq, window] at out
+    exact (publication_cases old next expected start status out).imp_right (fun h => ⟨window, h⟩)
+  · rw [late_probe_preserves_record old expected start finish status window] at out
+    cases out; exact Or.inl rfl
+
+theorem timely_probe_can_refresh (old : upstream.PoolHealth) (start finish : U64) (status : U16)
+    (window : WithinTTL start finish) (live : old.revision.val < 18446744073709551615)
+    (ordered : old.at.val ≤ start.val) :
+    ∃ next, upstream.publish_probe old old.revision start finish status = ok next ∧
+      next.revision.val = old.revision.val + 1 ∧ next.at = start ∧ next.status = status := by
+  simpa [upstream.publish_probe, within_health_ttl_eq, window] using
+    health_update_advances old start status live ordered
 
 theorem late_success_cannot_revive_failure (h : upstream.PoolHealth) (failed later : U64) (status : U16)
     (live : h.revision.val < 18446744073709551615) (ordered : h.at.val ≤ failed.val) :
@@ -169,6 +220,25 @@ theorem first_write_contract (m : Slice U32) (i : Usize) (g : upstream.FirstWrit
     cases drain <;> cases retired <;> cases sent <;>
     simp [upstream.first_write_allowed, fresh_at_eq, health_status_eq, pool_select_exact,
       MayWrite, hp, hf, hs] <;> grind
+
+theorem timely_2xx_restores_permission (old : upstream.PoolHealth) (start finish now : U64)
+    (status : U16) (m : Slice U32) (i : Usize) (peer : U32)
+    (during : WithinTTL start finish) (current : WithinTTL start now)
+    (live : old.revision.val + 1 < 18446744073709551615) (forward : old.at.val ≤ start.val)
+    (code : 200 ≤ status.val ∧ status.val < 300) (nz : peer ≠ 0#u32) (selected : memberAt m i = peer) :
+    (do let next ← upstream.publish_probe old old.revision start finish status
+        upstream.first_write_allowed m i ⟨peer, next, now, false, false⟩ false) = ok true := by
+  obtain ⟨next, update, rev, stamp, response⟩ :=
+    timely_probe_can_refresh old start finish status during (by omega) forward
+  have nonzero : next.revision ≠ 0#u64 := by intro e; rw [e] at rev; simp at rev
+  have finite : next.revision ≠ core.num.U64.MAX := by
+    intro e; rw [e] at rev; simp [core.num.U64.MAX, U64.rMax] at rev; omega
+  have fresh : FreshAt next now := ⟨nonzero, finite, stamp ▸ current⟩
+  have grant : MayWrite m i ⟨peer, next, now, false, false⟩ false :=
+    ⟨nz, fresh, response ▸ code, rfl, rfl, rfl, selected⟩
+  rw [update]
+  change upstream.first_write_allowed m i ⟨peer, next, now, false, false⟩ false = ok true
+  rw [first_write_contract, decide_eq_true grant]
 
 variable {W : Type} (effect : upstream.FirstWriter W) (m : Slice U32) (i : Usize)
   (g : upstream.FirstWriteGate) (sent : Bool) (w : W)

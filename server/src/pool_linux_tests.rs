@@ -132,18 +132,49 @@ fn nanos(clock: ClockId) -> u128 {
     t.tv_sec as u128 * 1_000_000_000 + t.tv_nsec as u128
 }
 
-// Bracket the std Instant read with two direct reads of the kernel clock.
+// Compare production reads with the kernel's boot and active time in the same guest.
 fn sample(pool: &Pool) -> (u128, u128, u128, u128) {
-    let lo = nanos(ClockId::Monotonic);
+    let lo = nanos(ClockId::Boottime);
     let tick = u128::from(pool.now());
-    let hi = nanos(ClockId::Monotonic);
-    (lo, tick, hi, nanos(ClockId::Boottime))
+    let hi = nanos(ClockId::Boottime);
+    assert!((lo..=hi).contains(&tick));
+    (lo, tick, hi, nanos(ClockId::Monotonic))
+}
+
+fn suspend_and_measure(pool: &Pool) {
+    let dir = fixture_dir();
+    let h = *pool.members[0].health.lock().unwrap();
+    let before = sample(pool);
+    assert!(fresh_health(h, u64::try_from(before.1).unwrap()));
+    fs::write(dir.join("sampled"), b"ready").unwrap();
+    let limit = Instant::now() + WAIT;
+    while !dir.join("resumed").exists() {
+        assert!(Instant::now() < limit);
+        thread::sleep(Duration::from_millis(5));
+    }
+    let after = sample(pool);
+    let tick = after.1 - before.1;
+    let lower = after.0 - before.2;
+    let upper = after.2 - before.0;
+    let active = after.3 - before.3;
+    assert!((lower..=upper).contains(&tick));
+    assert!(lower > active + 5_000_000_000);
+    assert!(!fresh_health(h, u64::try_from(after.1).unwrap()));
+    println!(
+        "SUSPEND boot_lower_ns={lower} pool_ns={tick} boot_upper_ns={upper} active_ns={active}"
+    );
+}
+
+fn dispatch(pool: &Pool) -> (Result<(TcpStream, usize), http::Rejection>, bool) {
+    let mut sent = false;
+    let result =
+        futures_lite::future::block_on(pool.start(0, Instant::now() + WAIT, WAIT, HEAD, &mut sent));
+    (result, sent)
 }
 
 #[test]
 #[ignore = "guest supervisor performs a real suspend and RTC wake"]
-fn suspended_pool_samples_match_the_kernel_clock() {
-    let dir = fixture_dir();
+fn suspended_pool_samples_expire_and_require_a_successful_recheck() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let pool = Pool::new(
         "app.example",
@@ -152,24 +183,91 @@ fn suspended_pool_samples_match_the_kernel_clock() {
         &[],
     );
     assert!(probe(&pool, &listener, 204));
-    let h = *pool.members[0].health.lock().unwrap();
-    let before = sample(&pool);
-    fs::write(dir.join("sampled"), b"ready").unwrap();
-    let limit = Instant::now() + WAIT;
-    while !dir.join("resumed").exists() {
-        assert!(Instant::now() < limit);
-        thread::sleep(Duration::from_millis(5));
-    }
-    let after = sample(&pool);
-    let tick = after.1 - before.1;
-    let lower = after.0 - before.2;
-    let upper = after.2 - before.0;
-    let boot = after.3 - before.3;
-    assert!((lower..=upper).contains(&tick));
-    assert!(boot > upper + 5_000_000_000);
-    assert!(fresh_health(h, u64::try_from(after.1).unwrap()));
+
+    // Park a connected dispatch and a second pool's already parsed 204 across the same S3.
+    let (pause, connected, release_socket) = rendezvous();
+    let first = AtomicBool::new(true);
+    assert!(
+        pool.at_write
+            .set(Box::new(move |point| {
+                if point == WritePoint::Connected && first.swap(false, Ordering::Relaxed) {
+                    pause();
+                }
+            }))
+            .is_ok()
+    );
+    let delayed_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let delayed = Pool::new(
+        "other.example",
+        "/ready",
+        &[delayed_listener.local_addr().unwrap()],
+        &[],
+    );
+    let (parsed, release_probe) = pause_on(&delayed, WritePoint::ProbeResponse(204));
+    thread::scope(|s| {
+        let request = s.spawn(|| dispatch(&pool));
+        connected.recv_timeout(WAIT).unwrap();
+        let (mut peer, _) = listener.accept().unwrap();
+        peer.set_read_timeout(Some(WAIT)).unwrap();
+        let old_probe = s.spawn(|| probe(&delayed, &delayed_listener, 204));
+        parsed.recv_timeout(WAIT).unwrap();
+        suspend_and_measure(&pool);
+        release_socket.send(()).unwrap();
+        release_probe.send(()).unwrap();
+        let (result, sent) = request.join().unwrap();
+        assert_eq!((result.unwrap_err().0, sent), (503, false));
+        assert_eq!(peer.read(&mut [0]).unwrap(), 0);
+        assert!(!old_probe.join().unwrap());
+        assert_eq!(delayed.members[0].health.lock().unwrap().revision, 0);
+    });
+    thread::scope(|s| {
+        let failed = s.spawn(|| dispatch(&pool));
+        let mut health = accept_probe(&listener);
+        listener.set_nonblocking(true).unwrap();
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            io::ErrorKind::WouldBlock
+        );
+        health
+            .write_all(b"HTTP/1.1 503 Down\r\nContent-Length: 0\r\n\r\n")
+            .unwrap();
+        let (result, sent) = failed.join().unwrap();
+        assert_eq!((result.unwrap_err().0, sent), (503, false));
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            io::ErrorKind::WouldBlock
+        );
+        listener.set_nonblocking(false).unwrap();
+    });
+    assert_eq!(pool.members[0].health.lock().unwrap().status, 503);
+    wait_for_expiry(&pool);
+    thread::scope(|s| {
+        let recovered = s.spawn(|| dispatch(&pool));
+        accept_probe(&listener)
+            .write_all(b"HTTP/1.1 204 OK\r\nContent-Length: 0\r\n\r\n")
+            .unwrap();
+        let (result, sent) = recovered.join().unwrap();
+        let (mut socket, accepted) = result.unwrap();
+        assert!(sent && accepted > 0);
+        futures_lite::future::block_on(async_http::write_all_from(
+            &mut socket,
+            HEAD,
+            accepted,
+            Instant::now() + WAIT,
+        ))
+        .unwrap();
+        drop(socket);
+        let mut bytes = Vec::new();
+        listener
+            .accept()
+            .unwrap()
+            .0
+            .read_to_end(&mut bytes)
+            .unwrap();
+        assert_eq!(bytes, HEAD);
+    });
     println!(
-        "SUSPEND mono_lower_ns={lower} instant_ns={tick} mono_upper_ns={upper} boottime_ns={boot} same_generation=true fresh_after_resume=true"
+        "RESUME expired_request_bytes=0 delayed_204_published=false failed_recheck_dials=0 recovered_requests=1"
     );
 }
 

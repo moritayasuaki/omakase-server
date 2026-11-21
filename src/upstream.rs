@@ -44,7 +44,7 @@ pub fn begin_dispatch(sent: &mut bool) -> bool {
     allowed
 }
 
-/// Monotonic nanoseconds since this pool generation was created. Revision zero
+/// Monotonic nanoseconds in the pool's clock domain. Revision zero
 /// denotes a cold member; an exhausted revision permanently refuses dispatch.
 #[derive(Clone, Copy, Default)]
 pub struct PoolHealth {
@@ -64,12 +64,28 @@ pub fn publish_health(old: PoolHealth, expected: u64, now: u64, status: u16) -> 
     }
 }
 
+pub fn within_health_ttl(at: u64, now: u64) -> bool {
+    now != u64::MAX && now >= at && now - at < 5_000_000_000
+}
+
 pub fn fresh_health(h: PoolHealth, now: u64) -> bool {
-    h.revision != 0
-        && h.revision != u64::MAX
-        && now != u64::MAX
-        && now >= h.at
-        && now - h.at < 5_000_000_000
+    h.revision != 0 && h.revision != u64::MAX && within_health_ttl(h.at, now)
+}
+
+/// An in-flight probe can be suspended even after its response has arrived.
+/// Charge its entire lifetime against the TTL before publishing any result.
+pub fn publish_probe(
+    old: PoolHealth,
+    expected: u64,
+    started: u64,
+    finished: u64,
+    status: u16,
+) -> PoolHealth {
+    if within_health_ttl(started, finished) {
+        publish_health(old, expected, started, status)
+    } else {
+        old
+    }
 }
 
 /// The reserved maximum makes an unrepresentable or unavailable sample stale.
