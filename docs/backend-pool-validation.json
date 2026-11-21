@@ -55,7 +55,7 @@
     "new_statements": 5,
     "axioms_added": [],
     "scope": "The extracted Rust selector returns only a ready, undrained member of the supplied route before dispatch. The first dispatch consumes a per-request grant. Later selection and dispatch cannot grant another write for that request.",
-    "open": "Runtime lock, health, and socket correspondence is tracked as LOCAL-POOL-ADAPTER-REFINEMENT in proofs/roadmap.json. Independently retried requests require an application operation ID and deduplication."
+    "open": "At this revision, runtime lock, health, and socket correspondence was tracked as LOCAL-POOL-ADAPTER-REFINEMENT. The follow-up evidence is in backend-first-write-validation.json. Independently retried requests require application deduplication."
   },
   "dependencies": {
     "checked_at": "2026-11-21T02:40:55Z",

@@ -66,24 +66,32 @@ route generation. The process readiness endpoint keeps its frontend meaning.
 
 Round-robin selection starts at the next member for each request. At most two
 application TCP connects share the original service deadline. A refused connect
-marks that member unavailable. Once the proxy reserves a connected socket for
-dispatch, every header, body and response error ends that exchange. A client
-can therefore receive 502 even when the application committed its write.
+marks that member unavailable. A pending health probe carries the revision it
+observed at launch. A newer published observation takes precedence over its result.
+After dialing, the proxy verifies the connected peer and takes the generation
+and member-health locks in that order. Under both locks it samples the monotonic
+clock, checks eligibility and attempts one nonblocking write of the request head.
+If the kernel reports a positive byte count, the proxy sends only the remaining
+suffix on that socket. A would-block or interrupted call releases both locks and
+rechecks all inputs before the next attempt. A zero-byte return or terminal
+write error ends the exchange. A client can receive 502 after an application commit.
 Application operation IDs are needed for clients that retry an ambiguous write.
 
 Activating a configuration retires the previous generation's pool dispatch
-permissions. Requests already granted a socket can finish, including streams
+permissions. Requests whose first write transferred bytes can finish, including streams
 under their normal limits. A previously captured pool cannot start another
 dispatch after its retirement. A validated rollback builds a fresh generation
 and checks health again. Drain scope is per route. If several routes point to
 one process, drain all of them before stopping it and observe its outstanding
 work. The service does not persist application sessions or move a room owner.
 
-The [Rust gates](../src/upstream.rs), [Lean proofs](../proofs/UpstreamProofs.lean)
-and [verification record](backend-pool-validation.json) cover the selection and dispatch
-policy. They assume the adapter supplied the compiled route and observed health
-and drain state. DNS, remote origins and transport connection reuse fall outside
-the pool configuration.
+The extracted Rust driver takes the socket's one-write operation as a parameter.
+Lean checks that denial leaves this writer untouched, acceptance calls it once
+and a completed first write spends the grant. OS mutex exclusion, the monotonic
+clock sample and the kernel's byte count and error semantics form the platform
+boundary. The frontend can observe a healthy replica that fails immediately
+after the sample. See the [Rust driver](../src/upstream.rs), [Lean proofs](../proofs/UpstreamProofs.lean),
+[failover evidence](backend-pool-validation.json) and [first-write races](backend-first-write-validation.json).
 
 ## Delegation and trust
 

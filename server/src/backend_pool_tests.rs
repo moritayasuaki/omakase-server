@@ -1,5 +1,6 @@
 //! Loopback staging fixtures use normal server admission, reload and proxy I/O.
 use super::{exchange, read_request, with_config};
+use crate::backend_pool::WritePoint;
 use pathward_config::ParsedConfig;
 use std::{
     fs::{self, OpenOptions},
@@ -7,8 +8,9 @@ use std::{
     net::{SocketAddr, TcpListener, TcpStream},
     path::PathBuf,
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicBool, AtomicUsize, Ordering},
+        mpsc,
     },
     thread,
     time::{Duration, Instant},
@@ -29,6 +31,7 @@ struct Control {
     release: AtomicBool,
     probes: AtomicUsize,
     writes: AtomicUsize,
+    empty_connections: AtomicUsize,
 }
 
 struct Replica {
@@ -75,6 +78,13 @@ impl Replica {
                     Err(e) => panic!("fixture accept: {e}"),
                 };
                 socket.set_nonblocking(false).unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(15)))
+                    .unwrap();
+                if socket.peek(&mut [0]).unwrap() == 0 {
+                    control.empty_connections.fetch_add(1, Ordering::Release);
+                    continue;
+                }
                 let bytes = read_request(&socket);
                 let (head, body) = std::str::from_utf8(&bytes)
                     .unwrap()
@@ -219,10 +229,11 @@ fn drain_preserves_dispatched_work_and_excludes_new_writes() {
             drain(&a.addr.to_string());
             let old_pool = old.sites[0].proxy_routes[0].pool.as_ref().unwrap();
             let mut sent = false;
-            let stale = futures_lite::future::block_on(old_pool.connect(
+            let stale = futures_lite::future::block_on(old_pool.start(
                 front.port(),
                 Instant::now() + Duration::from_secs(1),
                 Duration::from_secs(1),
+                b"GET /api HTTP/1.1\r\n\r\n",
                 &mut sent,
             ));
             assert_eq!(stale.unwrap_err().0, 503);
@@ -290,4 +301,72 @@ fn unhealthy_members_are_skipped_and_recover_while_idle() {
             (String::new(), "recovered\n".into())
         );
     });
+}
+
+fn race_reload(first: WritePoint) {
+    let a = Replica::start("A", Fault::None);
+    let b = Replica::start("B", Fault::None);
+    let wait = Duration::from_secs(10);
+    with_config(&config(&a, &b, ""), |front, server| {
+        let snapshot = server.state.read().unwrap().snapshot.clone();
+        let pool = snapshot.sites[0].proxy_routes[0].pool.as_ref().unwrap();
+        let (at_boundary, reached) = mpsc::channel();
+        let (release, resume) = mpsc::channel();
+        let (retiring, entering) = mpsc::channel();
+        let resume = Mutex::new(resume);
+        assert!(
+            pool.at_write
+                .set(Box::new(move |point| {
+                    if point == first {
+                        at_boundary.send(()).unwrap();
+                        resume.lock().unwrap().recv_timeout(wait).unwrap();
+                    } else if point == WritePoint::Retiring {
+                        retiring.send(()).unwrap();
+                    }
+                }))
+                .is_ok()
+        );
+        thread::scope(|scope| {
+            let old = scope.spawn(|| request(front, "POST", "/api/moves", "old"));
+            reached.recv_timeout(wait).unwrap();
+            let changed = config(&a, &b, &format!("proxy-drain \"/api\" \"{}\"\n", a.addr));
+            let (switched, done) = mpsc::channel();
+            scope.spawn(move || {
+                server
+                    .reload(&changed.compile().unwrap(), &AtomicBool::new(false))
+                    .unwrap();
+                switched.send(()).unwrap();
+            });
+            entering.recv_timeout(wait).unwrap();
+            if first == WritePoint::Connected {
+                done.recv_timeout(wait).unwrap();
+                release.send(()).unwrap();
+                check(&old.join().unwrap(), 503, "");
+                wait_for(|| a.state.empty_connections.load(Ordering::Acquire) == 1);
+                assert_eq!(a.entries(), "");
+            } else {
+                assert!(matches!(done.try_recv(), Err(mpsc::TryRecvError::Empty)));
+                release.send(()).unwrap();
+                done.recv_timeout(wait).unwrap();
+                check(&old.join().unwrap(), 200, "A");
+                assert_eq!(a.entries(), "old\n");
+            }
+            check(&request(front, "POST", "/api/moves", "new"), 200, "B");
+            assert_eq!(b.entries(), "new\n");
+        });
+    });
+}
+
+#[test]
+fn drain_after_dial_before_first_write_leaves_old_socket_empty() {
+    race_reload(WritePoint::Connected);
+    println!("retirement first: old socket EOF with zero bytes, HTTP 503; new POST committed on B");
+}
+
+#[test]
+fn drain_contending_with_first_socket_write_preserves_only_its_exchange() {
+    race_reload(WritePoint::Written);
+    println!(
+        "first write first: retirement contended on the write lock; old POST committed once on A, new POST once on B"
+    );
 }

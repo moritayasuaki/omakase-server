@@ -666,8 +666,35 @@
       "id": "LOCAL-POOL-ADAPTER-REFINEMENT",
       "title": "プールの世代切替・ソケット送信と抽出済み判断との対応",
       "priority": "P1",
+      "status": "proved",
+      "acceptance": "実際の送信ループから呼ぶRust関数を抽出する。最新のヘルス観測・世代・登録済みの接続先が許可する時だけ、そのソケットの書込み操作を一度呼ぶ。ドレイン先行、正のバイト数の書込み先行、進捗ゼロの待機後の切替を検証する。Mutex、単調時計、TCPの結果は隔離Linuxで照合する。",
+      "theorems": [
+        "UpstreamProofs.fresh_at_eq",
+        "UpstreamProofs.health_status_eq",
+        "UpstreamProofs.stale_probe_keeps_health",
+        "UpstreamProofs.health_update_advances",
+        "UpstreamProofs.late_success_cannot_revive_failure",
+        "UpstreamProofs.pool_select_exact",
+        "UpstreamProofs.first_write_contract",
+        "UpstreamProofs.refused_preserves_writer",
+        "UpstreamProofs.effect_result_requires_permission",
+        "UpstreamProofs.effect_targets_registered_healthy_peer",
+        "UpstreamProofs.retirement_prevents_first_write",
+        "UpstreamProofs.unusable_health_preserves_writer",
+        "UpstreamProofs.allowed_executes_one_write",
+        "UpstreamProofs.positive_write_spends_grant",
+        "UpstreamProofs.empty_or_failed_write_is_terminal",
+        "UpstreamProofs.wait_then_retirement_cannot_write",
+        "UpstreamProofs.spent_never_calls_another_writer",
+        "UpstreamProofs.write_then_retire_cannot_dispatch_again"
+      ]
+    },
+    {
+      "id": "LOCAL-POOL-PLATFORM-CONTRACT",
+      "title": "OSの排他・時計・ソケットの意味と送信モデルとの対応",
+      "priority": "P2",
       "status": "planned",
-      "acceptance": "実際のロック、ヘルス観測、世代切替と最初のソケット書込みを状態遷移へ結び付ける。アプリ内の処理回数やクライアント再送をプロキシの保証と混同しない。",
+      "acceptance": "Mutexの排他と解放順、単調時計の読取り、同じTCPソケットのpeerと部分書込み・WouldBlockの戻り値を機械検査可能なプラットフォーム契約へ結び付ける。現在の保証の時刻はロック下の時計サンプル。カーネル受理時刻、ネットワーク到達時刻、アプリの保存時刻は別々に扱う。",
       "theorems": []
     },
     {

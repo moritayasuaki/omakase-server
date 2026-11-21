@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "lean_toolchain": "leanprover/lean4:v4.31.0",
-  "theorem_count": 632,
+  "theorem_count": 650,
   "axiom_free_count": 102,
   "axiom_counts": {
-    "Classical.choice": 420,
-    "Quot.sound": 420,
-    "propext": 530
+    "Classical.choice": 438,
+    "Quot.sound": 438,
+    "propext": 548
   },
   "source_sha256": {
     "proofs/AuthorityProofs.lean": "78cab77f87ab19123a05725a6e1ec43dfcb3c7ea427031d60aa28d7e3804264f",
@@ -17,7 +17,7 @@
     "proofs/ContractMigrationProofs.lean": "90b90df4b459e7f9d7ac7fb25098b17024c0457a98ffef8204501f347df67c69",
     "proofs/CutoverProofs.lean": "352f578413c2c57f315b058c93b22d1ed5f23811f2adb6440c44dd2e6fc98ad0",
     "proofs/DeliveryProofs.lean": "d975f9d35187198123bbee361b997954df959cbdf96c1faddc48fb4ab37f7184",
-    "proofs/Generated/Pathward.lean": "dca8d3f6bc0f7fe2dde319f87ea5d8074773ade8a81afe3246b308fa75cb6907",
+    "proofs/Generated/Pathward.lean": "c7241f43355c7b7a7e357e9e53ba0696877b31698208600ce05a121cff5278c6",
     "proofs/GuardUpgradeProofs.lean": "cd580b9c1bbd44aff63391244270d14cd01f30006590da4cc3b6b59dd50da5fb",
     "proofs/PathwardProofs.lean": "94ad7cb4763dc8d57da14253e30e16c1ad517d99d1bf1b2d387ad17575b90a67",
     "proofs/PlanMigrationProofs.lean": "13e8dffab53a690381384dc14ab825c5c82d4e3d4454d80f62245d36eb83e031",
@@ -33,8 +33,8 @@
     "proofs/ServingProofs.lean": "7a4a1b0f7fe826402024350d81c9d2afa058d5fe4d43db224bcbf6067097ca3e",
     "proofs/StreamingProofs.lean": "07ac50b458bd8a6e83a34aeace3ba8b53a40911add293c24577fe491822b8ebd",
     "proofs/TlsProofs.lean": "55adcddb5cd9ca110e57c851652dbc6e7f0f396184cb99199fc64b82db948023",
-    "proofs/UpstreamProofs.lean": "678d13685613b5850c62dc751fd5aa529e6f2f969560ec9d0f9187b7da601d5e",
-    "scripts/extract.py": "0aa705829ab9c4ad9ee1c094096f91ca0e4146e778deb6f73cf611b4e1fe07c3",
+    "proofs/UpstreamProofs.lean": "62be40293bab5307c71290d690e5c51bb8446a0323aab93011fa9331ba9ee86e",
+    "scripts/extract.py": "4c22702a826a106984e118eef09c2561cb06c7c773873d7bdaa85851afce186a",
     "src/bootstrap.rs": "0e2efcce51aed2270e5e52b448afd7a452d212e6362a18d21097bc93d1a6e15a",
     "src/connection.rs": "fb64164b7aa53b7e586dea21fa3cddade8d8b3e74be21fce9dfa827e22d460b8",
     "src/content.rs": "e83e68db1f72e5c58725d4a863600b3121e0ffd7bc3dd0d274ba767266070bf2",
@@ -52,7 +52,7 @@
     "src/serving.rs": "019358430607bb367639c6e2c1ccd56795ed85a2cd43152df26ff1986e37ca67",
     "src/streaming.rs": "7ce627b8afbf1fcb4956b1d0b8a40e11c23248839dcf6a774dbfc3459f4e7741",
     "src/tls.rs": "f443f6750448b1734272eea13ba085b6eb6ce420f3a4fd74145470683f35d7ba",
-    "src/upstream.rs": "d84fe6ba5d61ed6c23b939080fd9b534f44ab2e6f4bd07373c2a4b362112e752"
+    "src/upstream.rs": "2293316a2f14c47905b4e0577ed43446b15857be7b3de3d89ee89139918aa04f"
   },
   "theorems": [
     {
@@ -7004,6 +7004,222 @@
       "source": "proofs/UpstreamProofs.lean",
       "line": 92,
       "statement": "theorem dispatched_write_has_no_alternate (m : Slice U32) (i : Usize) (r d before after : Bool)\n    (h : upstream.begin_dispatch before = ok (true, after)) :\n    upstream.pool_select m i r d after = ok 0#u32",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.fresh_at_eq",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 102,
+      "statement": "theorem fresh_at_eq (h : upstream.PoolHealth) (now : U64) :\n    upstream.fresh_health h now = ok (decide (FreshAt h now))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.health_status_eq",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 115,
+      "statement": "theorem health_status_eq (s : U16) :\n    upstream.healthy_response s = ok (decide (200 ≤ s.val ∧ s.val < 300))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.stale_probe_keeps_health",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 119,
+      "statement": "theorem stale_probe_keeps_health (h : upstream.PoolHealth) (expected now : U64) (s : U16)\n    (stale : expected ≠ h.revision) : upstream.publish_health h expected now s = ok h",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.health_update_advances",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 123,
+      "statement": "theorem health_update_advances (h : upstream.PoolHealth) (now : U64) (s : U16)\n    (live : h.revision.val < 18446744073709551615) (ordered : h.at.val ≤ now.val) :\n    ∃ h', upstream.publish_health h h.revision now s = ok h' ∧\n    h'.revision.val = h.revision.val + 1 ∧ h'.at = now ∧ h'.status = s",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.late_success_cannot_revive_failure",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 133,
+      "statement": "theorem late_success_cannot_revive_failure (h : upstream.PoolHealth) (failed later : U64) (status : U16)\n    (live : h.revision.val < 18446744073709551615) (ordered : h.at.val ≤ failed.val) :\n    ∃ down, upstream.publish_health h h.revision failed 0#u16 = ok down ∧ down.status = 0#u16 ∧\n      upstream.publish_health down h.revision later status = ok down",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.pool_select_exact",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 148,
+      "statement": "theorem pool_select_exact (m : Slice U32) (i : Usize) (ready drain sent : Bool) :\n    upstream.pool_select m i ready drain sent = ok\n      (if ready && !drain && !sent then memberAt m i else 0#u32)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.first_write_contract",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 164,
+      "statement": "theorem first_write_contract (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent : Bool) :\n    upstream.first_write_allowed m i g sent = ok (decide (MayWrite m i g sent))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.refused_preserves_writer",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 176,
+      "statement": "theorem refused_preserves_writer (closed : ¬ MayWrite m i g sent) :\n    upstream.guarded_first_write effect m i g sent w = ok (none, sent, w)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.effect_result_requires_permission",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 180,
+      "statement": "theorem effect_result_requires_permission (event : upstream.FirstIo) (s : Bool) (next : W)\n    (out : upstream.guarded_first_write effect m i g sent w = ok (some event, s, next)) :\n    MayWrite m i g sent",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.effect_targets_registered_healthy_peer",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 187,
+      "statement": "theorem effect_targets_registered_healthy_peer (event : upstream.FirstIo) (s : Bool) (next : W)\n    (out : upstream.guarded_first_write effect m i g sent w = ok (some event, s, next)) :\n    g.peer ∈ m.val ∧ FreshAt g.health g.now ∧ (200 ≤ g.health.status.val ∧ g.health.status.val < 300) ∧\n    g.draining = false ∧ g.retired = false ∧ sent = false",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.retirement_prevents_first_write",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 197,
+      "statement": "theorem retirement_prevents_first_write (old : Bool) :\n    (do let retired ← upstream.retire_pool old\n        upstream.guarded_first_write effect m i {g with retired} sent w) = ok (none, sent, w)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.unusable_health_preserves_writer",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 202,
+      "statement": "theorem unusable_health_preserves_writer\n    (bad : ¬ FreshAt g.health g.now ∨ ¬ (200 ≤ g.health.status.val ∧ g.health.status.val < 300)) :\n    upstream.guarded_first_write effect m i g sent w = ok (none, sent, w)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.allowed_executes_one_write",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 208,
+      "statement": "theorem allowed_executes_one_write (permit : MayWrite m i g sent) :\n    upstream.guarded_first_write effect m i g sent w = (do\n      let (event, w') ← effect.write_once w\n      match event with\n      | .Wait => ok (some .Wait, sent, w')\n      | .Written n => match n.val with\n        | 0 => ok (some .Failed, true, w')\n        | _ => ok (some (.Written n), true, w')\n      | .Failed => ok (some .Failed, true, w'))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.positive_write_spends_grant",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 221,
+      "statement": "theorem positive_write_spends_grant (permit : MayWrite m i g sent) (n : Usize) (npos : 0 < n.val) (w' : W)\n    (io : effect.write_once w = ok (.Written n, w')) :\n    upstream.guarded_first_write effect m i g sent w = ok (some (.Written n), true, w')",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.empty_or_failed_write_is_terminal",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 227,
+      "statement": "theorem empty_or_failed_write_is_terminal (permit : MayWrite m i g sent) (w' : W)\n    (io : effect.write_once w = ok (.Written 0#usize, w') ∨ effect.write_once w = ok (.Failed, w')) :\n    upstream.guarded_first_write effect m i g sent w = ok (some .Failed, true, w')",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.wait_then_retirement_cannot_write",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 233,
+      "statement": "theorem wait_then_retirement_cannot_write (permit : MayWrite m i g sent) (w' : W)\n    (io : effect.write_once w = ok (.Wait, w')) :\n    (do let (_, s, next) ← upstream.guarded_first_write effect m i g sent w\n        let retired ← upstream.retire_pool g.retired\n        upstream.guarded_first_write effect m i {g with retired} s next) = ok (none, sent, w')",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.spent_never_calls_another_writer",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 241,
+      "statement": "theorem spent_never_calls_another_writer :\n    upstream.guarded_first_write effect m i g true w = ok (none, true, w)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "UpstreamProofs.write_then_retire_cannot_dispatch_again",
+      "source": "proofs/UpstreamProofs.lean",
+      "line": 246,
+      "statement": "theorem write_then_retire_cannot_dispatch_again (permit : MayWrite m i g sent)\n    (n : Usize) (npos : 0 < n.val) (w' : W) (io : effect.write_once w = ok (.Written n, w')) :\n    (do let (_, s, next) ← upstream.guarded_first_write effect m i g sent w\n        let retired ← upstream.retire_pool g.retired\n        upstream.guarded_first_write effect m i {g with retired} s next) = ok (none, true, w')",
       "axioms": [
         "Classical.choice",
         "Quot.sound",
