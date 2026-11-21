@@ -1,14 +1,15 @@
 {
   "schema": 1,
   "lean_toolchain": "leanprover/lean4:v4.31.0",
-  "theorem_count": 671,
-  "axiom_free_count": 102,
+  "theorem_count": 685,
+  "axiom_free_count": 104,
   "axiom_counts": {
-    "Classical.choice": 447,
-    "Quot.sound": 454,
-    "propext": 569
+    "Classical.choice": 453,
+    "Quot.sound": 466,
+    "propext": 581
   },
   "source_sha256": {
+    "audit/pool-linux-target.json": "88647d84f929b1751cd980970b7d7949f5765ff8f1fc4827cb4d0525951681ea",
     "proofs/AuthorityProofs.lean": "78cab77f87ab19123a05725a6e1ec43dfcb3c7ea427031d60aa28d7e3804264f",
     "proofs/BootstrapProofs.lean": "734b5f49564ceb6a6c73427dcb5b91424005bd976351269fd8ea0e853928c807",
     "proofs/CancellationProofs.lean": "bc731a80b63c4cfa6465c97fadee7f65d6e170019a8ffa3a0a42b1f957cdacc9",
@@ -17,8 +18,10 @@
     "proofs/ContractMigrationProofs.lean": "90b90df4b459e7f9d7ac7fb25098b17024c0457a98ffef8204501f347df67c69",
     "proofs/CutoverProofs.lean": "352f578413c2c57f315b058c93b22d1ed5f23811f2adb6440c44dd2e6fc98ad0",
     "proofs/DeliveryProofs.lean": "d975f9d35187198123bbee361b997954df959cbdf96c1faddc48fb4ab37f7184",
-    "proofs/Generated/Pathward.lean": "946c132d7a9ce0b9b5819b89c28cb77a529e4b02e61c14c3021e895caa21a6d1",
+    "proofs/Generated/GuardPaths.lean": "3d9fdb1e9bd9256dacbf55cfc14c0e327ab105d65d00dee1e32c3ec4f6c72bce",
+    "proofs/Generated/Pathward.lean": "dd1b7c83903f19908238a343bab3d3bb7323dc5d29ea1d3a624346e127311044",
     "proofs/GuardUpgradeProofs.lean": "cd580b9c1bbd44aff63391244270d14cd01f30006590da4cc3b6b59dd50da5fb",
+    "proofs/LinuxProofs.lean": "014c30542ccae2fd2515fa21668b74dabc9c77af5cec5fdb6f1690e335fe5152",
     "proofs/PathwardProofs.lean": "94ad7cb4763dc8d57da14253e30e16c1ad517d99d1bf1b2d387ad17575b90a67",
     "proofs/PlanMigrationProofs.lean": "13e8dffab53a690381384dc14ab825c5c82d4e3d4454d80f62245d36eb83e031",
     "proofs/PlatformProofs.lean": "4163ca58e7eeee39063a2c1d666741ba7243066211a416fa43365d27956529e9",
@@ -35,7 +38,9 @@
     "proofs/StreamingProofs.lean": "07ac50b458bd8a6e83a34aeace3ba8b53a40911add293c24577fe491822b8ebd",
     "proofs/TlsProofs.lean": "55adcddb5cd9ca110e57c851652dbc6e7f0f396184cb99199fc64b82db948023",
     "proofs/UpstreamProofs.lean": "62be40293bab5307c71290d690e5c51bb8446a0323aab93011fa9331ba9ee86e",
-    "scripts/extract.py": "837f0c46aaa653027650b4b15ea6f27facd5e83e88450e2506fdbb5c13206252",
+    "scripts/extract.py": "4d0fba0fbbd5dbd9c39b51f844788c368f5e78c39c8174b9af5d1946c391a80d",
+    "scripts/pool_guard_paths.mjs": "34ea5aa000291cdc3d03a05114c463d82e902ec80436b9eb173a3afa61e32a2f",
+    "server/src/pool_locks.rs": "dee90bb64996e68a7c663bcb5f7492afc9841cf482a8fd290424204d9a2ebf26",
     "src/bootstrap.rs": "0e2efcce51aed2270e5e52b448afd7a452d212e6362a18d21097bc93d1a6e15a",
     "src/connection.rs": "fb64164b7aa53b7e586dea21fa3cddade8d8b3e74be21fce9dfa827e22d460b8",
     "src/content.rs": "e83e68db1f72e5c58725d4a863600b3121e0ffd7bc3dd0d274ba767266070bf2",
@@ -53,7 +58,7 @@
     "src/serving.rs": "019358430607bb367639c6e2c1ccd56795ed85a2cd43152df26ff1986e37ca67",
     "src/streaming.rs": "7ce627b8afbf1fcb4956b1d0b8a40e11c23248839dcf6a774dbfc3459f4e7741",
     "src/tls.rs": "f443f6750448b1734272eea13ba085b6eb6ce420f3a4fd74145470683f35d7ba",
-    "src/upstream.rs": "69a96bc87fb9cce0e74e73e8ef3182f34b2d91a143da47387b558e695a0079ad"
+    "src/upstream.rs": "430507323bd81bd1ec7a5d17fc0cde0cfbe8a3f69bdc5206513ccf09d80e8c8f"
   },
   "theorems": [
     {
@@ -2503,6 +2508,160 @@
       "statement": "theorem upgrade_preserves_application (base app : Nat) (a b : State)\n    (h : safe base app a) (run : Run base a b) : b.application = app",
       "axioms": [
         "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.all_emitted_guard_paths_are_scoped",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 21,
+      "statement": "theorem all_emitted_guard_paths_are_scoped (p : List PoolMir.Event) (member : p ∈ PoolMir.paths) :\n    scopeValid .neither false p = true",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "pinned_rust_mir"
+    },
+    {
+      "name": "LinuxProofs.callback_returns_or_unwinds_through_both_drops",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 26,
+      "statement": "theorem callback_returns_or_unwinds_through_both_drops (p : List PoolMir.Event)\n    (emitted : p ∈ PoolMir.paths) (called : .invoke ∈ p) :\n    ∃ last, (last = PoolMir.Event.returned ∨ last = .unwind) ∧\n      p = [.takeGeneration, .takeHealth, .invoke, .dropHealth, .dropGeneration, last]",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "pinned_rust_mir"
+    },
+    {
+      "name": "LinuxProofs.acquire_after_publication_observes_complete_record",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 36,
+      "statement": "theorem acquire_after_publication_observes_complete_record (s : LockedState) (publisher reader : Nat)\n    (free : s.guards = .free) (revision now : U64) (status : U16) (h : upstream.PoolHealth)\n    (published : upstream.publish_health s.health revision now status = ok h) :\n    (do let record ← upstream.publish_health s.health revision now status\n        let acquired",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.sleep_advances_only_boot_age",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 56,
+      "statement": "theorem sleep_advances_only_boot_age (c : Clocks) (ns : Nat) (h : upstream.PoolHealth) :\n    boot (sleepFor c ns) = boot c + ns ∧ healthAt h (sleepFor c ns) = healthAt h c",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.long_suspend_can_preserve_fresh_probe",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 60,
+      "statement": "theorem long_suspend_can_preserve_fresh_probe (c : Clocks) (ns : Nat) (h : upstream.PoolHealth)\n    (fresh : healthAt h c = ok true) (long : 5000000000 ≤ ns) :\n    5000000000 ≤ boot (sleepFor c ns) - boot c ∧ healthAt h (sleepFor c ns) = ok true",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.instant_delta_within_kernel_brackets",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 67,
+      "statement": "theorem instant_delta_within_kernel_brackets (lo₀ read₀ hi₀ lo₁ read₁ hi₁ origin : Nat)\n    (a : lo₀ ≤ read₀) (b : read₀ ≤ hi₀) (c : lo₁ ≤ read₁) (d : read₁ ≤ hi₁)\n    (originBound : origin ≤ lo₀) (ordered : hi₀ ≤ lo₁) :\n    lo₁ - hi₀ ≤ (read₁-origin) - (read₀-origin) ∧\n      (read₁-origin) - (read₀-origin) ≤ hi₁ - lo₀",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.first_report_retains_errno",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 73,
+      "statement": "theorem first_report_retains_errno {E} (e : E) :\n    upstream.first_write_report (.Err e) = ok (.Failed, some e) ∧\n    upstream.first_write_report (E",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.first_report_retains_partial_count",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 77,
+      "statement": "theorem first_report_retains_partial_count (E : Type) (n : Usize) :\n    upstream.first_write_report (E",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.fatal_first_report_spends_grant_with_original_cause",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 83,
+      "statement": "theorem fatal_first_report_spends_grant_with_original_cause {E : Type} (e : E)\n    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (permit : UpstreamProofs.MayWrite m i g false) :\n    upstream.guarded_first_write (reportedWriter (.Err e)) m i g false none = ok (some .Failed, true, some e)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.retryable_first_report_requires_live_generation",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 89,
+      "statement": "theorem retryable_first_report_requires_live_generation {E : Type}\n    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (permit : UpstreamProofs.MayWrite m i g false) :\n    (do let (_, spent, next) ← upstream.guarded_first_write (reportedWriter (E",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.stopped_preserves_errno_and_suffix",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 125,
+      "statement": "theorem stopped_preserves_errno_and_suffix {E} (id : U64) (why : Option E) (buf : Slice U8)\n    (tail : List (Report E)) : socketRun id (.stopped why buf) tail = ok (.stopped why buf)",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.foreign_socket_is_rejected",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 131,
+      "statement": "theorem foreign_socket_is_rejected {E} (id other : U64) (different : other ≠ id) (buf : Slice U8)\n    (result : core.result.Result (Option Usize) E) :\n    socketStep id (.live buf) (other, result) = ok .wrongSocket",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.retryable_report_keeps_socket_cursor",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 135,
+      "statement": "theorem retryable_report_keeps_socket_cursor {E} (id : U64) (buf : Slice U8) (tail : List (Report E)) :\n    socketRun id (.live buf) ((id, .Ok none) :: tail) = socketRun id (.live buf) tail",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.fatal_after_partial_preserves_exact_unaccepted_suffix",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 139,
+      "statement": "theorem fatal_after_partial_preserves_exact_unaccepted_suffix {E} (id : U64) (buf rest : Slice U8)\n    (n : Usize) (positive : 0 < n.val)\n    (accepted : upstream.remaining_after_write buf (some n) = ok (some rest))\n    (e : E) (tail : List (Report E)) :\n    socketRun id (.live buf) ((id, .Ok (some n)) :: (id, .Err e) :: tail) = ok (.stopped (some e) rest) ∧\n    buf.val.take n.val ++ rest.val = buf.val",
+      "axioms": [
         "Quot.sound",
         "propext"
       ],

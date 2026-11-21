@@ -17,6 +17,7 @@ pub mod http;
 mod http3;
 mod multiplex;
 pub mod observe;
+mod pool_locks;
 mod proxy;
 mod quic_bounds;
 mod runtime;

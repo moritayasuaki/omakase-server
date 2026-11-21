@@ -1,0 +1,147 @@
+{
+  "date_utc": "2026-11-21",
+  "base_commit": "733ec6ff899242da0df95ef35375b49cd7b48ff1",
+  "target_manifest": "audit/pool-linux-target.json",
+  "source_sha256": {
+    "audit/pool-linux-target.json": "88647d84f929b1751cd980970b7d7949f5765ff8f1fc4827cb4d0525951681ea",
+    "server/src/pool_locks.rs": "dee90bb64996e68a7c663bcb5f7492afc9841cf482a8fd290424204d9a2ebf26",
+    "server/src/backend_pool.rs": "8db115cce822bce38c5edeefb5d001491780cac7c300b66540cd508888f4dfb3",
+    "server/src/async_http.rs": "ee16ebf0a6065b60f04aef8a01026e302419f2657f5c8ace51d37afd1958606c",
+    "server/src/pool_linux_tests.rs": "7d4403e3426fac173e97008fc9fe81c2e90291535c635fc11340983905d2ebab",
+    "server/src/backend_pool_platform_tests.rs": "8161aaccbac02ad0cf19f85e6cc8b41b6683b1ceebd73c8917eba09a5c3fcee4",
+    "src/upstream.rs": "430507323bd81bd1ec7a5d17fc0cde0cfbe8a3f69bdc5206513ccf09d80e8c8f",
+    "proofs/LinuxProofs.lean": "014c30542ccae2fd2515fa21668b74dabc9c77af5cec5fdb6f1690e335fe5152",
+    "proofs/Generated/GuardPaths.lean": "3d9fdb1e9bd9256dacbf55cfc14c0e327ab105d65d00dee1e32c3ec4f6c72bce",
+    "scripts/pool_guard_paths.mjs": "34ea5aa000291cdc3d03a05114c463d82e902ec80436b9eb173a3afa61e32a2f",
+    "scripts/pool_linux_guest.sh": "e862b22d705f375e75096b7b1e4e98de0815787c9360c9963e0b05e8d11d79de",
+    "scripts/pool_linux_stage.mjs": "3827aec5082e8c2968bbbb01bfebb9e09838b2d6bc0f05572c5274d167618430"
+  },
+  "guest": {
+    "qemu": "11.1.3, TCG x86_64, 2 vCPUs",
+    "network": "no virtual NIC; guest loopback only",
+    "test_uid": 65534,
+    "test_gid": 65534,
+    "rust_test_binary_sha256": "2a4c0074fb32323acb0649bd10d668f3b27479c9d4651a9eaf57e9dc7fba68aa",
+    "serial_log_sha256": "2025dec596854527b5e0217080e14640aee19a96ec6ccd3cc8361511722684fb",
+    "pool_suite_passed": 15,
+    "pool_suite_failed": 0,
+    "supervisor_only_tests": 2,
+    "runs_per_supervised_test": 2
+  },
+  "lock_handoff": {
+    "observed_before_publication": "try_lock returned WouldBlock",
+    "observed_after_acquire": {
+      "retired": false,
+      "revision": 1,
+      "at": 421,
+      "status": 204
+    },
+    "callback_unwind": "Both mutexes reported poison, neither remained locked; poisoned generation or health skipped callback."
+  },
+  "mir": {
+    "distinct_event_paths": 7,
+    "callback_returns_and_unwinds": true,
+    "provider": "pinned rustc --emit=mir -C opt-level=0 -C panic=unwind"
+  },
+  "suspend": [
+    {
+      "trial": 1,
+      "kernel_success_before": 0,
+      "kernel_success_after": 1,
+      "mono_lower_ns": 296983000,
+      "pool_instant_ns": 297012000,
+      "mono_upper_ns": 297094000,
+      "boottime_ns": 10405811000,
+      "retained_same_pool": true,
+      "health_fresh_on_resume": true
+    },
+    {
+      "trial": 2,
+      "kernel_success_before": 1,
+      "kernel_success_after": 2,
+      "mono_lower_ns": 560881000,
+      "pool_instant_ns": 560897000,
+      "mono_upper_ns": 560910000,
+      "boottime_ns": 10675862000,
+      "retained_same_pool": true,
+      "health_fresh_on_resume": true
+    }
+  ],
+  "tcp": {
+    "partial_and_would_block": {
+      "offered_bytes": 16777216,
+      "first_bytes": 2613675,
+      "continuation_writes": 10,
+      "would_block": 9,
+      "every_write_same_cookie": true,
+      "peer_bytes_match": true
+    },
+    "partial_then_reset": {
+      "first_bytes": 65482,
+      "offered_bytes": 4194304,
+      "errno": 104,
+      "alternate_dials": 0,
+      "same_cookie": true
+    },
+    "interrupted_timed_send": [
+      {
+        "trial": 1,
+        "observed_blocked_syscall_x86_64": 44,
+        "fd": 4,
+        "prefill": 209856,
+        "errno": 4,
+        "marker_bytes": 1,
+        "same_cookie": true,
+        "received_exact_prefill_and_marker": true
+      },
+      {
+        "trial": 2,
+        "observed_blocked_syscall_x86_64": 44,
+        "fd": 4,
+        "prefill": 209856,
+        "errno": 4,
+        "marker_bytes": 1,
+        "same_cookie": true,
+        "received_exact_prefill_and_marker": true
+      }
+    ]
+  },
+  "proof_audit": {
+    "new_statements": 14,
+    "theorem_count": 685,
+    "axiom_free_count": 104,
+    "axiom_counts": {
+      "Classical.choice": 453,
+      "Quot.sound": 466,
+      "propext": 581
+    }
+  },
+  "dependency_audit": {
+    "new_crates": 0,
+    "database_commit": "f291af9b1cc0d21dfcea1709d6b037963cef262b",
+    "auditor": "cargo-audit 0.22.2",
+    "advisory_count": 1555,
+    "results": {
+      "core": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "server_candidate": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "configuration": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "http_server": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "native_administrator": {
+        "vulnerabilities": 0,
+        "warnings": 0
+      }
+    }
+  }
+}

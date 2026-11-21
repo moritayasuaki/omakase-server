@@ -1,0 +1,27 @@
+{
+  "rust_release": "1.99.1",
+  "rust_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+  "target": "x86_64-unknown-linux-musl",
+  "rust_library_sha256": {
+    "core/src/option.rs": "2dab92cdbec51b006307496b24cc757d7b2bc4056eff156d0fff445f66c1d2f5",
+    "core/src/result.rs": "b7a1da21e96c0fbb74af31dfcf4904c8f74a974733aa62a69b0ae41c2107a196",
+    "std/src/net/tcp.rs": "18dac6038af0a5f1d9a0b79ddb816344cc105e4428154c3bfa9bdcef8ce5bfc1",
+    "std/src/sync/poison/mutex.rs": "5e45f2804aaee6b2dd24af91b471757cd15010058b03b39b4cbba90809e3fb8c",
+    "std/src/sys/io/error/unix.rs": "4ac04298541758028422e9460960618d460d7ea1b9d627a34d7e224809ed452d",
+    "std/src/sys/net/connection/socket/mod.rs": "cbb416659032845b685544ac570000483708afe5df5591fba2731e539dd5089c",
+    "std/src/sys/net/connection/socket/unix.rs": "c9997415bf1c89a9deb3d6f12840abfd58dc91b6e43c8a16095fc34dd216072c",
+    "std/src/sys/pal/unix/time.rs": "6e1caa7b5e1c9a26b0b8cd02d8fd67c0fc57e4de11c89877d01c2b69eb32031a",
+    "std/src/sys/sync/mutex/futex.rs": "ad217728f14b7385f923f6471336ee772ea739baa78f7633a9d564433227b20c",
+    "std/src/sys/sync/mutex/mod.rs": "db759f97076823e18c8174a7a98a183f4068667c681230761606b756aa630a78",
+    "std/src/sys/time/unix.rs": "2250ca181d117737d32734c50156a7a9e74852251a17bf70b2a002b8d6fbac43",
+    "std/src/time.rs": "dbf93afc64e22548a08fbcfa68290a63b657933eb006ee6670270f6eddc0f9c3"
+  },
+  "guard_mir_sha256": "8f4441f4dc2299d7b42da85b5d7ca6f96ca43d9bb9bf53a71fa72a225b0e9c11",
+  "guest": {
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "image_sha256": "406630c08b5e545fcc7209854b129d47e3af822db128c9f19336593b5a2d3fe0",
+    "release": "6.8.0-147-generic",
+    "version_signature": "Ubuntu 6.8.0-147.147-generic 6.8.12",
+    "kernel_sha256": "41ba36d860aa0b0cd995f4ca8856d80249b244577e704929b55be13fbd1ebd2f"
+  }
+}

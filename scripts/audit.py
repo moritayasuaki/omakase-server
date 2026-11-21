@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
     entries = declarations()
     write_or_check(PROOFS / "Audit.lean", audit_source(entries), args.write_registry)
-    for path in [PROOFS / "Generated/Pathward.lean", *sorted(PROOFS.glob("*Proofs.lean"))]:
+    for path in [*sorted((PROOFS / "Generated").glob("*.lean")), *sorted(PROOFS.glob("*Proofs.lean"))]:
         if re.search(r"\b(sorry|admit|axiom|unsafe|native_decide|implemented_by|extern)\b", path.read_text()):
             raise SystemExit(f"Forbidden proof escape in {path.relative_to(ROOT)}")
     metadata = json.loads(subprocess.check_output(

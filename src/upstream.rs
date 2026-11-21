@@ -134,6 +134,16 @@ pub enum FirstIo {
     Failed,
 }
 
+/// Keep the original fatal error for the caller while spending the first-write
+/// permission in the driver. Only a retryable error returns a wait event.
+pub fn first_write_report<E>(report: Result<Option<usize>, E>) -> (FirstIo, Option<E>) {
+    match report {
+        Ok(Some(n)) => (FirstIo::Written(n), None),
+        Ok(None) => (FirstIo::Wait, None),
+        Err(e) => (FirstIo::Failed, Some(e)),
+    }
+}
+
 /// The socket adapter implements this effect as one nonblocking write on the
 /// same connected descriptor whose peer was checked. There is no reconnect here.
 pub trait FirstWriter {

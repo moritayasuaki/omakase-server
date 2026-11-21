@@ -5,6 +5,7 @@ setup:
 	python3 scripts/setup.py
 	$(MAKE) config-setup
 	$(MAKE) server-setup
+	$(MAKE) pool-platform-setup
 	$(MAKE) admin-setup
 
 extract:
@@ -15,7 +16,15 @@ rust-check:
 	cargo test --offline --locked
 	cargo clippy --offline --locked --all-targets -- -D warnings
 
-proof-check:
+.PHONY: pool-platform-setup pool-platform-check
+pool-platform-setup:
+	rustup component add --toolchain 1.99.1 rust-src
+	rustup target add --toolchain 1.99.1 x86_64-unknown-linux-musl
+
+pool-platform-check:
+	node scripts/pool_guard_paths.mjs
+
+proof-check: pool-platform-check
 	python3 -m unittest discover -s scripts -p 'test_proof_registry.py'
 	python3 scripts/extract.py --check
 	cd proofs && lake build

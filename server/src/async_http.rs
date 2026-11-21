@@ -15,6 +15,15 @@ fn retryable(e: &io::Error) -> bool {
         io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
     )
 }
+
+/// Both the first call and its continuation use the same std error mapping.
+pub(crate) fn write_report(result: io::Result<usize>) -> io::Result<Option<usize>> {
+    match result {
+        Ok(n) => Ok(Some(n)),
+        Err(e) if retryable(&e) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
 pub async fn operation<T>(
     deadline: Instant,
     mut op: impl FnMut() -> io::Result<T>,
@@ -72,11 +81,7 @@ pub async fn write_all_from(
     s.deadline(d)?;
     while !bytes.is_empty() {
         http::remaining(d)?;
-        let count = match s.write(bytes) {
-            Ok(n) => Some(n),
-            Err(e) if retryable(&e) => None,
-            Err(e) => return Err(e),
-        };
+        let count = write_report(s.write(bytes))?;
         bytes = remaining_after_write(bytes, count).ok_or_else(|| {
             if count == Some(0) {
                 io::ErrorKind::WriteZero

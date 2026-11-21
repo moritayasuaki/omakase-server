@@ -38,6 +38,10 @@ webpki-roots = { version = "=1.0.11", default-features = false }
 [target.'cfg(target_os = "linux")'.dependencies]
 rustix = { version = "=1.1.6", default-features = false, features = ["fs", "std", "process"] }
 
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+# Socket identity, reset fixtures and the two kernel clocks used by the Linux lab.
+rustix = { version = "=1.1.6", default-features = false, features = ["net", "time"] }
+
 [lints.rust]
 unsafe_code = "forbid"
 

@@ -14,6 +14,7 @@
     "ContentProofs": "Range・キャッシュ・事前条件の判断",
     "UpstreamProofs": "認証情報なしの部屋探索・転送先選択",
     "PlatformProofs": "ローカルプールのロック所有順・単調時計の変換・TCP部分書込みの継続",
+    "LinuxProofs": "固定Rustのガード制御フロー・Linuxのサスペンド時計と単一ソケットのエラー",
     "DeliveryProofs": "バイト予算・接続再利用・圧縮・多重化・0-RTTのゲート",
     "SafetyProofs": "公開縮小・失効・古い設定・制限強化・累積バイト数",
     "CancellationProofs": "キャンセル優先の判断と接続内の保留・実行状態モデル",
@@ -27,7 +28,19 @@
     "BootstrapProofs": "初回準備・公開アップロード・不変アセット・条件付き復元のRust判断と、準備中断・再試行の状態モデル",
     "AuthorityProofs": "公開権限の固定ハッシュ検証とライセンス文書の限定例外"
   },
+  "pinned_mir_theorems": [
+    "LinuxProofs.all_emitted_guard_paths_are_scoped",
+    "LinuxProofs.callback_returns_or_unwinds_through_both_drops"
+  ],
   "model_only_theorems": [
+    "LinuxProofs.acquire_after_publication_observes_complete_record",
+    "LinuxProofs.sleep_advances_only_boot_age",
+    "LinuxProofs.long_suspend_can_preserve_fresh_probe",
+    "LinuxProofs.instant_delta_within_kernel_brackets",
+    "LinuxProofs.stopped_preserves_errno_and_suffix",
+    "LinuxProofs.foreign_socket_is_rejected",
+    "LinuxProofs.retryable_report_keeps_socket_cursor",
+    "LinuxProofs.fatal_after_partial_preserves_exact_unaccepted_suffix",
     "PlatformProofs.finite_trace_conserves_bytes",
     "PlatformProofs.completed_after_first_write_is_original",
     "PlatformProofs.partial_dispatch_cannot_replay",
@@ -733,8 +746,31 @@
       "id": "LOCAL-POOL-PLATFORM-REFINEMENT",
       "title": "同期・時計・ソケットアダプターからOS契約への対応",
       "priority": "P2",
+      "status": "proved",
+      "acceptance": "Rust 1.99.1のガード関数からMIRの制御経路を再生成し、通常終了・アンワインド時の寿命を検査する。release/acquireの可視性、休止を除く時計と含む時計、同じTCPソケットの部分受理とエラーの各契約から導ける性質をLeanで示す。対象の標準ライブラリ・カーネル・ゲスト画像を固定し、無通信のLinux VMで公開値、実際のS3、SO_COOKIEとerrnoを照合する。",
+      "theorems": [
+        "LinuxProofs.all_emitted_guard_paths_are_scoped",
+        "LinuxProofs.callback_returns_or_unwinds_through_both_drops",
+        "LinuxProofs.acquire_after_publication_observes_complete_record",
+        "LinuxProofs.sleep_advances_only_boot_age",
+        "LinuxProofs.long_suspend_can_preserve_fresh_probe",
+        "LinuxProofs.instant_delta_within_kernel_brackets",
+        "LinuxProofs.first_report_retains_errno",
+        "LinuxProofs.first_report_retains_partial_count",
+        "LinuxProofs.fatal_first_report_spends_grant_with_original_cause",
+        "LinuxProofs.retryable_first_report_requires_live_generation",
+        "LinuxProofs.stopped_preserves_errno_and_suffix",
+        "LinuxProofs.foreign_socket_is_rejected",
+        "LinuxProofs.retryable_report_keeps_socket_cursor",
+        "LinuxProofs.fatal_after_partial_preserves_exact_unaccepted_suffix"
+      ]
+    },
+    {
+      "id": "LOCAL-POOL-KERNEL-SEMANTICS",
+      "title": "固定した標準ライブラリとカーネルの契約そのものの検証",
+      "priority": "P2",
       "status": "planned",
-      "acceptance": "対象のRust・Linux版を固定し、Mutexガードの寿命・共有値の可視性、Instantの時計源とサスペンド、同一TCP記述子で返る受理バイト数・エラーをアダプター全体から機械的に対応付ける。現在はコードレビュー、標準仕様、隔離Linuxの観測が根拠。相手アプリの永続化やクライアントからの再試行は別の契約を要する。",
+      "acceptance": "MIRの分岐・標準ライブラリ内部でのdrop・Acquire/Releaseとカーネルのfutex、時刻源・電源管理、TCP・errno・記述子所有権に至る対応を機械化する。現状はガード関数のMIR検査、実コードから抽出したI/O判断、ソース照合と固定ゲストの実測。別のCPU・カーネル・休止方式は個別に検証する。",
       "theorems": []
     },
     {
