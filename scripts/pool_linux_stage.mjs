@@ -6,10 +6,11 @@ import {closeSync, createReadStream, copyFileSync, ftruncateSync, mkdirSync, ope
 import {join, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
+import {prepareProvider,boots as delegatedBoots} from './pool_delegates_host.mjs';
 
-assert([4,5].includes(process.argv.length), 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY [s3|s4|cold]');
+assert([4,5].includes(process.argv.length), 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY [s3|s4|cold|delegates]');
 const mode = process.argv[4] ?? 's3';
-assert(['s3','s4','cold'].includes(mode));
+assert(['s3','s4','cold','delegates'].includes(mode));
 const root = fileURLToPath(new URL('../', import.meta.url));
 const pin = JSON.parse(readFileSync(join(root, 'audit/pool-linux-target.json')));
 const image = realpathSync(process.argv[2]);
@@ -46,16 +47,24 @@ copyFileSync(join(root,'scripts/pool_linux_guest.sh'), join(seed,'run'));
 if (mode === 's4') {
     copyFileSync(join(root,'scripts/pool_linux_s4_guest.sh'), join(seed,'run-s4'));
 }
-if (mode === 'cold') {
+if (mode === 'cold' || mode === 'delegates') {
     copyFileSync(join(root,'scripts/pool_cold_guest.sh'),join(seed,'run-cold'));
+}
+if (mode === 'cold') {
     copyFileSync(join(root,'scripts/pool_online_guest.sh'),join(seed,'run-online'));
 }
 function file(name, contents) { writeFileSync(join(seed, name), contents + '\n'); }
+const provider=mode==='delegates' ? prepareProvider(root,out) : undefined;
+if(provider) {
+    copyFileSync(join(root,'scripts/pool_delegates_guest.sh'),join(seed,'run-delegates'));
+    copyFileSync(join(root,'deploy/pathward-delegated-sleep@.service'),join(seed,'delegated.service'));
+    file('provider',provider.publicLine);
+}
 file('release', pin.guest.release);
 file('version-signature', pin.guest.version_signature);
 file('kernel.sha256', pin.guest.kernel_sha256 + '  /boot/vmlinuz-' + pin.guest.release);
 file('binary.sha256', (await Promise.all(['pool-tests','pathward-server','sleep.conf','sleep.tmpfiles','sleep-guest','run',
-    ...(mode === 'cold' ? ['run-cold','run-online'] : mode === 's4' ? ['run-s4'] : [])]
+    ...(mode === 'cold' ? ['run-cold','run-online'] : provider ? ['run-cold','run-delegates','delegated.service','provider'] : mode === 's4' ? ['run-s4'] : [])]
     .map(async name => await digest(join(seed,name)) + '  ' + name))).join('\n'));
 file('meta-data', 'instance-id: pool-linux-refinement\nlocal-hostname: pool-lab');
 file('network-config', 'version: 2\nethernets: {}');
@@ -72,7 +81,9 @@ function boot(serial) {
     run('qemu-system-x86_64',[...machine,'-serial','file:' + serial],{timeout:600000,killSignal:'SIGKILL'});
     return readFileSync(join(out,serial),'utf8').replaceAll('\r','').split('\n');
 }
-if (mode === 'cold') {
+if (provider) {
+    await delegatedBoots(machine,out,provider);
+} else if (mode === 'cold') {
     machine.push('-drive','file=overlay.qcow2,format=qcow2,if=virtio,cache=none');
     const first = boot('serial-first.log');
     assert(first.includes('ORPHAN_503 http=503 closed_counter_delta=1 extra_applications=0 unit_signal=9')

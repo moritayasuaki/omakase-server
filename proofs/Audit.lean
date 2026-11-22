@@ -298,6 +298,14 @@ import UpstreamProofs
 #print axioms LinuxProofs.journal_crash_prefix_keeps_owner
 #print axioms LinuxProofs.online_step_preserves_quiescence
 #print axioms LinuxProofs.online_history_send_requires_empty_tree
+#print axioms LinuxProofs.delegates_write_exact
+#print axioms LinuxProofs.delegated_retirement_exact
+#print axioms LinuxProofs.pending_delegate_preserves_first_writer
+#print axioms LinuxProofs.stale_or_unconfirmed_ticket_cannot_retire
+#print axioms LinuxProofs.delegated_step_keeps_work_registered
+#print axioms LinuxProofs.delegated_history_keeps_registrations
+#print axioms LinuxProofs.delegated_history_write_requires_all_work_finished
+#print axioms LinuxProofs.reboot_with_unconfirmed_delegate_stays_closed
 #print axioms PathwardProofs.name_byte_eq
 #print axioms PathwardProofs.step_eq
 #print axioms PathwardProofs.accepting_eq

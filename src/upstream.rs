@@ -233,3 +233,13 @@ pub fn sleep_recovery_allowed(
         && manager_idle
         && groups_empty == 15
 }
+
+/// The stable delegation lock stays shared through the first socket write.
+pub fn delegates_allow_write(service_pending: bool, hypervisor_pending: bool) -> bool {
+    !service_pending && !hypervisor_pending
+}
+
+/// Only authoritative terminal evidence for the currently registered job can retire it.
+pub fn delegate_can_retire(pending: bool, same_ticket: bool, terminal: bool) -> bool {
+    pending && same_ticket && terminal
+}

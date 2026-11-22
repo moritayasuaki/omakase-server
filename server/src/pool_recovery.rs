@@ -85,7 +85,7 @@ impl Receipt {
     }
 }
 
-fn host_cgroup_domain() -> io::Result<bool> {
+pub(crate) fn host_cgroup_domain() -> io::Result<bool> {
     Ok(
         pool_preflight::same_object("/proc/self/ns/cgroup", "/proc/1/ns/cgroup")?
             && fs::read_to_string("/proc/1/cgroup")? == "0::/init.scope\n",
@@ -127,7 +127,7 @@ fn populated(text: &str) -> io::Result<bool> {
     }
 }
 
-fn empty_groups() -> io::Result<u8> {
+pub(crate) fn empty_subtree(unit: &str) -> io::Result<bool> {
     // A missing child of a pinned cgroup-v2 parent is empty: Linux refuses
     // to remove a populated subtree. An unreadable existing group is unknown.
     let parent = File::open(SYSTEM_SLICE)?;
@@ -135,27 +135,26 @@ fn empty_groups() -> io::Result<u8> {
         return Err(deny("system.slice is not on the cgroup v2 hierarchy"));
     }
     let flags = OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC;
+    match openat(&parent, unit, flags | OFlags::DIRECTORY, Mode::empty()) {
+        Err(rustix::io::Errno::NOENT) => Ok(true),
+        Err(e) => Err(e.into()),
+        Ok(group) => {
+            let fd = openat(&group, "cgroup.events", flags, Mode::empty())?;
+            let mut text = String::new();
+            File::from(fd).take(4097).read_to_string(&mut text)?;
+            if text.len() > 4096 {
+                return Err(deny("oversize cgroup.events"));
+            }
+            Ok(!populated(&text)?)
+        }
+    }
+}
+
+fn empty_groups() -> io::Result<u8> {
     let mut mask = 0u8;
     for (i, mode) in units::MODES.iter().enumerate() {
         let unit = format!("systemd-{mode}.service");
-        let empty = match openat(
-            &parent,
-            unit.as_str(),
-            flags | OFlags::DIRECTORY,
-            Mode::empty(),
-        ) {
-            Err(rustix::io::Errno::NOENT) => true,
-            Err(e) => return Err(e.into()),
-            Ok(group) => {
-                let fd = openat(&group, "cgroup.events", flags, Mode::empty())?;
-                let mut text = String::new();
-                File::from(fd).take(4097).read_to_string(&mut text)?;
-                if text.len() > 4096 {
-                    return Err(deny("oversize cgroup.events"));
-                }
-                !populated(&text)?
-            }
-        };
+        let empty = empty_subtree(&unit)?;
         println!("unit={unit} descendant_cgroup_empty={empty}");
         if empty {
             mask |= 1 << i;
@@ -183,6 +182,7 @@ pub fn recover(control_dir: &Path) -> io::Result<&'static str> {
     flock(&file, FlockOperation::NonBlockingLockExclusive)
         .map_err(|_| deny("recovery lease unavailable"))?;
     let marker = sleep_fence::marker(&file)?;
+    let _delegates = crate::sleep_delegates::reader()?;
     if marker == b'A' {
         return Ok("ALREADY_AWAKE");
     }

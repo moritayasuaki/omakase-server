@@ -27,7 +27,12 @@ mod quic_bounds;
 mod runtime;
 pub mod secrets;
 #[cfg(target_os = "linux")]
+pub mod sleep_delegates;
+#[cfg(target_os = "linux")]
 pub mod sleep_fence;
+#[cfg(target_os = "linux")]
+#[path = "../../shared/sleep_ticket.rs"]
+mod sleep_ticket;
 mod static_files;
 mod stream_pool;
 mod streaming;

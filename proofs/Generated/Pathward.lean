@@ -3599,4 +3599,24 @@ def upstream.sleep_recovery_allowed
       else ok false
     else ok false
 
+/-- [pathward::upstream::delegates_allow_write]:
+    Source: 'src/upstream.rs', lines 238:0-240:1
+    Visibility: public -/
+def upstream.delegates_allow_write
+  (service_pending : Bool) (hypervisor_pending : Bool) : RustM Bool := do
+  if service_pending
+  then ok false
+  else ok (¬ hypervisor_pending)
+
+/-- [pathward::upstream::delegate_can_retire]:
+    Source: 'src/upstream.rs', lines 243:0-245:1
+    Visibility: public -/
+def upstream.delegate_can_retire
+  (pending : Bool) (same_ticket : Bool) (terminal : Bool) : RustM Bool := do
+  if pending
+  then if same_ticket
+       then ok terminal
+       else ok false
+  else ok false
+
 end pathward

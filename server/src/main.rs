@@ -24,12 +24,20 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         println!("{HELP}");
         #[cfg(target_os = "linux")]
         println!(
-            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness\npathward-server recover-pool-fence --control-dir DIR"
+            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness\npathward-server recover-pool-fence --control-dir DIR\npathward-server sleep-delegate enroll|status|service-start|service-check|hypervisor-begin|hypervisor-confirm ..."
         );
         return Ok(());
     }
     let command = args.first().and_then(|s| s.to_str()).ok_or(HELP)?;
     match command {
+        #[cfg(target_os = "linux")]
+        "sleep-delegate" => {
+            let words: Option<Vec<_>> = args[1..].iter().map(|v| v.to_str()).collect();
+            println!(
+                "{}",
+                pathward_server::sleep_delegates::command(&words.ok_or(HELP)?)?
+            );
+        }
         #[cfg(target_os = "linux")]
         "pool-fence-witness" if args.len() == 1 => {
             println!("{}", pathward_server::pool_preflight::witness()?)

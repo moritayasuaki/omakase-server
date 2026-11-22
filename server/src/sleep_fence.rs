@@ -121,10 +121,11 @@ fn require_awake(file: &File) -> Result<(), Failure> {
 }
 
 /// Drop releases this independent shared flock. No wait or await under the lease.
-pub(crate) fn first_write_lease() -> Result<File, Failure> {
+pub(crate) fn first_write_lease() -> Result<(File, File), Failure> {
     let file = open_fence(OFlags::RDONLY)?;
     check_reader(&file)?;
-    Ok(file)
+    let delegates = crate::sleep_delegates::reader()?;
+    Ok((file, delegates))
 }
 
 fn check_reader(file: &File) -> Result<(), Failure> {
@@ -147,7 +148,8 @@ pub(crate) fn inspect() -> (Option<(u64, u64)>, Result<(), Failure>) {
         Ok(m) => m,
         Err(e) => return (None, Err(e.into())),
     };
-    (Some((meta.dev(), meta.ino())), check_reader(&file))
+    let check = check_reader(&file).and_then(|()| crate::sleep_delegates::reader().map(drop));
+    (Some((meta.dev(), meta.ino())), check)
 }
 
 /// Privileged entry for systemd sleep units and direct, coordinated kernel sleep.
