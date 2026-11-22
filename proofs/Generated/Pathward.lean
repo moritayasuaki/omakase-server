@@ -3619,4 +3619,50 @@ def upstream.delegate_can_retire
        else ok false
   else ok false
 
+/-- [pathward::upstream::original_stop_permitted]:
+    Source: 'src/upstream.rs', lines 248:0-250:1
+    Visibility: public -/
+def upstream.original_stop_permitted
+  (armed : Bool) (claim_created : Bool) : RustM Bool := do
+  if armed
+  then ok claim_created
+  else ok false
+
+/-- [pathward::upstream::original_resume_proven]:
+    Source: 'src/upstream.rs', lines 254:0-256:1
+    Visibility: public -/
+def upstream.original_resume_proven
+  (claim : Bool) (acknowledged : Bool) (stop : Bool) (resume : Bool) :
+  RustM Bool
+  := do
+  if claim
+  then if acknowledged
+       then if stop
+            then ok resume
+            else ok false
+       else ok false
+  else ok false
+
+/-- [pathward::upstream::reconcile_ticket]:
+    Source: 'src/upstream.rs', lines 260:0-268:1
+    Visibility: public -/
+def upstream.reconcile_ticket
+  («local» : Bool) (local_matches : Bool) (guard : Bool)
+  (guard_matches : Bool) (signed : Bool) :
+  RustM Bool
+  := do
+  if signed
+  then
+    if «local»
+    then
+      if local_matches
+      then if guard
+           then ok guard_matches
+           else ok true
+      else ok false
+    else if guard
+         then ok guard_matches
+         else ok false
+  else ok false
+
 end pathward

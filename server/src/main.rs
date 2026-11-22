@@ -24,7 +24,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         println!("{HELP}");
         #[cfg(target_os = "linux")]
         println!(
-            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness\npathward-server recover-pool-fence --control-dir DIR\npathward-server sleep-delegate enroll|status|service-start|service-check|hypervisor-begin|hypervisor-confirm ..."
+            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness\npathward-server recover-pool-fence --control-dir DIR\npathward-server sleep-delegate init-local|enroll|enroll-recoverable|status|service-start|service-check|hypervisor-begin|hypervisor-confirm ..."
         );
         return Ok(());
     }

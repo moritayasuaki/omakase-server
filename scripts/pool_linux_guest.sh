@@ -17,6 +17,10 @@ run() { setpriv --reuid=nobody --regid=nogroup --clear-groups "$@"; }
 run id
 uname -srvmo
 cat /proc/version_signature
+if test -f "$seed/run-witness"; then
+    . "$seed/run-witness"
+    exit 0
+fi
 if test -f "$seed/run-cold"; then
     . "$seed/run-cold"
     exit 0

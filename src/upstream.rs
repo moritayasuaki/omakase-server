@@ -243,3 +243,26 @@ pub fn delegates_allow_write(service_pending: bool, hypervisor_pending: bool) ->
 pub fn delegate_can_retire(pending: bool, same_ticket: bool, terminal: bool) -> bool {
     pending && same_ticket && terminal
 }
+
+/// The authority records a unique dispatch claim before the only QMP stop.
+pub fn original_stop_permitted(armed: bool, claim_created: bool) -> bool {
+    armed && claim_created
+}
+
+/// The initial QMP observer stays connected to the same emulator. The command
+/// issuer independently acknowledges that its own stop reached paused.
+pub fn original_resume_proven(claim: bool, acknowledged: bool, stop: bool, resume: bool) -> bool {
+    claim && acknowledged && stop && resume
+}
+
+/// A missing local ticket can be a restored idle guest. Any other live
+/// ticket must agree with the evidence before either copy can be cleared.
+pub fn reconcile_ticket(
+    local: bool,
+    local_matches: bool,
+    guard: bool,
+    guard_matches: bool,
+    signed: bool,
+) -> bool {
+    signed && (local || guard) && (!local || local_matches) && (!guard || guard_matches)
+}
