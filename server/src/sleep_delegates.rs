@@ -285,17 +285,32 @@ fn service_name(id: &str) -> String {
     format!("pathward-delegated-sleep@{id}.service")
 }
 
-fn service_properties(unit: &str) -> io::Result<String> {
+fn service_properties(id: &str) -> io::Result<String> {
+    let unit = service_name(id);
     let properties = concat!(
         "Id,LoadState,NeedDaemonReload,Type,RemainAfterExit,Restart,ActiveState,SubState,",
         "InvocationID,Job,Result,MainPID,ControlPID,ExecMainCode,ExecMainStatus,",
-        "ExecMainExitTimestampMonotonic,Slice,ControlGroup,Delegate,ProtectControlGroups,",
-        "ExecCondition,ExecStartPre,ExecStartPost,ExecReload,ExecStop,ExecStopPost",
+        "ExecMainExitTimestampMonotonic,Slice,ControlGroup,Delegate,ProtectControlGroups",
     );
-    pool_preflight::units::output(
+    let raw = pool_preflight::units::output(
         "/usr/bin/systemctl",
-        &["--system", "show", "--all", "--property", properties, unit],
-    )
+        &["--system", "show", "--all", "--property", properties, &unit],
+    )?;
+    let object =
+        format!("/org/freedesktop/systemd1/unit/pathward_2ddelegated_2dsleep_40{id}_2eservice");
+    let exec = pool_preflight::units::service_commands(&object)?;
+    let mut commands = exec.lines();
+    let start = commands.next().is_some_and(|line| {
+        pool_preflight::units::single_exec(
+            line,
+            "/usr/local/libexec/pathward-delegated-sleep",
+            &[id],
+        )
+    });
+    if !start || !commands.eq(["a(sasasttttuii) 0"; 6]) {
+        return Err(bad("unexpected commands in delegated service"));
+    }
+    Ok(raw)
 }
 
 fn service_profile<'a>(unit: &str, raw: &'a str) -> io::Result<BTreeMap<&'a str, &'a str>> {
@@ -314,17 +329,7 @@ fn service_profile<'a>(unit: &str, raw: &'a str) -> io::Result<BTreeMap<&'a str,
         ("Delegate", "no"),
         ("ProtectControlGroups", "yes"),
     ];
-    let single_work_item = [
-        "ExecCondition",
-        "ExecStartPre",
-        "ExecStartPost",
-        "ExecReload",
-        "ExecStop",
-        "ExecStopPost",
-    ]
-    .iter()
-    .all(|key| p.get(key) == Some(&""));
-    if !single_work_item || !expected.iter().all(|(k, v)| p.get(k) == Some(v)) {
+    if !expected.iter().all(|(k, v)| p.get(k) == Some(v)) {
         return Err(bad("delegated service profile or job state unconfirmed"));
     }
     Ok(p)
@@ -337,7 +342,7 @@ fn service_terminal(id: &str) -> io::Result<bool> {
         ));
     }
     let unit = service_name(id);
-    let raw = service_properties(&unit)?;
+    let raw = service_properties(id)?;
     let p = service_profile(&unit, &raw)?;
     let cgroup = format!("/system.slice/{unit}");
     let finished = [
@@ -357,7 +362,7 @@ fn service_terminal(id: &str) -> io::Result<bool> {
             .is_some_and(|t| t > 0)
         && p.get("ControlGroup")
             .is_some_and(|p| p.is_empty() || *p == cgroup);
-    Ok(finished && pool_recovery::empty_subtree(&unit)? && service_properties(&unit)? == raw)
+    Ok(finished && pool_recovery::empty_subtree(&unit)? && service_properties(id)? == raw)
 }
 
 pub fn command(args: &[&str]) -> io::Result<String> {
@@ -382,7 +387,7 @@ pub fn command(args: &[&str]) -> io::Result<String> {
         ["service-start"] if state.service.is_none() => {
             let id = new_ticket()?;
             let unit = service_name(&id);
-            let raw = service_properties(&unit)?;
+            let raw = service_properties(&id)?;
             if service_profile(&unit, &raw)?.get("ActiveState") != Some(&"inactive") {
                 return Err(bad("delegated service instance is not idle"));
             }
