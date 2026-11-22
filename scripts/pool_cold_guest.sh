@@ -12,6 +12,7 @@ if test ! -f "$state/first-boot"; then
     install -d -m0755 "$state"
     install -d -o nobody -g nogroup -m0700 "$state/control"
     install -Dm0755 "$seed/pathward-server" "$server"
+    "$server" sleep-delegate init-local
     cat > "$state/pool.kdl" <<'KDL'
 site "app.example" {
   tls "auto"
@@ -82,7 +83,7 @@ else
 fi
 
 install -d -o nobody -g nogroup -m0700 "$peer"
-if "$first"; then printf 204 > "$peer/status"; else printf 503 > "$peer/status"; fi
+if "$first" || test -f "$seed/run-delegates"; then printf 204 > "$peer/status"; else printf 503 > "$peer/status"; fi
 PATHWARD_POOL_LAB="$peer" run "$bin" cold_boot_http_peer --ignored --test-threads=1 --nocapture &
 worker=$!
 for _ in $(seq 1 400); do test ! -f "$peer/listening" || break; kill -0 "$worker"; sleep 0.02; done
@@ -95,6 +96,10 @@ post() { curl --noproxy '*' -sS --max-time 3 -H 'Host: app.example' -H 'Content-
 diag() { "$server" pool-preflight "$state/control/.config" --control-dir "$state/control"; }
 closed_count() { get metrics | awk '$1=="pathward_pool_fence_rejections_total{reason=\"closed\"}"{print $2}'; }
 application_count() { awk '$1=="APP"{n++} END{print n+0}' "$peer/events"; }
+if test -f "$seed/run-delegates"; then
+    . "$seed/run-delegates"
+    exit 0
+fi
 diag > "$peer/report" || { cat "$peer/report"; exit 1; }
 grep -Fx READY "$peer/report"
 if "$first"; then

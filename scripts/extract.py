@@ -110,6 +110,8 @@ def main():
                         "--start-from", "pathward::upstream::pool_preflight_ready",
                         "--start-from", "pathward::upstream::pool_witness_current",
                         "--start-from", "pathward::upstream::sleep_recovery_allowed",
+                        "--start-from", "pathward::upstream::delegates_allow_write",
+                        "--start-from", "pathward::upstream::delegate_can_retire",
                         "--start-from", "pathward::upstream::pool_tick",
                         "--start-from", "pathward::upstream::remaining_after_write",
                         "--start-from", "pathward::upstream::first_write_report",

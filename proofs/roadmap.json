@@ -33,6 +33,10 @@
     "LinuxProofs.callback_returns_or_unwinds_through_both_drops"
   ],
   "model_only_theorems": [
+    "LinuxProofs.delegated_step_keeps_work_registered",
+    "LinuxProofs.delegated_history_keeps_registrations",
+    "LinuxProofs.delegated_history_write_requires_all_work_finished",
+    "LinuxProofs.reboot_with_unconfirmed_delegate_stays_closed",
     "LinuxProofs.journal_crash_prefix_keeps_owner",
     "LinuxProofs.online_step_preserves_quiescence",
     "LinuxProofs.online_history_send_requires_empty_tree",
@@ -156,6 +160,7 @@
     }
   },
   "trusted_boundaries": [
+    "委譲元は全依頼を送信前に登録する。すべての書き手・管理者が同じ永続台帳を参照する。Linuxのflock、rename、ファイルとディレクトリのfsync、消失・巻戻しのない保管、作業IDの一意性を前提とする。systemdの終了状態と再帰的cgroup、QMPのVM識別と停止・再開の応答、Ed25519と署名鍵の管理が完了証拠の正しさを担う。",
     "Leanカーネルと使用する標準公理",
     "Charon/AeneasによるRustからLeanへの抽出、Rust/LLVMコンパイラー",
     "KDL・HTTP・TLS・QUICの外部ライブラリと、抽出対象外のアダプター",
@@ -866,8 +871,25 @@
       "id": "LOCAL-POOL-EXTERNAL-SLEEP-OWNERS",
       "title": "標準の休止unit外に委譲された処理の追跡",
       "priority": "P2",
+      "status": "proved",
+      "acceptance": "systemd・ハイパーバイザの各1枠を送信前に永続化し、登録中の同一作業の終了を確認できた場合だけその枠を解放する。再起動を含む任意のモデル履歴で初回書込みが通れば、両方の作業が終了している。隔離Linuxの実サービス、QEMU停止・再開、別起動での署名再配送と実POSTで照合する。",
+      "theorems": [
+        "LinuxProofs.delegates_write_exact",
+        "LinuxProofs.pending_delegate_preserves_first_writer",
+        "LinuxProofs.delegated_retirement_exact",
+        "LinuxProofs.stale_or_unconfirmed_ticket_cannot_retire",
+        "LinuxProofs.delegated_step_keeps_work_registered",
+        "LinuxProofs.delegated_history_keeps_registrations",
+        "LinuxProofs.delegated_history_write_requires_all_work_finished",
+        "LinuxProofs.reboot_with_unconfirmed_delegate_stays_closed"
+      ]
+    },
+    {
+      "id": "LOCAL-POOL-DELEGATE-AUTHORITY-LOSS",
+      "title": "外部作業の完了記録を失った場合の復旧とスナップショット巻戻し",
+      "priority": "P2",
       "status": "planned",
-      "acceptance": "特権フックが別のsystemdサービスやハイパーバイザへ非同期に委譲した仕事も、初回送信を再開する前に終了を確認できる契約を設計する。由来不明の旧マーカーには推測で許可を与えない。",
+      "acceptance": "QMP監視断・完了記録消失・ゲストと監視元の別々の巻戻しについて、同一依頼の再送や誤解除を起こさずに処理を再照合する。未仲介の特権経路と別の仮想化基盤には個別の強制・完了証拠を用意する。",
       "theorems": []
     },
     {

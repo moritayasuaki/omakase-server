@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "lean_toolchain": "leanprover/lean4:v4.31.0",
-  "theorem_count": 718,
-  "axiom_free_count": 104,
+  "theorem_count": 726,
+  "axiom_free_count": 106,
   "axiom_counts": {
-    "Classical.choice": 481,
-    "Quot.sound": 496,
-    "propext": 614
+    "Classical.choice": 482,
+    "Quot.sound": 497,
+    "propext": 620
   },
   "source_sha256": {
     "audit/pool-linux-target.json": "88647d84f929b1751cd980970b7d7949f5765ff8f1fc4827cb4d0525951681ea",
@@ -19,9 +19,9 @@
     "proofs/CutoverProofs.lean": "352f578413c2c57f315b058c93b22d1ed5f23811f2adb6440c44dd2e6fc98ad0",
     "proofs/DeliveryProofs.lean": "d975f9d35187198123bbee361b997954df959cbdf96c1faddc48fb4ab37f7184",
     "proofs/Generated/GuardPaths.lean": "3d9fdb1e9bd9256dacbf55cfc14c0e327ab105d65d00dee1e32c3ec4f6c72bce",
-    "proofs/Generated/Pathward.lean": "9a49524a0faa354df139366b6eec2382cc8077c0fef66384c694efd7e5830919",
+    "proofs/Generated/Pathward.lean": "519ddbd1c3fcc71ef69c68cc08d1f9eea59eb67a7efb260d7a891ae50a9107b5",
     "proofs/GuardUpgradeProofs.lean": "cd580b9c1bbd44aff63391244270d14cd01f30006590da4cc3b6b59dd50da5fb",
-    "proofs/LinuxProofs.lean": "f07076299d034a682a97a9cc13585f66ed5601f5db70ccfd7babcb2e3e4d74da",
+    "proofs/LinuxProofs.lean": "9037f2c5294211a5b0852ab9a27a408e00e77868359b7468da7a15d1de735665",
     "proofs/PathwardProofs.lean": "94ad7cb4763dc8d57da14253e30e16c1ad517d99d1bf1b2d387ad17575b90a67",
     "proofs/PlanMigrationProofs.lean": "13e8dffab53a690381384dc14ab825c5c82d4e3d4454d80f62245d36eb83e031",
     "proofs/PlatformProofs.lean": "4163ca58e7eeee39063a2c1d666741ba7243066211a416fa43365d27956529e9",
@@ -38,7 +38,7 @@
     "proofs/StreamingProofs.lean": "07ac50b458bd8a6e83a34aeace3ba8b53a40911add293c24577fe491822b8ebd",
     "proofs/TlsProofs.lean": "55adcddb5cd9ca110e57c851652dbc6e7f0f396184cb99199fc64b82db948023",
     "proofs/UpstreamProofs.lean": "a95e83a3caa039d96763fc4e4e3346dfc51ca1b241f5f9ccdbf2329bb7b968de",
-    "scripts/extract.py": "9be624d3c24c226ab0af0563da95c18098b86b37e609b7c3428dd0ae792c5e33",
+    "scripts/extract.py": "290ae915c61c6ba4ffce77dc4d2cf59be16b0af9f8c16a934db9b180b763d767",
     "scripts/pool_guard_paths.mjs": "34ea5aa000291cdc3d03a05114c463d82e902ec80436b9eb173a3afa61e32a2f",
     "server/src/pool_locks.rs": "dee90bb64996e68a7c663bcb5f7492afc9841cf482a8fd290424204d9a2ebf26",
     "src/bootstrap.rs": "0e2efcce51aed2270e5e52b448afd7a452d212e6362a18d21097bc93d1a6e15a",
@@ -58,7 +58,7 @@
     "src/serving.rs": "019358430607bb367639c6e2c1ccd56795ed85a2cd43152df26ff1986e37ca67",
     "src/streaming.rs": "7ce627b8afbf1fcb4956b1d0b8a40e11c23248839dcf6a774dbfc3459f4e7741",
     "src/tls.rs": "f443f6750448b1734272eea13ba085b6eb6ce420f3a4fd74145470683f35d7ba",
-    "src/upstream.rs": "8d1dfb88015658794e3b3c56bb54eb75638ca969252a1e51e39828c1363388c8"
+    "src/upstream.rs": "c5c3f214a057109a58b31351eadbf64966ad2806ec6837154c76ca70b18770ac"
   },
   "theorems": [
     {
@@ -2979,6 +2979,84 @@
       "axioms": [
         "Classical.choice",
         "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.delegates_write_exact",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 564,
+      "statement": "theorem delegates_write_exact (service hypervisor : Bool) :\n    upstream.delegates_allow_write service hypervisor =\n      ok (decide (service = false ∧ hypervisor = false))",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.delegated_retirement_exact",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 569,
+      "statement": "theorem delegated_retirement_exact (pending same terminal : Bool) :\n    upstream.delegate_can_retire pending same terminal =\n      ok (decide (pending = true ∧ same = true ∧ terminal = true))",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.pending_delegate_preserves_first_writer",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 574,
+      "statement": "theorem pending_delegate_preserves_first_writer {W} (writer : upstream.FirstWriter W) (state : W)\n    (members : Slice U32) (member : Usize) (gate : upstream.FirstWriteGate)\n    (sent service hypervisor : Bool) (pending : service = true ∨ hypervisor = true) :\n    (do let ready ← upstream.delegates_allow_write service hypervisor\n        if ready then upstream.guarded_first_write writer members member gate sent state\n        else ok (none, sent, state)) = ok (none, sent, state)",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.stale_or_unconfirmed_ticket_cannot_retire",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 582,
+      "statement": "theorem stale_or_unconfirmed_ticket_cannot_retire (pending same terminal : Bool)\n    (missing : same = false ∨ terminal = false) :\n    upstream.delegate_can_retire pending same terminal = ok false",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.delegated_step_keeps_work_registered",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 605,
+      "statement": "theorem delegated_step_keeps_work_registered {s t} (h : DelegateSlotStep s t)\n    (safe : DelegateRecorded s) : DelegateRecorded t",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.delegated_history_keeps_registrations",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 629,
+      "statement": "theorem delegated_history_keeps_registrations {s} (past : DelegateHistory s) :\n    DelegateRecorded s.service ∧ DelegateRecorded s.hypervisor",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.delegated_history_write_requires_all_work_finished",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 637,
+      "statement": "theorem delegated_history_write_requires_all_work_finished {s} (past : DelegateHistory s)\n    (write : upstream.delegates_allow_write s.service.ticket.isSome s.hypervisor.ticket.isSome = ok true) :\n    s.service.outstanding = false ∧ s.hypervisor.outstanding = false",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.reboot_with_unconfirmed_delegate_stays_closed",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 647,
+      "statement": "theorem reboot_with_unconfirmed_delegate_stays_closed {s} (past : DelegateHistory s)\n    (pending : s.service.ticket.isSome = true ∨ s.hypervisor.ticket.isSome = true) :\n    DelegateHistory s ∧ upstream.delegates_allow_write s.service.ticket.isSome s.hypervisor.ticket.isSome = ok false",
+      "axioms": [
         "propext"
       ],
       "scope": "transition_model"

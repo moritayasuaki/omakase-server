@@ -65,8 +65,17 @@ pub(crate) fn coordinator_matches() -> io::Result<bool> {
 // A typed busctl reply retains argv boundaries and the ExecStartEx flag
 // vector. systemctl's human-readable argv rendering conflates embedded spaces.
 fn correct_exec(reply: &str, unit: &str) -> bool {
-    let prefix =
-        format!("a(sasasttttuii) 1 \"{BIN}\" 3 \"{BIN}\" \"coordinated-sleep\" \"{unit}\" 0 ");
+    single_exec(reply, BIN, &["coordinated-sleep", unit])
+}
+
+// All expected arguments are fixed program words or a validated hex ticket.
+pub(crate) fn single_exec(reply: &str, binary: &str, args: &[&str]) -> bool {
+    let argc = args.len() + 1;
+    let mut prefix = format!("a(sasasttttuii) 1 \"{binary}\" {argc} \"{binary}\"");
+    for arg in args {
+        prefix.push_str(&format!(" \"{arg}\""));
+    }
+    prefix.push_str(" 0 ");
     let Some(rest) = reply.trim_end().strip_prefix(&prefix) else {
         return false;
     };
@@ -171,25 +180,7 @@ pub(crate) fn inspect_unit(mode: &str) -> io::Result<bool> {
         "/org/freedesktop/systemd1/unit/{}_2eservice",
         unit.replace('-', "_2d")
     );
-    let exec = output(
-        "/usr/bin/busctl",
-        &[
-            "--system",
-            "--auto-start=no",
-            "--timeout=3s",
-            "get-property",
-            "org.freedesktop.systemd1",
-            &object,
-            "org.freedesktop.systemd1.Service",
-            "ExecStartEx",
-            "ExecConditionEx",
-            "ExecStartPreEx",
-            "ExecStartPostEx",
-            "ExecReloadEx",
-            "ExecStopEx",
-            "ExecStopPostEx",
-        ],
-    )?;
+    let exec = service_commands(&object)?;
     let mut commands = exec.lines();
     let command = commands
         .next()
@@ -204,6 +195,28 @@ pub(crate) fn inspect_unit(mode: &str) -> io::Result<bool> {
         status.unwrap_or(-1)
     );
     Ok(profile && command)
+}
+
+pub(crate) fn service_commands(object: &str) -> io::Result<String> {
+    output(
+        "/usr/bin/busctl",
+        &[
+            "--system",
+            "--auto-start=no",
+            "--timeout=3s",
+            "get-property",
+            "org.freedesktop.systemd1",
+            object,
+            "org.freedesktop.systemd1.Service",
+            "ExecStartEx",
+            "ExecConditionEx",
+            "ExecStartPreEx",
+            "ExecStartPostEx",
+            "ExecReloadEx",
+            "ExecStopEx",
+            "ExecStopPostEx",
+        ],
+    )
 }
 
 pub(crate) fn inspect() -> u8 {

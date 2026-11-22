@@ -561,4 +561,94 @@ theorem online_history_send_requires_empty_tree {manager : Bool} {workers : Nat}
   | false => simp [onlineStep, awake] at send
   | true => exact safe awake
 
+theorem delegates_write_exact (service hypervisor : Bool) :
+    upstream.delegates_allow_write service hypervisor =
+      ok (decide (service = false ∧ hypervisor = false)) := by
+  cases service <;> cases hypervisor <;> rfl
+
+theorem delegated_retirement_exact (pending same terminal : Bool) :
+    upstream.delegate_can_retire pending same terminal =
+      ok (decide (pending = true ∧ same = true ∧ terminal = true)) := by
+  cases pending <;> cases same <;> cases terminal <;> rfl
+
+theorem pending_delegate_preserves_first_writer {W} (writer : upstream.FirstWriter W) (state : W)
+    (members : Slice U32) (member : Usize) (gate : upstream.FirstWriteGate)
+    (sent service hypervisor : Bool) (pending : service = true ∨ hypervisor = true) :
+    (do let ready ← upstream.delegates_allow_write service hypervisor
+        if ready then upstream.guarded_first_write writer members member gate sent state
+        else ok (none, sent, state)) = ok (none, sent, state) := by
+  rcases pending with h | h <;> simp [delegates_write_exact, h]
+
+theorem stale_or_unconfirmed_ticket_cannot_retire (pending same terminal : Bool)
+    (missing : same = false ∨ terminal = false) :
+    upstream.delegate_can_retire pending same terminal = ok false := by
+  rw [delegated_retirement_exact]
+  rcases missing with h | h <;> simp [h]
+
+/-- Outstanding work includes the window after durable reservation and before
+    the external owner is called. Only its terminal observation discharges it. -/
+structure DelegateSlot where
+  ticket : Option Nat
+  outstanding : Bool
+
+inductive DelegateSlotStep : DelegateSlot → DelegateSlot → Prop where
+  | reserve (id : Nat) : DelegateSlotStep ⟨none,false⟩ ⟨some id,true⟩
+  | terminal (id : Nat) (work : Bool) : DelegateSlotStep ⟨some id,work⟩ ⟨some id,false⟩
+  | collect (s : DelegateSlot) (id : Nat) (witness : Bool)
+      (sound : witness = true → s.ticket = some id → s.outstanding = false)
+      (allowed : upstream.delegate_can_retire s.ticket.isSome (decide (s.ticket = some id)) witness = ok true) :
+      DelegateSlotStep s ⟨none,s.outstanding⟩
+  | unchanged (s : DelegateSlot) : DelegateSlotStep s s
+
+def DelegateRecorded (s : DelegateSlot) : Prop := s.outstanding = true → s.ticket.isSome = true
+
+theorem delegated_step_keeps_work_registered {s t} (h : DelegateSlotStep s t)
+    (safe : DelegateRecorded s) : DelegateRecorded t := by
+  cases h with
+  | reserve => simp [DelegateRecorded]
+  | terminal => simp [DelegateRecorded]
+  | unchanged => exact safe
+  | collect s id witness sound allowed =>
+    rw [delegated_retirement_exact] at allowed
+    simp at allowed
+    have quiet := sound allowed.2.2 allowed.2.1
+    simp [DelegateRecorded, quiet]
+
+structure Delegations where
+  service : DelegateSlot
+  hypervisor : DelegateSlot
+
+inductive DelegateHistory : Delegations → Prop where
+  | start : DelegateHistory ⟨⟨none,false⟩,⟨none,false⟩⟩
+  | service {s t} (past : DelegateHistory s) (step : DelegateSlotStep s.service t) :
+      DelegateHistory {s with service := t}
+  | hypervisor {s t} (past : DelegateHistory s) (step : DelegateSlotStep s.hypervisor t) :
+      DelegateHistory {s with hypervisor := t}
+  | reboot {s} (past : DelegateHistory s) : DelegateHistory s
+
+theorem delegated_history_keeps_registrations {s} (past : DelegateHistory s) :
+    DelegateRecorded s.service ∧ DelegateRecorded s.hypervisor := by
+  induction past with
+  | start => simp [DelegateRecorded]
+  | service _ step ih => exact ⟨delegated_step_keeps_work_registered step ih.1, ih.2⟩
+  | hypervisor _ step ih => exact ⟨ih.1, delegated_step_keeps_work_registered step ih.2⟩
+  | reboot _ ih => exact ih
+
+theorem delegated_history_write_requires_all_work_finished {s} (past : DelegateHistory s)
+    (write : upstream.delegates_allow_write s.service.ticket.isSome s.hypervisor.ticket.isSome = ok true) :
+    s.service.outstanding = false ∧ s.hypervisor.outstanding = false := by
+  obtain ⟨service, hypervisor⟩ := delegated_history_keeps_registrations past
+  rw [delegates_write_exact] at write
+  simp at write
+  constructor
+  · cases h : s.service.outstanding <;> simp_all [DelegateRecorded]
+  · cases h : s.hypervisor.outstanding <;> simp_all [DelegateRecorded]
+
+theorem reboot_with_unconfirmed_delegate_stays_closed {s} (past : DelegateHistory s)
+    (pending : s.service.ticket.isSome = true ∨ s.hypervisor.ticket.isSome = true) :
+    DelegateHistory s ∧ upstream.delegates_allow_write s.service.ticket.isSome s.hypervisor.ticket.isSome = ok false := by
+  refine ⟨.reboot past, ?_⟩
+  rw [delegates_write_exact]
+  rcases pending with h | h <;> simp [h]
+
 end LinuxProofs

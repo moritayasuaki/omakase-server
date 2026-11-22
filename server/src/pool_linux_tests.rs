@@ -228,6 +228,45 @@ fn dispatch(pool: &Pool) -> (Result<(TcpStream, usize), http::Rejection>, bool) 
 }
 
 #[test]
+#[ignore = "guest races a registered hypervisor handoff with a real socket write"]
+fn delegated_registration_waits_for_first_write() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let pool = Pool::new(
+        "app.example",
+        "/ready",
+        &[listener.local_addr().unwrap()],
+        &[],
+    );
+    assert!(probe(&pool, &listener, 204));
+    assert!(
+        pool.at_write
+            .set(Box::new(|point| {
+                let (signal, release) = match point {
+                    WritePoint::ClockSampled(_) => ("sampled", "send"),
+                    WritePoint::Written => ("written", "release"),
+                    _ => return,
+                };
+                fs::write(fixture_dir().join(signal), b"ready").unwrap();
+                wait_for_signal(release);
+            }))
+            .is_ok()
+    );
+    let (result, spent) = dispatch(&pool);
+    let (socket, count) = result.unwrap();
+    drop(socket);
+    assert!(spent);
+    let mut bytes = Vec::new();
+    listener
+        .accept()
+        .unwrap()
+        .0
+        .read_to_end(&mut bytes)
+        .unwrap();
+    assert_eq!((count, bytes.as_slice()), (HEAD.len(), HEAD));
+    println!("DELEGATE_RACE_PEER bytes={count}");
+}
+
+#[test]
 #[ignore = "guest administrator closes or removes the production fence"]
 fn unhealthy_fence_rejects_even_a_fresh_member() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();

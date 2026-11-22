@@ -1,0 +1,174 @@
+{
+  "date_utc": "2026-11-22",
+  "base_commit": "9cf7d36cf378b9322c8ee5f0f638fa8d11dc27fd",
+  "implementation_commit": "65d875e39c49c6bd8d0e399156bb36801b13a5d7",
+  "target_manifest": "audit/pool-linux-target.json",
+  "environment": {
+    "server_rust": "1.99.1",
+    "target": "x86_64-unknown-linux-musl",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "image_sha256": "406630c08b5e545fcc7209854b129d47e3af822db128c9f19336593b5a2d3fe0",
+    "release": "6.8.0-147-generic",
+    "version_signature": "Ubuntu 6.8.0-147.147-generic 6.8.12",
+    "kernel_sha256": "41ba36d860aa0b0cd995f4ca8856d80249b244577e704929b55be13fbd1ebd2f",
+    "host_witness_rust": "1.98.1",
+    "qemu": "QEMU emulator version 11.1.3",
+    "isolation": "Two QEMU process boots from one disposable overlay with no NIC. The production Rust server and recording backend run as uid 65534. QMP and the virtio control link are host-private. The Ed25519 private key stays on the host."
+  },
+  "sources_sha256": {
+    "src/upstream.rs": "c5c3f214a057109a58b31351eadbf64966ad2806ec6837154c76ca70b18770ac",
+    "shared/sleep_ticket.rs": "2d181124a64e532dc8299b8ad628bf44c380d89243e87095a4dab5e3d743a9ff",
+    "server/src/sleep_delegates.rs": "e8504309b1716d8b0a033331a660067fac9b6c927b951eb41a71d33160c269a2",
+    "server/src/sleep_fence.rs": "c256c06ad4eab63dda744172313ea566940e504f5c34a723c4d38ab62fc15fa6",
+    "server/src/pool_preflight.rs": "09327cadf5d83e6e77588226860b3713fbb646fe4efa894da8338fd68dad6dd2",
+    "server/src/pool_recovery.rs": "9b952a7d70f3b4889f194e23d38682f9568b08d9bb8c8f5cfb2f9d5dec9320cd",
+    "server/src/backend_pool.rs": "2dfd54ac5ede64fa089ca684db55e62f458d617ffa1662e9ef52ccc9b866fd81",
+    "server/src/pool_linux_tests.rs": "a77565c43f34fc1ea6499b05d727eb884503650b06b9c492e6a2348229605f82",
+    "admin/src/bin/pathward-qmp-sleep.rs": "632e0c52f6089472a59eca9cc3a9c81272b5bb79fc683a99fd0a2cc3c50ce8c0",
+    "deploy/pathward-delegated-sleep@.service": "ceca9663c55ae7ed2b99748de05988a2944736ab4f41968dcb1f81d105b7c314",
+    "scripts/pool_delegates_host.mjs": "94d08c34a6be46a6b913c51bfdeade9a1d6331f49ede27f2259af2eed54bb7a0",
+    "scripts/pool_delegates_guest.sh": "6feec82d98b05236e5874f35e1353bcc1a62b6d9e4a2de0360e7c5aa8a099fc5",
+    "scripts/pool_linux_stage.mjs": "26589a1d48d823085d14d3aeae24359755843ab52ea199bd83a1670dd15c8520",
+    "scripts/pool_cold_guest.sh": "82cae532a2f274a00efc6ff52773a7e86fc0f27d7f82e9e320f86ff7cb863698",
+    "proofs/Generated/Pathward.lean": "519ddbd1c3fcc71ef69c68cc08d1f9eea59eb67a7efb260d7a891ae50a9107b5",
+    "proofs/LinuxProofs.lean": "9037f2c5294211a5b0852ab9a27a408e00e77868359b7468da7a15d1de735665",
+    "server/src/pool_sleep_units.rs": "39de075c3c371cc1b669191ae7e4c88ffb201d72dea286cdba49d0f1ef196930"
+  },
+  "guest_seed_sha256": {
+    "pool-tests": "4af09faf158ebfc09f5dbaa0bd29ae6ca91dd57edbde69222cae77cc534a1831",
+    "pathward-server": "cae726e58263d1530504feb665f60ffed3ab0be0419e822186a994a56e8e96a3",
+    "sleep.conf": "bc7a3439005414ff26b140c5abc21bfe561b8219954dbda90dfdd598612907b7",
+    "sleep.tmpfiles": "881432840c228372362e7009aac568928f524f5cc18a834cce5dc7956f68d9d4",
+    "sleep-guest": "502761c8126bdd8d8cb94b1faa1efa77edb72f1f4c6ed7cb65f65dbe24f57d61",
+    "run": "560cfc7a75b59e619fc7f56140c028aff13d079dfcfea1be7f1062674b2aa02e",
+    "run-cold": "82cae532a2f274a00efc6ff52773a7e86fc0f27d7f82e9e320f86ff7cb863698",
+    "run-delegates": "6feec82d98b05236e5874f35e1353bcc1a62b6d9e4a2de0360e7c5aa8a099fc5",
+    "delegated.service": "ceca9663c55ae7ed2b99748de05988a2944736ab4f41968dcb1f81d105b7c314",
+    "provider": "4ac01b744f260790a1fd6806d775a5bd45eb5e4d2395546a603e8eab9b71e7c1"
+  },
+  "host_witness_sha256": "ca3c513e219f9813b47b3432c8f4f9aa171a71fc9d5f35192dcaa7a4ca0f605e",
+  "serial_sha256": {
+    "delegates/serial-1.log": "d304a90abfd0e9c71ae9d6c76f7b87a071f4f30fe408e98ebf19c6d879a80e81",
+    "delegates/serial-2.log": "ce4b22659a2f3e3ab010ffe4d7bcdf4428ae456f66f32fb72f6e0ba51988b4b0",
+    "cold/serial-first.log": "d53acf2b3d4f565700b1a33efe64ddcd64c760a0baac96608a35d0149cccf3e6",
+    "cold/serial-cold.log": "46798a47511a083282042c382166a111606b2e7ac90f276fb49348085fe7ee75",
+    "s3/serial.log": "6921a501c8ae9518cdfaeb934abc528e4e3809a853f915ee87dacf45576fbd6a",
+    "s4/serial-0.log": "e01dc51fdb0dbd3f896bbcbb396b30bfc8a9960116b2211bee7b5fb61b748d26",
+    "s4/serial-1.log": "c9ce94c057d12f6b8ba05de9f624afef889878415088c6af44de716719962b8d",
+    "s4/serial-2.log": "4fba5d59e811acf41c61e265b01b1c59fce1f510f78dc9a67b4ecc08c7ad52df"
+  },
+  "observations": {
+    "backend": "In the delegation scenario, the HTTP health responder starts with 204 on both boots. Each pending-registration POST is checked against the closed-fence counter increment and the recording backend application count.",
+    "first_boot": [
+      "DELEGATED_PROFILE missing_unit_denied=true extra_stop_work_denied=true slots_empty=true",
+      "DELEGATED_HOOK_EXIT base_awake=true two_owners=true http=503 applications=0",
+      "DELEGATED_DESCENDANT exit_status=0 main_pid=0 populated=1 http=503 applications=0",
+      "DELEGATED_HYPERVISOR qmp_resumed=true signed_receipt_withheld=true http=503 applications=0",
+      "DELEGATED_FIRST_POWEROFF"
+    ],
+    "second_boot": [
+      "DELEGATED_COLD_BOOT same_ticket=true withheld_http=503 withheld_applications=0 confirmed_http=200 confirmed_applications=1",
+      "DELEGATE_RACE_PEER bytes=62",
+      "DELEGATED_REPLAY old_ticket_denied=true old_signature_denied=true other_owner_http=503 confirmed_http=200 applications=1",
+      "DELEGATED_STORAGE missing_ledger_http=503 applications=0 refused_reinitialization=true",
+      "DELEGATED_WITNESS_LOSS console_resumed=true receipt_unavailable=true resubmission_denied=true http=503 applications=0",
+      "POOL_DELEGATED_PASSED",
+      "COLD_GUEST_EXIT=0"
+    ],
+    "qmp_pauses": [
+      {
+        "boot": 1,
+        "observed_pause_ns": 5502152000
+      },
+      {
+        "boot": 2,
+        "observed_pause_ns": 5501396792
+      }
+    ],
+    "socket_race": "The registrar was observed waiting in flock on the persistent ledger directory. Its ticket was unavailable before and after the first 62-byte socket write while the writer held its lease. Registration completed after release.",
+    "witness_loss": "End of witness input after QMP STOP terminates the signer. A separate fixture console resumes the VM. Receipt retrieval and submission of the same ticket both fail, the guest retains the ticket and the POST remains gated.",
+    "existing_recovery_regression": [
+      "ORPHAN_503 http=503 closed_counter_delta=1 extra_applications=0 unit_signal=9",
+      "ONLINE_RECOVERY_PASSED",
+      "COLD_DISPATCH failed_probe_http=503 before_204_applications=0 before_204_bytes=0 after_204_http=200 applications=1 application_bytes=250",
+      "POOL_COLD_RECOVERY_PASSED"
+    ],
+    "local_power_regressions": {
+      "s3": [
+        "S3 trial=1 kernel_success_before=0 kernel_success_after=1",
+        "S3 trial=2 kernel_success_before=1 kernel_success_after=2"
+      ],
+      "s4": [
+        {
+          "trial": 1,
+          "powered_off_ns": 7002023000
+        },
+        {
+          "trial": 2,
+          "powered_off_ns": 7001282709
+        }
+      ]
+    }
+  },
+  "proofs": {
+    "extraction": "Pinned Charon/Aeneas extraction matched the checked-in model.",
+    "lean_toolchain": "leanprover/lean4:v4.31.0",
+    "named_results": 726,
+    "axiom_free": 106,
+    "axiom_counts": {
+      "Classical.choice": 482,
+      "Quot.sound": 497,
+      "propext": 620
+    },
+    "new_theorems": [
+      "LinuxProofs.delegates_write_exact",
+      "LinuxProofs.pending_delegate_preserves_first_writer",
+      "LinuxProofs.delegated_retirement_exact",
+      "LinuxProofs.stale_or_unconfirmed_ticket_cannot_retire",
+      "LinuxProofs.delegated_step_keeps_work_registered",
+      "LinuxProofs.delegated_history_keeps_registrations",
+      "LinuxProofs.delegated_history_write_requires_all_work_finished",
+      "LinuxProofs.reboot_with_unconfirmed_delegate_stays_closed"
+    ]
+  },
+  "dependency_audit": {
+    "added_crates": 0,
+    "changed_lockfiles": 0,
+    "auditor": "cargo-audit 0.22.2",
+    "checked_at": "2026-11-22T19:24:48.273403+00:00",
+    "database_commit": "d1fe6ac3eba823a3515e849045f36dc34543885d",
+    "advisories": 1560,
+    "reports": {
+      "core": {
+        "locked_packages": 1,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "server_candidate": {
+        "locked_packages": 110,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "configuration": {
+        "locked_packages": 10,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "http_server": {
+        "locked_packages": 160,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "native_administrator": {
+        "locked_packages": 38,
+        "vulnerabilities": 0,
+        "warnings": 0
+      }
+    }
+  },
+  "remaining": [
+    "Privileged hooks and further delegates must register before forwarding work. Unmediated power paths and other hypervisor protocols need an authority with suitable terminal evidence.",
+    "The trusted systemd and QEMU adapters supply the same-ticket terminal premise; kernel flock, persistent storage, entropy and Ed25519 verification are outside the Lean model.",
+    "Losing the original terminal evidence leaves the slot occupied. Independent rollback of guest or provider storage and reconciliation after loss of the sole witness need a separate recovery contract."
+  ]
+}

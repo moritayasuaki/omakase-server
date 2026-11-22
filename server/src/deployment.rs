@@ -472,7 +472,7 @@ impl Managed {
                 Ok((mut stream, _)) => {
                     let deadline = Instant::now() + Duration::from_secs(5);
                     let result = (|| -> io::Result<String> {
-                        let line = read_line(&mut stream, deadline)?;
+                        let line = read_line(&mut stream, deadline, 160)?;
                         let fields: Vec<_> = line.split(' ').collect();
                         #[cfg(target_os = "linux")]
                         if fields == ["POOL-FENCE"] {
@@ -573,7 +573,7 @@ fn prepare(stream: &UnixStream, deadline: Instant) -> io::Result<()> {
     stream.set_read_timeout(Some(left))?;
     stream.set_write_timeout(Some(left))
 }
-fn read_line(stream: &mut UnixStream, deadline: Instant) -> io::Result<String> {
+fn read_line(stream: &mut UnixStream, deadline: Instant, limit: usize) -> io::Result<String> {
     let mut out = Vec::new();
     loop {
         prepare(stream, deadline)?;
@@ -582,7 +582,7 @@ fn read_line(stream: &mut UnixStream, deadline: Instant) -> io::Result<String> {
         if byte[0] == b'\n' {
             break;
         }
-        if !(0x20..=0x7e).contains(&byte[0]) || out.len() >= 160 {
+        if !(0x20..=0x7e).contains(&byte[0]) || out.len() >= limit {
             return Err(error());
         }
         out.push(byte[0]);
@@ -617,7 +617,11 @@ pub fn command(
     };
     write_deadline(&mut stream, header.as_bytes(), deadline)?;
     write_deadline(&mut stream, bytes, deadline)?;
-    let reply = read_line(&mut stream, deadline)?;
+    let reply = read_line(
+        &mut stream,
+        deadline,
+        if action == "POOL-FENCE" { 256 } else { 160 },
+    )?;
     if !reply.starts_with("OK ") {
         return Err(error());
     }

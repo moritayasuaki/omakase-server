@@ -56,9 +56,10 @@ For an ordinary proof run, `make setup` installs the pinned target libraries and
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-lab-run
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-hibernation-run s4
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-cold-run cold
+node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-delegation-run delegates
 ```
 
-The launcher builds the test executable with the pinned rustc, hashes the guest image, boots a new overlay with no network device, and saves the serial transcript. Only the guest supervisor controls guest power and the test process. Socket and clock observations run as `nobody`.
+The launcher builds the test executable with the pinned rustc, hashes the guest image, boots a new overlay with no network device, and saves the serial transcript. The guest supervisor runs the local power tests. In `delegates` mode the host also operates a private QMP monitor and the guest checks actual HTTP dispatch. Socket and clock observations run as `nobody`.
 
 ## Installing the Linux sleep coordinator
 
@@ -66,6 +67,7 @@ On an administrator-managed systemd host, install the coordinator from the same 
 
 ```sh
 install -Dm0755 server/target/release/pathward-server /usr/local/libexec/pathward-server
+/usr/local/libexec/pathward-server sleep-delegate init-local
 for mode in suspend hibernate hybrid-sleep suspend-then-hibernate; do
     install -Dm0644 deploy/pathward-sleep.conf "/etc/systemd/system/systemd-$mode.service.d/50-pathward.conf"
 done
@@ -118,7 +120,7 @@ The command holds an exclusive flock, checks the service's observation of that l
 
 The coordinator records a privileged receipt while holding the flock. It binds the reviewed systemd unit to the boot, clock namespace and device/inode. It enters `Q` when no payload can be running and installs the owner before writing `S`. On completion it writes `Q`, replaces the owner with an idle receipt and finally writes `A`. Interrupted updates can retry the quiescent phase through the same checks. An idle receipt on `S` cannot authorize recovery. A legacy orphan, a direct kernel invocation or an unknown receipt requires a cold boot if the marker remains closed.
 
-The host administrator controls the local mount, unit definitions, workers and privileged sleep hooks. The reviewed units disable delegation and mount the cgroup hierarchy read-only. Work launched through a different privileged service, explicit host-side migration of workers out of the unit tree and out-of-band power control require separate mediation. Review these paths before enabling a pool. [Isolated Linux recovery record](pool-online-recovery-validation.json)
+The host administrator controls the local mount, unit definitions, workers and privileged sleep hooks. The reviewed units disable cgroup delegation and mount the hierarchy read-only. A hook that hands work to another unit or hypervisor must register the handoff before submission. The first writer holds the boot fence and the shared lock on the persistent delegation directory through the socket call. Online recovery also requires both delegation slots to be clear. [Delegation contract](delegated-sleep.md) · [Isolated Linux recovery record](pool-online-recovery-validation.json)
 
 systemd can queue a new job after the last observation. Its coordinator must acquire the same exclusive flock before invoking sleep. If a pooled writer acquires the shared flock first, sleep waits for that initial write to return. The recovery proof for the interrupted operation assumes that new work for that operation can only descend from a still-live member of its managed tree. [Linux proofs](../proofs/LinuxProofs.lean)
 

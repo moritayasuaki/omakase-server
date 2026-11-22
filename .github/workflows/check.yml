@@ -31,6 +31,8 @@ jobs:
       - name: Verify Rust core, configuration, and server
         run: |
           sed "s/ root pathward / root $(id -gn) /" deploy/pathward-sleep.tmpfiles | sudo systemd-tmpfiles --create -
+          cargo +1.99.1 build --offline --locked --manifest-path server/Cargo.toml --bin pathward-server
+          sudo server/target/debug/pathward-server sleep-delegate init-local
           make rust-check config-check server-check admin-check recovery-check
       - name: Check mount confinement in a private Linux namespace
         run: python3 scripts/linux_mount_check.py

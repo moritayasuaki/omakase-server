@@ -1,0 +1,11 @@
+[Unit]
+Description=PathWard delegated sleep work %i
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Restart=no
+Slice=system.slice
+Delegate=no
+ProtectControlGroups=yes
+ExecStart=/usr/local/libexec/pathward-delegated-sleep %i

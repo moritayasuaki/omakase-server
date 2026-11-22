@@ -3,6 +3,7 @@ fence=/run/pathward-sleep.gate
 coordinator=/usr/local/libexec/pathward-server
 prefix=backend_pool::io_tests::platform::linux::
 install -Dm0755 "$seed/pathward-server" "$coordinator"
+"$coordinator" sleep-delegate init-local
 for mode in suspend hibernate hybrid-sleep suspend-then-hibernate; do
     install -Dm0644 "$seed/sleep.conf" "/etc/systemd/system/systemd-$mode.service.d/50-pathward.conf"
 done

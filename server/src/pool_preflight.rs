@@ -51,17 +51,20 @@ pub fn witness() -> io::Result<String> {
     let (identity, check) = sleep_fence::inspect();
     let state = check.map_or_else(|e| e.label(), |()| "awake");
     let id = identity.map_or_else(|| "-".into(), |(dev, ino)| format!("{dev}:{ino}"));
-    Ok(format!("OK F1 {boot} {time} {id} {state}"))
+    let ledger =
+        crate::sleep_delegates::identity().map_or_else(|_| "-".into(), |(d, i)| format!("{d}:{i}"));
+    Ok(format!("OK F2 {boot} {time} {id} {ledger} {state}"))
 }
 
 struct Observation<'a> {
     identity: Option<(u64, u64)>,
+    ledger: Option<(u64, u64)>,
     state: &'a str,
 }
 
 fn parse_witness<'a>(line: &'a str, boot: &str, now: u64) -> io::Result<Observation<'a>> {
     let words: Vec<_> = line.strip_suffix('\n').unwrap_or(line).split(' ').collect();
-    let ["OK", "F1", observed_boot, at, id, state] = words.as_slice() else {
+    let ["OK", "F2", observed_boot, at, id, ledger, state] = words.as_slice() else {
         return Err(invalid());
     };
     let at = at.parse().map_err(|_| invalid())?;
@@ -70,23 +73,31 @@ fn parse_witness<'a>(line: &'a str, boot: &str, now: u64) -> io::Result<Observat
             "service observation is stale or from another boot or time namespace",
         ));
     }
-    let identity = if *id == "-" {
-        None
-    } else {
-        let (dev, ino) = id.split_once(':').ok_or_else(invalid)?;
-        Some((
-            dev.parse().map_err(|_| invalid())?,
-            ino.parse().map_err(|_| invalid())?,
-        ))
+    let parse_id = |id: &str| -> io::Result<Option<(u64, u64)>> {
+        if id == "-" {
+            Ok(None)
+        } else {
+            let (dev, ino) = id.split_once(':').ok_or_else(invalid)?;
+            Ok(Some((
+                dev.parse().map_err(|_| invalid())?,
+                ino.parse().map_err(|_| invalid())?,
+            )))
+        }
     };
+    let identity = parse_id(id)?;
+    let ledger = parse_id(ledger)?;
     if !matches!(
         *state,
         "awake" | "missing" | "permission" | "untrusted" | "busy" | "closed" | "malformed" | "io"
-    ) || (*state == "awake" && identity.is_none())
+    ) || (*state == "awake" && (identity.is_none() || ledger.is_none()))
     {
         return Err(invalid());
     }
-    Ok(Observation { identity, state })
+    Ok(Observation {
+        identity,
+        ledger,
+        state,
+    })
 }
 
 pub enum ServiceView<'a> {
@@ -100,8 +111,8 @@ fn service_report(view: ServiceView<'_>) -> io::Result<String> {
         ServiceView::Control(dir) => deployment::command(dir, "POOL-FENCE", None, &[]),
         ServiceView::Stdin => {
             let mut s = String::new();
-            io::stdin().take(161).read_to_string(&mut s)?;
-            if s.len() > 160 {
+            io::stdin().take(257).read_to_string(&mut s)?;
+            if s.len() > 256 {
                 return Err(invalid());
             }
             Ok(s)
@@ -123,7 +134,9 @@ pub(crate) fn host_mount() -> io::Result<bool> {
 pub(crate) fn service_sees_exclusive(dir: &Path, id: (u64, u64)) -> io::Result<bool> {
     let raw = service_report(ServiceView::Control(dir))?;
     let report = parse_witness(&raw, &clock_domain()?, boot_ms()?)?;
-    Ok(report.identity == Some(id) && report.state == "busy")
+    Ok(report.identity == Some(id)
+        && report.ledger == Some(crate::sleep_delegates::identity()?)
+        && report.state == "busy")
 }
 
 pub fn run(config: &Path, view: ServiceView<'_>) -> io::Result<()> {
@@ -164,7 +177,12 @@ pub fn run(config: &Path, view: ServiceView<'_>) -> io::Result<()> {
         .map_err(|_| invalid())
         .and_then(|s| parse_witness(s, &clock_domain()?, boot_ms()?));
     let (host_id, host) = sleep_fence::inspect();
-    let same = host_id.is_some() && service.as_ref().is_ok_and(|s| s.identity == host_id);
+    let ledger = crate::sleep_delegates::identity().ok();
+    let same = host_id.is_some()
+        && ledger.is_some()
+        && service
+            .as_ref()
+            .is_ok_and(|s| s.identity == host_id && s.ledger == ledger);
     println!(
         "host_namespace={manager} coordinator_binary={binary} host_fence={} service_fence={} same_inode={same}",
         host.map_or_else(|e| e.label(), |()| "awake"),
@@ -194,15 +212,17 @@ mod tests {
     use super::*;
     #[test]
     fn evidence_must_be_recent_same_boot_and_have_a_descriptor() {
-        let line = "OK F1 boot 100 1:19 awake";
+        let line = "OK F2 boot 100 1:19 2:20 awake";
         assert!(parse_witness(line, "boot", 30_099).is_ok());
         for (boot, now) in [("boot", 30_100), ("boot", 99), ("other", 100)] {
             assert!(parse_witness(line, boot, now).is_err());
         }
         for invalid in [
-            "OK F1 boot 100 - awake",
-            "OK F1 boot 100 1:19 anything",
-            "OK F1 boot 100 1:19 awake extra",
+            "OK F1 boot 100 1:19 awake",
+            "OK F2 boot 100 - 2:20 awake",
+            "OK F2 boot 100 1:19 - awake",
+            "OK F2 boot 100 1:19 2:20 anything",
+            "OK F2 boot 100 1:19 2:20 awake extra",
         ] {
             assert!(parse_witness(invalid, "boot", 100).is_err());
         }
