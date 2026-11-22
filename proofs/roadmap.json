@@ -33,6 +33,9 @@
     "LinuxProofs.callback_returns_or_unwinds_through_both_drops"
   ],
   "model_only_theorems": [
+    "LinuxProofs.journal_crash_prefix_keeps_owner",
+    "LinuxProofs.online_step_preserves_quiescence",
+    "LinuxProofs.online_history_send_requires_empty_tree",
     "LinuxProofs.cold_history_effect_requires_timely_healthy_probe",
     "LinuxProofs.closing_requires_all_readers_released",
     "LinuxProofs.orphaned_fence_cannot_write_or_restart",
@@ -158,6 +161,7 @@
     "KDL・HTTP・TLS・QUICの外部ライブラリと、抽出対象外のアダプター",
     "Atomic・Arc・ロック・FutureのpollとDropの実行・実行器の公平性",
     "OSのファイルオープン・ディスク永続化・時計・ソケット・systemd",
+    "オンライン復旧ではブート内の同じinodeと排他flock、privileged xattr、cgroup v2の再帰的populatedと空グループ削除、systemdとlogindのジョブ状態、Linuxの子孫引取りを前提とする。管理者や特権フックが対象外のグループへ仕事を移さず、全休止要求が協調入口を通る必要がある。",
     "Linuxの全休止入口が同じ管理者所有の/run上のinodeを使うこと。独立openのflock、同期的な休止処理の終了、S4での記述子復元とCLOCK_BOOTTIMEの進行を信頼する。rootによる直接のsysfs操作、外部VM停止、稼働中のスケジューリング遅延は別の境界。",
     "導入前診断は、ホストのprocfs・systemdが報告する実効設定、端末から指定した管理ソケットまたは信頼できるサービス実行環境の観測、同じ起動と時刻名前空間でのCLOCK_BOOTTIMEを前提とする。診断はその時点の観測であり、将来の設定変更を拘束しない。コールドブートでは/runが再生成され、サーバーが各メンバーをcold_pool_healthで初期化する。",
     "公開マニフェストの内容が機密ではないという運用判断とバックエンドの認証",
@@ -846,8 +850,24 @@
       "id": "LOCAL-POOL-ORPHAN-ONLINE-RECOVERY",
       "title": "休止管理プロセスの停止後に再起動を要しない安全な復旧",
       "priority": "P2",
+      "status": "proved",
+      "acceptance": "起動とinodeに束縛した受領情報、全4サービスの子孫消滅、休止ジョブの終了、サービスが同じ排他ロックを観測することを要求する。隔離Linuxで管理者の異常終了、子孫だけが残る状態、復旧の競合・再試行と実ソケットのバイト数を照合する。",
+      "theorems": [
+        "LinuxProofs.online_recovery_exact",
+        "LinuxProofs.legacy_or_foreign_orphan_stays_closed",
+        "LinuxProofs.outstanding_power_work_denies_recovery",
+        "LinuxProofs.quiescent_journal_prefix_can_retry",
+        "LinuxProofs.journal_crash_prefix_keeps_owner",
+        "LinuxProofs.online_step_preserves_quiescence",
+        "LinuxProofs.online_history_send_requires_empty_tree"
+      ]
+    },
+    {
+      "id": "LOCAL-POOL-EXTERNAL-SLEEP-OWNERS",
+      "title": "標準の休止unit外に委譲された処理の追跡",
+      "priority": "P2",
       "status": "planned",
-      "acceptance": "旧休止処理と子プロセスが完了し、新旧の利用者が同じinodeを観測していることを、競合する再起動と遅延した復帰を含めて確認できる場合にだけ復旧を許す。ホストごとに独自の休止経路と名前空間を評価する。",
+      "acceptance": "特権フックが別のsystemdサービスやハイパーバイザへ非同期に委譲した仕事も、初回送信を再開する前に終了を確認できる契約を設計する。由来不明の旧マーカーには推測で許可を与えない。",
       "theorems": []
     },
     {

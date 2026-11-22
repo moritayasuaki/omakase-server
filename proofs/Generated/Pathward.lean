@@ -3565,4 +3565,38 @@ def upstream.pool_witness_current
     else ok false
   else ok false
 
+/-- [pathward::upstream::sleep_recovery_allowed]:
+    Source: 'src/upstream.rs', lines 222:0-235:1
+    Visibility: public -/
+def upstream.sleep_recovery_allowed
+  (marker : Std.U8) (bound_receipt : Bool) (managed_owner : Bool)
+  (same_locked_fence : Bool) (manager_idle : Bool) (groups_empty : Std.U8) :
+  RustM Bool
+  := do
+  if marker = 81#u8
+  then
+    if bound_receipt
+    then
+      if same_locked_fence
+      then if manager_idle
+           then ok (groups_empty = 15#u8)
+           else ok false
+      else ok false
+    else ok false
+  else
+    if marker = 83#u8
+    then
+      if managed_owner
+      then
+        if bound_receipt
+        then
+          if same_locked_fence
+          then if manager_idle
+               then ok (groups_empty = 15#u8)
+               else ok false
+          else ok false
+        else ok false
+      else ok false
+    else ok false
+
 end pathward

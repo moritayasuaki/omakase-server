@@ -20,6 +20,8 @@ pub mod observe;
 mod pool_locks;
 #[cfg(target_os = "linux")]
 pub mod pool_preflight;
+#[cfg(target_os = "linux")]
+pub mod pool_recovery;
 mod proxy;
 mod quic_bounds;
 mod runtime;

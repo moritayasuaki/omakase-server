@@ -154,6 +154,7 @@ SH
     test "$(application_count)" = 1
     test "$(cat "$fence")" = S
     echo 'ORPHAN_503 http=503 closed_counter_delta=1 extra_applications=0 unit_signal=9'
+    . "$seed/run-online"
     sync
     echo POOL_COLD_FIRST_POWEROFF
 else

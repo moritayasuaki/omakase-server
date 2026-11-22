@@ -291,6 +291,13 @@ import UpstreamProofs
 #print axioms LinuxProofs.cold_first_write_preserves_writer
 #print axioms LinuxProofs.ready_preflight_cannot_warm_a_cold_member
 #print axioms LinuxProofs.cold_history_effect_requires_timely_healthy_probe
+#print axioms LinuxProofs.online_recovery_exact
+#print axioms LinuxProofs.legacy_or_foreign_orphan_stays_closed
+#print axioms LinuxProofs.outstanding_power_work_denies_recovery
+#print axioms LinuxProofs.quiescent_journal_prefix_can_retry
+#print axioms LinuxProofs.journal_crash_prefix_keeps_owner
+#print axioms LinuxProofs.online_step_preserves_quiescence
+#print axioms LinuxProofs.online_history_send_requires_empty_tree
 #print axioms PathwardProofs.name_byte_eq
 #print axioms PathwardProofs.step_eq
 #print axioms PathwardProofs.accepting_eq
