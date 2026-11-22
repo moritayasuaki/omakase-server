@@ -57,9 +57,13 @@ node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/ne
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-hibernation-run s4
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-cold-run cold
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-delegation-run delegates
+node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-guest-rollback-run reconcile
+node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-witness-rollback-run witness-rollback
 ```
 
 The launcher builds the test executable with the pinned rustc, hashes the guest image, boots a new overlay with no network device, and saves the serial transcript. The guest supervisor runs the local power tests. In `delegates` mode the host also operates a private QMP monitor and the guest checks actual HTTP dispatch. Socket and clock observations run as `nobody`.
+
+`reconcile` restores the serving guest's entire root disk while retaining its dedicated guard disk, then sends real POST requests before and after receipt delivery. `witness-rollback` restores the submitting Linux machine's root while retaining its independent journal. A separate QMP connection to the target emulator counts its STOP and RESUME events across all three witness boots. [Measured outcomes](qmp-reconciliation-validation.json)
 
 ## Installing the Linux sleep coordinator
 

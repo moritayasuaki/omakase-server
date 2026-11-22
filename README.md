@@ -82,7 +82,7 @@ Run `pathward-server pool-preflight CONFIG --control-dir DIR` before enabling a 
 It inventories the compiled routes and checks the host and service view of the sleep fence.
 See [diagnostic results and examples](docs/pool-platform-contract.md#read-only-pool-preflight).
 For a failed managed sleep, the administrator can [recover the fence online](docs/pool-platform-contract.md#recovering-a-managed-sleep-fence) once the entire sleep process tree and its jobs have finished.
-Before upgrading a pooled server, initialize its persistent delegation ledger. Privileged hooks can register a separate systemd job or a QEMU pause. Pooled first writes stay closed until every registered owner provides completion evidence. [Delegation setup and recovery](docs/delegated-sleep.md)
+Before upgrading a pooled server, initialize its persistent delegation ledger. Privileged hooks can register a separate systemd job or a QEMU pause. Pooled first writes stay closed until every registered owner provides completion evidence. For QEMU guests restored from disk snapshots, the optional independent observer can recover the signed outcome of the original pause. [Delegation setup and recovery](docs/delegated-sleep.md)
 See the [proxy guide and audit](docs/reverse-proxy.md) for the trust boundary,
 Lean proofs and limits. Opt in to [WebSocket/SSE streaming](docs/streaming.md) with
 bounded buffers, session budgets and shutdown cancellation.
