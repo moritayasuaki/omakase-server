@@ -694,37 +694,39 @@ structure OriginalState where
   mirrorClaim : Bool
   stopCount : Nat
 
-inductive OriginalHistory : OriginalState → Prop where
-  | initial : OriginalHistory ⟨.armed,true,false,0⟩
-  | submit {g m n} (previous : OriginalHistory ⟨.armed,g,m,n⟩)
+/-- Protocol milestones of this very ticket, in chronological order. Restoring
+    a guest or submitter and redelivering a receipt add no power event. -/
+inductive OriginalHistory : List OriginalPhase → OriginalState → Prop where
+  | initial : OriginalHistory [.armed] ⟨.armed,true,false,0⟩
+  | submit {t g m n} (previous : OriginalHistory t ⟨.armed,g,m,n⟩)
       (permit : upstream.original_stop_permitted true true = ok true) :
-      OriginalHistory ⟨.submitted,g,true,n+1⟩
-  | finish {g m n} (previous : OriginalHistory ⟨.submitted,g,m,n⟩) :
-      OriginalHistory ⟨.finished,g,m,n⟩
-  | witness {g m n} (previous : OriginalHistory ⟨.finished,g,m,n⟩) (claim ack stop resume : Bool)
+      OriginalHistory (t ++ [.submitted]) ⟨.submitted,g,true,n+1⟩
+  | finish {t g m n} (previous : OriginalHistory t ⟨.submitted,g,m,n⟩) :
+      OriginalHistory (t ++ [.finished]) ⟨.finished,g,m,n⟩
+  | witness {t g m n} (previous : OriginalHistory t ⟨.finished,g,m,n⟩) (claim ack stop resume : Bool)
       (proof : upstream.original_resume_proven claim ack stop resume = ok true) :
-      OriginalHistory ⟨.witnessed,g,m,n⟩
-  | reconcile {g m n} (previous : OriginalHistory ⟨.witnessed,g,m,n⟩)
+      OriginalHistory (t ++ [.witnessed]) ⟨.witnessed,g,m,n⟩
+  | reconcile {t g m n} (previous : OriginalHistory t ⟨.witnessed,g,m,n⟩)
       (valid : upstream.reconcile_ticket g true true true true = ok true) :
-      OriginalHistory ⟨.released,false,m,n⟩
-  | redeliver {m n} (previous : OriginalHistory ⟨.released,true,m,n⟩)
+      OriginalHistory (t ++ [.released]) ⟨.released,false,m,n⟩
+  | redeliver {t m n} (previous : OriginalHistory t ⟨.released,true,m,n⟩)
       (valid : upstream.reconcile_ticket true true false false true = ok true) :
-      OriginalHistory ⟨.released,false,m,n⟩
-  | restoreGuest {s} (previous : OriginalHistory s) (copy : Bool) :
-      OriginalHistory {s with guestPending := copy}
-  | restoreMirror {s} (previous : OriginalHistory s) (copy : Bool) :
-      OriginalHistory {s with mirrorClaim := copy}
+      OriginalHistory t ⟨.released,false,m,n⟩
+  | restoreGuest {t s} (previous : OriginalHistory t s) (copy : Bool) :
+      OriginalHistory t {s with guestPending := copy}
+  | restoreMirror {t s} (previous : OriginalHistory t s) (copy : Bool) :
+      OriginalHistory t {s with mirrorClaim := copy}
 
-theorem original_history_counts_submissions {s} (h : OriginalHistory s) :
+theorem original_history_counts_submissions {t s} (h : OriginalHistory t s) :
     s.stopCount = (if s.phase = .armed then 0 else 1) := by
   induction h <;> simp_all
 
-theorem rollback_and_reconciliation_never_repeat_stop {s} (h : OriginalHistory s) :
+theorem rollback_and_reconciliation_never_repeat_stop {t s} (h : OriginalHistory t s) :
     s.stopCount ≤ 1 := by
   rw [original_history_counts_submissions h]
   split <;> decide
 
-theorem guarded_write_requires_original_release {s} (h : OriginalHistory s)
+theorem guarded_write_requires_original_release {t s} (h : OriginalHistory t s)
     (write : upstream.delegates_allow_write s.guestPending (decide (s.phase ≠ .released)) = ok true) :
     s.phase = .released ∧ s.stopCount = 1 := by
   rw [delegates_write_exact] at write
@@ -733,16 +735,26 @@ theorem guarded_write_requires_original_release {s} (h : OriginalHistory s)
     simp [ne] at write
   exact ⟨released, by simp [original_history_counts_submissions h, released]⟩
 
-theorem original_release_has_prior_witness {s} (h : OriginalHistory s) (ready : s.phase = .released) :
-    ∃ g m, OriginalHistory ⟨.witnessed,g,m,s.stopCount⟩ := by
-  induction h with
-  | initial | submit | finish | witness => cases ready
-  | reconcile previous _ _ => exact ⟨_,_,previous⟩
-  | redeliver _ _ ih => exact ih rfl
-  | restoreGuest _ _ ih | restoreMirror _ _ ih => exact ih ready
+private def milestones : OriginalPhase → List OriginalPhase
+  | .armed => [.armed]
+  | .submitted => [.armed,.submitted]
+  | .finished => [.armed,.submitted,.finished]
+  | .witnessed => [.armed,.submitted,.finished,.witnessed]
+  | .released => [.armed,.submitted,.finished,.witnessed,.released]
 
-theorem either_rollback_preserves_guard_and_submissions {s} (h : OriginalHistory s) (g m : Bool) :
-    OriginalHistory ⟨s.phase,g,m,s.stopCount⟩ := by
+theorem original_release_has_prior_witness {t s} (h : OriginalHistory t s) (ready : s.phase = .released) :
+    t = [.armed,.submitted,.finished,.witnessed,.released] := by
+  have order : ∀ {trace v}, OriginalHistory trace v → trace = milestones v.phase := by
+    intro trace v history
+    induction history with
+    | initial => rfl
+    | submit _ _ ih | finish _ ih | witness _ _ _ _ _ _ ih | reconcile _ _ ih =>
+      rw [ih]; rfl
+    | redeliver _ _ ih | restoreGuest _ _ ih | restoreMirror _ _ ih => exact ih
+  exact (order h).trans (congrArg milestones ready)
+
+theorem either_rollback_preserves_guard_and_submissions {t s} (h : OriginalHistory t s) (g m : Bool) :
+    OriginalHistory t ⟨s.phase,g,m,s.stopCount⟩ := by
   exact .restoreMirror (.restoreGuest h g) m
 
 end LinuxProofs

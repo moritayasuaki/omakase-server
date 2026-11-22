@@ -20,11 +20,6 @@
     "admin/src/bin/pathward-qmp-sleep.rs": "9ba48721434afb7c17947ea093c095b8065f5d09dbdfc3bece8f187ff280bd7b",
     "admin/src/bin/qmp/authority.rs": "60bee7786632f599b51358c4c76fe695c6e7d9a49dd80b5a6fccdd4885bd72f9",
     "admin/tests/delegated_receipt.rs": "b379b9682de2f07563b4f15ae9529b468434c69d87c2436e94126e2f079d036d",
-    "proofs/Audit.lean": "bd7408a081ec4236c685e01483072b54ee6d24708473bb2285f39b26bb1dcecb",
-    "proofs/Generated/Pathward.lean": "9f68e9a5b6e3fe24a18fb16ed947ef274bf7e2a27bdc00dd05458356a19030cc",
-    "proofs/LinuxProofs.lean": "5a5f14e05ca90d69090bf90e44c0c52d93aa150f9962efce577f0d1318c0bdb9",
-    "proofs/registry.json": "1f8d754660d47db55e3c38d0294653a624b85c46484d7fee4dca73b741687c08",
-    "proofs/roadmap.json": "2627bd4ad2438be7e3492b73485fbd0aa1742ad3605b081bf19d54edf484e621",
     "scripts/extract.py": "b44d005c9fd02cdfec71fa6663873514db81a28571e40487786e5fbb5689632b",
     "scripts/pool_cold_guest.sh": "1a91cdd7ddcec94f51173fd17943a5260afe20d1adf37b1788f172fc48e03a42",
     "scripts/pool_delegates_host.mjs": "a14796608272deff581936a83675f5112282c67d1888c040a60606dfcf6dc2cc",
@@ -193,7 +188,15 @@
         "axioms": []
       }
     ],
-    "extraction": "Pinned Charon/Aeneas output matched. The complete Lean build and theorem/axiom audit succeeded."
+    "extraction": "Pinned Charon/Aeneas output matched. The complete Lean build and theorem/axiom audit succeeded.",
+    "sources_sha256": {
+      "proofs/Audit.lean": "bd7408a081ec4236c685e01483072b54ee6d24708473bb2285f39b26bb1dcecb",
+      "proofs/Generated/Pathward.lean": "9f68e9a5b6e3fe24a18fb16ed947ef274bf7e2a27bdc00dd05458356a19030cc",
+      "proofs/LinuxProofs.lean": "9ff095533170796182627dce1023671f941ee45a0db4147e3b94388ce6b2db18",
+      "proofs/registry.json": "bef9aff97aa86e685d3a01bd4d92047fd221e3b375c110f8217de38f66cd8e41",
+      "proofs/roadmap.json": "2627bd4ad2438be7e3492b73485fbd0aa1742ad3605b081bf19d54edf484e621"
+    },
+    "protocol_history": "For each released ticket the milestones in that same history are exactly armed, submitted, finished, witnessed, released, in that order. Restoring either copy or redelivering a receipt preserves the milestone history."
   },
   "dependency_audit": {
     "auditor": "cargo-audit 0.22.2",

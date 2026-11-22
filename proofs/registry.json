@@ -21,7 +21,7 @@
     "proofs/Generated/GuardPaths.lean": "3d9fdb1e9bd9256dacbf55cfc14c0e327ab105d65d00dee1e32c3ec4f6c72bce",
     "proofs/Generated/Pathward.lean": "9f68e9a5b6e3fe24a18fb16ed947ef274bf7e2a27bdc00dd05458356a19030cc",
     "proofs/GuardUpgradeProofs.lean": "cd580b9c1bbd44aff63391244270d14cd01f30006590da4cc3b6b59dd50da5fb",
-    "proofs/LinuxProofs.lean": "5a5f14e05ca90d69090bf90e44c0c52d93aa150f9962efce577f0d1318c0bdb9",
+    "proofs/LinuxProofs.lean": "9ff095533170796182627dce1023671f941ee45a0db4147e3b94388ce6b2db18",
     "proofs/PathwardProofs.lean": "94ad7cb4763dc8d57da14253e30e16c1ad517d99d1bf1b2d387ad17575b90a67",
     "proofs/PlanMigrationProofs.lean": "13e8dffab53a690381384dc14ab825c5c82d4e3d4454d80f62245d36eb83e031",
     "proofs/PlatformProofs.lean": "4163ca58e7eeee39063a2c1d666741ba7243066211a416fa43365d27956529e9",
@@ -3126,8 +3126,8 @@
     {
       "name": "LinuxProofs.original_history_counts_submissions",
       "source": "proofs/LinuxProofs.lean",
-      "line": 718,
-      "statement": "theorem original_history_counts_submissions {s} (h : OriginalHistory s) :\n    s.stopCount = (if s.phase = .armed then 0 else 1)",
+      "line": 720,
+      "statement": "theorem original_history_counts_submissions {t s} (h : OriginalHistory t s) :\n    s.stopCount = (if s.phase = .armed then 0 else 1)",
       "axioms": [
         "propext"
       ],
@@ -3136,8 +3136,8 @@
     {
       "name": "LinuxProofs.rollback_and_reconciliation_never_repeat_stop",
       "source": "proofs/LinuxProofs.lean",
-      "line": 722,
-      "statement": "theorem rollback_and_reconciliation_never_repeat_stop {s} (h : OriginalHistory s) :\n    s.stopCount ≤ 1",
+      "line": 724,
+      "statement": "theorem rollback_and_reconciliation_never_repeat_stop {t s} (h : OriginalHistory t s) :\n    s.stopCount ≤ 1",
       "axioms": [
         "propext"
       ],
@@ -3146,8 +3146,8 @@
     {
       "name": "LinuxProofs.guarded_write_requires_original_release",
       "source": "proofs/LinuxProofs.lean",
-      "line": 727,
-      "statement": "theorem guarded_write_requires_original_release {s} (h : OriginalHistory s)\n    (write : upstream.delegates_allow_write s.guestPending (decide (s.phase ≠ .released)) = ok true) :\n    s.phase = .released ∧ s.stopCount = 1",
+      "line": 729,
+      "statement": "theorem guarded_write_requires_original_release {t s} (h : OriginalHistory t s)\n    (write : upstream.delegates_allow_write s.guestPending (decide (s.phase ≠ .released)) = ok true) :\n    s.phase = .released ∧ s.stopCount = 1",
       "axioms": [
         "propext"
       ],
@@ -3156,16 +3156,16 @@
     {
       "name": "LinuxProofs.original_release_has_prior_witness",
       "source": "proofs/LinuxProofs.lean",
-      "line": 736,
-      "statement": "theorem original_release_has_prior_witness {s} (h : OriginalHistory s) (ready : s.phase = .released) :\n    ∃ g m, OriginalHistory ⟨.witnessed,g,m,s.stopCount⟩",
+      "line": 745,
+      "statement": "theorem original_release_has_prior_witness {t s} (h : OriginalHistory t s) (ready : s.phase = .released) :\n    t = [.armed,.submitted,.finished,.witnessed,.released]",
       "axioms": [],
       "scope": "transition_model"
     },
     {
       "name": "LinuxProofs.either_rollback_preserves_guard_and_submissions",
       "source": "proofs/LinuxProofs.lean",
-      "line": 744,
-      "statement": "theorem either_rollback_preserves_guard_and_submissions {s} (h : OriginalHistory s) (g m : Bool) :\n    OriginalHistory ⟨s.phase,g,m,s.stopCount⟩",
+      "line": 756,
+      "statement": "theorem either_rollback_preserves_guard_and_submissions {t s} (h : OriginalHistory t s) (g m : Bool) :\n    OriginalHistory t ⟨s.phase,g,m,s.stopCount⟩",
       "axioms": [],
       "scope": "transition_model"
     },
