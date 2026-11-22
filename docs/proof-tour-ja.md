@@ -101,7 +101,11 @@ Linuxではヘルスチェックを始めた瞬間から、休止していた時
 `cold_first_write_preserves_writer` は初期状態でソケット書込みを呼ばず、送信権も消費しないことを示します。
 `cold_history_effect_requires_timely_healthy_probe` は任意の観測履歴について、最初の書込みが呼ばれたなら、
 その起動後に時間内に完了し、送信判断時にも新鮮な2xxが履歴にあることを示します。起動ID、時計、
-ファイルの同一性とsystemdの観測はLinuxに置く前提です。[診断手順](pool-platform-contract.md#read-only-pool-preflight)・[隔離試験記録](pool-preflight-validation.json)
+ファイルの同一性とsystemdの観測はLinuxに置く前提です。[診断手順](pool-platform-contract.md#read-only-pool-preflight)
+
+隔離Linuxで同じディスクから起動し直すと、診断は `READY` に戻りました。バックエンドがヘルスチェックに
+503を返している間、POSTも503となり、バックエンドで受信した要求は0バイトでした。初めて204を返した後、
+同じルートでPOSTが1件（250バイト）届き、クライアントに200が返りました。[隔離試験記録](pool-preflight-validation.json)
 
 TCPでは、カーネルがソケットごとに付ける `SO_COOKIE` を照合しました。部分書込み後の
 接続リセットで元の `ECONNRESET` が返り、別の接続への送信は0件でした。同じソケットを
