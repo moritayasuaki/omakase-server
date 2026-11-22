@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync,spawn,spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {once} from 'node:events';
-import {chmodSync,copyFileSync,cpSync,createReadStream,existsSync,mkdirSync,readFileSync,renameSync} from 'node:fs';
+import {copyFileSync,createReadStream,existsSync,mkdirSync,readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {createInterface} from 'node:readline';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -55,23 +55,28 @@ async function rejectTwin(out,bin) {
 }
 
 export async function reconcileBoots(machine,out,{bin,dir}) {
-    const mirror=join(out,'submitter'),backup=join(out,'submitter-before');
+    const mirror=join(out,'submitter');
     mkdirSync(mirror,{mode:0o700});
-    cpSync(mirror,backup,{recursive:true});
-    chmodSync(backup,0o700);
     const run=(args)=>execFileSync(bin,args,{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
     const image=join(out,'overlay.qcow2'),snapshot=join(out,'root-before.qcow2');
     const guard=join(out,'guard.raw');
     execFileSync('qemu-img',['create','-q','-f','raw',guard,'32M']);
     let original,baselineHash;
+    const witnessEvidence=()=>Promise.all([
+        hash(join(mirror,original+'.started')),hash(join(mirror,original+'.resumed')),
+        hash(join(dir,original+'.started')),hash(join(dir,original+'.terminal')),
+    ]);
     for(const [i,phase] of ['baseline','submit','restored'].entries()) {
         if(phase==='restored') {
             assert.notEqual(await hash(image),baselineHash);
             const retained=await hash(guard);
+            const witnessBefore=await witnessEvidence();
             copyFileSync(snapshot,image);
             assert.equal(await hash(image),baselineHash);
             assert.equal(await hash(guard),retained);
+            assert.deepEqual(await witnessEvidence(),witnessBefore);
             console.log('GUEST_ROOT_ROLLBACK restored_sha256=%s retained_guard_sha256=%s',baselineHash,retained);
+            console.log('GUEST_ONLY_ROLLBACK submitter_records_retained=true authority_evidence_unchanged=true');
         }
         const serial='reconcile-'+i+'.log', channel=join(out,'ch'+i);
         const command=join(out,'q'+i),events=join(out,'e'+i);
@@ -88,7 +93,7 @@ export async function reconcileBoots(machine,out,{bin,dir}) {
             for await(const line of createInterface({input:sock,crlfDelay:Infinity})) {
                 if(line==='phase') { sock.write(phase+'\n');continue; }
                 if(line==='original') { assert.equal(phase,'restored');sock.write(original+'\n');continue; }
-                const [,op,id]=/^(lose|ambiguous|receipt) ([a-f0-9]{64})$/.exec(line)??[];
+                const [,op,id]=/^(pause|ambiguous|receipt) ([a-f0-9]{64})$/.exec(line)??[];
                 assert(id,'unknown guest command');
                 if(op==='receipt') {
                     assert.equal(id,original);
@@ -99,20 +104,20 @@ export async function reconcileBoots(machine,out,{bin,dir}) {
                 assert.equal((await observer.lines.next()).value,'ARMED '+id);
                 worker=child(bin,['pause-once',mirror,dir,command,id]);
                 assert.equal((await worker.lines.next()).value,'PAUSED '+id);
-                worker.process.kill('SIGKILL');
-                assert.equal((await worker.done)[1],'SIGKILL'); worker=null;
                 assert.throws(()=>run(['reconcile',dir,id]));
                 if(op==='ambiguous') {
+                    worker.process.kill('SIGKILL');assert.equal((await worker.done)[1],'SIGKILL');worker=null;
                     observer.process.kill('SIGKILL');assert.equal((await observer.done)[1],'SIGKILL');observer=null;
+                    await resumeAtConsole(command);
                 } else {
                     original=id;
-                    renameSync(mirror,mirror+'-after');
-                    cpSync(backup,mirror,{recursive:true});
-                    chmodSync(mirror,0o700);
-                    assert.throws(()=>readFileSync(join(mirror,id+'.started')));
+                    assert.equal(readFileSync(join(mirror,id+'.started'),'utf8'),id);
                     assert.throws(()=>run(['pause-once',mirror,dir,command,id]),/already spent/);
+                    worker.process.stdin.end('resume '+id+'\n');
+                    assert.equal((await worker.lines.next()).value,'RESUMED '+id);
+                    assert.equal((await worker.done)[0],0);worker=null;
+                    assert.equal(readFileSync(join(mirror,id+'.resumed'),'utf8'),id);
                 }
-                await resumeAtConsole(command);
                 assert.throws(()=>run(['pause-once',mirror,dir,command,id]));
                 if(observer) {
                     assert.equal((await observer.lines.next()).value,'OBSERVED '+id);
@@ -123,7 +128,7 @@ export async function reconcileBoots(machine,out,{bin,dir}) {
                     assert.equal(legacy.stdout,'');
                     assert.match(legacy.stderr,/already spent/);
                     console.log('QMP_LEGACY_REPLAY original_claim_reused=true duplicate_stop_denied=true');
-                    console.log('WITNESS_ROLLBACK killed_after_pause=true empty_mirror_restored=true duplicate_denied=true original_resume_observed=true');
+                    console.log('GUEST_ONLY_ORIGINAL submitter_exited_successfully=true completion_observed=true duplicate_denied=true');
                     sock.write('OBSERVED '+id+'\n');
                 } else {
                     assert.throws(()=>run(['reconcile',dir,id]));

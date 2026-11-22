@@ -38,7 +38,7 @@ elif test "$phase" = submit; then
     id=$(delegate hypervisor-begin)
     cp /var/lib/pathward-sleep-delegates/state "$guard/lab-prior-guest-record"
     blocked
-    printf 'lose %s\n' "$id" >&8
+    printf 'pause %s\n' "$id" >&8
     read -r answer observed <&8
     test "$answer" = OBSERVED
     test "$observed" = "$id"
