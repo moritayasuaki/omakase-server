@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "lean_toolchain": "leanprover/lean4:v4.31.0",
-  "theorem_count": 711,
+  "theorem_count": 718,
   "axiom_free_count": 104,
   "axiom_counts": {
-    "Classical.choice": 474,
-    "Quot.sound": 489,
-    "propext": 607
+    "Classical.choice": 481,
+    "Quot.sound": 496,
+    "propext": 614
   },
   "source_sha256": {
     "audit/pool-linux-target.json": "88647d84f929b1751cd980970b7d7949f5765ff8f1fc4827cb4d0525951681ea",
@@ -19,9 +19,9 @@
     "proofs/CutoverProofs.lean": "352f578413c2c57f315b058c93b22d1ed5f23811f2adb6440c44dd2e6fc98ad0",
     "proofs/DeliveryProofs.lean": "d975f9d35187198123bbee361b997954df959cbdf96c1faddc48fb4ab37f7184",
     "proofs/Generated/GuardPaths.lean": "3d9fdb1e9bd9256dacbf55cfc14c0e327ab105d65d00dee1e32c3ec4f6c72bce",
-    "proofs/Generated/Pathward.lean": "1d801e06f798dffc015f89c7bb039a811d71d9e5a9dacc0967e7f20d8d6b6637",
+    "proofs/Generated/Pathward.lean": "9a49524a0faa354df139366b6eec2382cc8077c0fef66384c694efd7e5830919",
     "proofs/GuardUpgradeProofs.lean": "cd580b9c1bbd44aff63391244270d14cd01f30006590da4cc3b6b59dd50da5fb",
-    "proofs/LinuxProofs.lean": "f3373c2e858fd20e9b95d23c15731a2bf8dbb1c0898945c741f07dac6a3c8fe3",
+    "proofs/LinuxProofs.lean": "f07076299d034a682a97a9cc13585f66ed5601f5db70ccfd7babcb2e3e4d74da",
     "proofs/PathwardProofs.lean": "94ad7cb4763dc8d57da14253e30e16c1ad517d99d1bf1b2d387ad17575b90a67",
     "proofs/PlanMigrationProofs.lean": "13e8dffab53a690381384dc14ab825c5c82d4e3d4454d80f62245d36eb83e031",
     "proofs/PlatformProofs.lean": "4163ca58e7eeee39063a2c1d666741ba7243066211a416fa43365d27956529e9",
@@ -38,7 +38,7 @@
     "proofs/StreamingProofs.lean": "07ac50b458bd8a6e83a34aeace3ba8b53a40911add293c24577fe491822b8ebd",
     "proofs/TlsProofs.lean": "55adcddb5cd9ca110e57c851652dbc6e7f0f396184cb99199fc64b82db948023",
     "proofs/UpstreamProofs.lean": "a95e83a3caa039d96763fc4e4e3346dfc51ca1b241f5f9ccdbf2329bb7b968de",
-    "scripts/extract.py": "c82ca622d61192f281922d546ad512bf464e171f2008abe11fd78522a2640286",
+    "scripts/extract.py": "9be624d3c24c226ab0af0563da95c18098b86b37e609b7c3428dd0ae792c5e33",
     "scripts/pool_guard_paths.mjs": "34ea5aa000291cdc3d03a05114c463d82e902ec80436b9eb173a3afa61e32a2f",
     "server/src/pool_locks.rs": "dee90bb64996e68a7c663bcb5f7492afc9841cf482a8fd290424204d9a2ebf26",
     "src/bootstrap.rs": "0e2efcce51aed2270e5e52b448afd7a452d212e6362a18d21097bc93d1a6e15a",
@@ -58,7 +58,7 @@
     "src/serving.rs": "019358430607bb367639c6e2c1ccd56795ed85a2cd43152df26ff1986e37ca67",
     "src/streaming.rs": "7ce627b8afbf1fcb4956b1d0b8a40e11c23248839dcf6a774dbfc3459f4e7741",
     "src/tls.rs": "f443f6750448b1734272eea13ba085b6eb6ce420f3a4fd74145470683f35d7ba",
-    "src/upstream.rs": "873fa9b90d53eacbc9d48a215220157fac3772af2b8076f6c97ed53999833f7a"
+    "src/upstream.rs": "8d1dfb88015658794e3b3c56bb54eb75638ca969252a1e51e39828c1363388c8"
   },
   "theorems": [
     {
@@ -2892,6 +2892,90 @@
       "source": "proofs/LinuxProofs.lean",
       "line": 441,
       "statement": "theorem cold_history_effect_requires_timely_healthy_probe {W} (writer : upstream.FirstWriter W)\n    (state next : W) (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate)\n    (initial : upstream.PoolHealth) (cold : upstream.cold_pool_health = ok initial)\n    (events : List HealthEvent) (history : HealthHistory initial events g.health)\n    (sent spent : Bool) (event : upstream.FirstIo)\n    (effect : upstream.guarded_first_write writer m i g sent state = ok (some event, spent, next)) :\n    ∃ expected start finish code, HealthEvent.probe expected start finish code ∈ events ∧\n      UpstreamProofs.WithinTTL start finish ∧ UpstreamProofs.WithinTTL start g.now ∧\n      200 ≤ code.val ∧ code.val < 300",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.online_recovery_exact",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 459,
+      "statement": "theorem online_recovery_exact (marker groups : U8) (bound owned same idle : Bool) :\n    upstream.sleep_recovery_allowed marker bound owned same idle groups =\n    ok (decide ((marker = 81#u8 ∨ (marker = 83#u8 ∧ owned = true)) ∧ bound = true ∧\n      same = true ∧ idle = true ∧ groups = 15#u8))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.legacy_or_foreign_orphan_stays_closed",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 467,
+      "statement": "theorem legacy_or_foreign_orphan_stays_closed (groups : U8) (bound owned same idle : Bool)\n    (unknown : bound = false ∨ owned = false ∨ same = false) :\n    upstream.sleep_recovery_allowed 83#u8 bound owned same idle groups = ok false",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.outstanding_power_work_denies_recovery",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 473,
+      "statement": "theorem outstanding_power_work_denies_recovery (marker groups : U8) (bound owned same idle : Bool)\n    (busy : idle = false ∨ groups ≠ 15#u8) :\n    upstream.sleep_recovery_allowed marker bound owned same idle groups = ok false",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.quiescent_journal_prefix_can_retry",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 479,
+      "statement": "theorem quiescent_journal_prefix_can_retry (owner : Bool) :\n    upstream.sleep_fence_awake 1#u64 81#u8 = ok false ∧\n    upstream.sleep_recovery_allowed 81#u8 true owner true true 15#u8 = ok true",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.journal_crash_prefix_keeps_owner",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 497,
+      "statement": "theorem journal_crash_prefix_keeps_owner (n : Nat) :\n    journalPrefixSafe (([.owner false, .marker 81#u8, .owner true, .marker 83#u8] :\n      List JournalWrite).take n |>.foldl journalWrite (65#u8, false)) ∧\n    journalPrefixSafe (([.marker 81#u8, .owner false, .marker 65#u8] :\n      List JournalWrite).take n |>.foldl journalWrite (83#u8, true))",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.online_step_preserves_quiescence",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 543,
+      "statement": "theorem online_step_preserves_quiescence {s next : OnlineState} {event : OnlineEvent}\n    (safe : OnlineSafe s) (step : onlineStep s event = some next) : OnlineSafe next",
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.online_history_send_requires_empty_tree",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 550,
+      "statement": "theorem online_history_send_requires_empty_tree {manager : Bool} {workers : Nat}\n    {events : List OnlineEvent} {out next : OnlineState}\n    (run : OnlineRun ⟨manager,workers,false⟩ events out)\n    (send : onlineStep out .write = some next) : out.manager = false ∧ out.workers = 0",
       "axioms": [
         "Classical.choice",
         "Quot.sound",

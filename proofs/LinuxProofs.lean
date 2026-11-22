@@ -456,4 +456,109 @@ theorem cold_history_effect_requires_timely_healthy_probe {W} (writer : upstream
     simp at status
   · exact ⟨e,s,f,n,mem,win,time ▸ fresh.2.2,code ▸ status⟩
 
+theorem online_recovery_exact (marker groups : U8) (bound owned same idle : Bool) :
+    upstream.sleep_recovery_allowed marker bound owned same idle groups =
+    ok (decide ((marker = 81#u8 ∨ (marker = 83#u8 ∧ owned = true)) ∧ bound = true ∧
+      same = true ∧ idle = true ∧ groups = 15#u8)) := by
+  by_cases q : marker = 81#u8 <;> by_cases s : marker = 83#u8 <;>
+    cases bound <;> cases owned <;> cases same <;> cases idle <;>
+    simp_all [upstream.sleep_recovery_allowed]
+
+theorem legacy_or_foreign_orphan_stays_closed (groups : U8) (bound owned same idle : Bool)
+    (unknown : bound = false ∨ owned = false ∨ same = false) :
+    upstream.sleep_recovery_allowed 83#u8 bound owned same idle groups = ok false := by
+  rw [online_recovery_exact]
+  rcases unknown with h | h | h <;> simp [h]
+
+theorem outstanding_power_work_denies_recovery (marker groups : U8) (bound owned same idle : Bool)
+    (busy : idle = false ∨ groups ≠ 15#u8) :
+    upstream.sleep_recovery_allowed marker bound owned same idle groups = ok false := by
+  rw [online_recovery_exact]
+  rcases busy with h | h <;> simp [h]
+
+theorem quiescent_journal_prefix_can_retry (owner : Bool) :
+    upstream.sleep_fence_awake 1#u64 81#u8 = ok false ∧
+    upstream.sleep_recovery_allowed 81#u8 true owner true true 15#u8 = ok true := by
+  cases owner <;> exact ⟨rfl, rfl⟩
+
+/-- Ordered single-inode writes in the privileged adapter. An interrupted
+    invocation leaves some prefix, including the empty or complete prefix. -/
+inductive JournalWrite where
+  | marker (value : U8)
+  | owner (armed : Bool)
+
+def journalWrite (old : U8 × Bool) : JournalWrite → U8 × Bool
+  | .marker m => (m, old.2)
+  | .owner o => (old.1, o)
+
+def journalPrefixSafe (s : U8 × Bool) : Prop :=
+  (s.1 = 65#u8 → s.2 = false) ∧ (s.1 = 83#u8 → s.2 = true)
+
+theorem journal_crash_prefix_keeps_owner (n : Nat) :
+    journalPrefixSafe (([.owner false, .marker 81#u8, .owner true, .marker 83#u8] :
+      List JournalWrite).take n |>.foldl journalWrite (65#u8, false)) ∧
+    journalPrefixSafe (([.marker 81#u8, .owner false, .marker 65#u8] :
+      List JournalWrite).take n |>.foldl journalWrite (83#u8, true)) := by
+  cases n with
+  | zero => unfold journalPrefixSafe; decide
+  | succ n => cases n with
+    | zero => unfold journalPrefixSafe; decide
+    | succ n => cases n with
+      | zero => unfold journalPrefixSafe; decide
+      | succ n => cases n with
+        | zero => unfold journalPrefixSafe; decide
+        | succ n => simp [List.take, List.foldl, journalWrite, journalPrefixSafe]
+
+/-- One tracked orphan, one effective inode and four participating units.
+    Descendants may fork, outlive either parent and exit in any order. -/
+structure OnlineState where
+  manager : Bool
+  workers : Nat
+  awake : Bool
+  deriving DecidableEq
+
+inductive OnlineEvent where
+  | forkChild | exitChild | loseManager | recover | write
+  deriving DecidableEq
+
+def onlineStep (s : OnlineState) : OnlineEvent → Option OnlineState
+  | .forkChild => if s.manager || s.workers > 0 then some {s with workers := s.workers+1} else none
+  | .exitChild => if s.workers > 0 then some {s with workers := s.workers-1} else none
+  | .loseManager => some {s with manager := false}
+  | .recover =>
+      let mask := if s.workers = 0 then 15#u8 else 0#u8
+      match upstream.sleep_recovery_allowed 83#u8 true true true (!s.manager) mask with
+      | .ok true => some {s with awake := true}
+      | _ => some s
+  | .write => if s.awake then some s else none
+
+inductive OnlineRun : OnlineState → List OnlineEvent → OnlineState → Prop where
+  | nil : OnlineRun s [] s
+  | cons (first : onlineStep s e = some middle) (tail : OnlineRun middle events out) :
+      OnlineRun s (e :: events) out
+
+def OnlineSafe (s : OnlineState) : Prop :=
+  s.awake = true → s.manager = false ∧ s.workers = 0
+
+theorem online_step_preserves_quiescence {s next : OnlineState} {event : OnlineEvent}
+    (safe : OnlineSafe s) (step : onlineStep s event = some next) : OnlineSafe next := by
+  rcases s with ⟨manager, workers, awake⟩
+  rcases next with ⟨m,n,a⟩
+  cases event <;> cases manager <;> cases workers <;> cases awake <;>
+    simp_all [onlineStep, OnlineSafe, upstream.sleep_recovery_allowed]
+
+theorem online_history_send_requires_empty_tree {manager : Bool} {workers : Nat}
+    {events : List OnlineEvent} {out next : OnlineState}
+    (run : OnlineRun ⟨manager,workers,false⟩ events out)
+    (send : onlineStep out .write = some next) : out.manager = false ∧ out.workers = 0 := by
+  have preserve {s t : OnlineState} {es : List OnlineEvent} (h : OnlineRun s es t)
+      (hs : OnlineSafe s) : OnlineSafe t := by
+    induction h with
+    | nil => exact hs
+    | cons step _ ih => exact ih (online_step_preserves_quiescence hs step)
+  have safe := preserve run (by simp [OnlineSafe])
+  cases awake : out.awake with
+  | false => simp [onlineStep, awake] at send
+  | true => exact safe awake
+
 end LinuxProofs

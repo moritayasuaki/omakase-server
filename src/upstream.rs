@@ -216,3 +216,20 @@ pub fn pool_preflight_ready(
 pub fn pool_witness_current(same_boot: bool, observed_ms: u64, now_ms: u64) -> bool {
     same_boot && observed_ms <= now_ms && now_ms - observed_ms < 30_000
 }
+
+/// Q is a quiescent journal phase; S requires a recorded managed invocation.
+/// An idle receipt on S can come from a legacy or direct kernel writer.
+pub fn sleep_recovery_allowed(
+    marker: u8,
+    bound_receipt: bool,
+    managed_owner: bool,
+    same_locked_fence: bool,
+    manager_idle: bool,
+    groups_empty: u8,
+) -> bool {
+    (marker == b'Q' || (marker == b'S' && managed_owner))
+        && bound_receipt
+        && same_locked_fence
+        && manager_idle
+        && groups_empty == 15
+}

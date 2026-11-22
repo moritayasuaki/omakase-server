@@ -24,7 +24,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         println!("{HELP}");
         #[cfg(target_os = "linux")]
         println!(
-            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness"
+            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness\npathward-server recover-pool-fence --control-dir DIR"
         );
         return Ok(());
     }
@@ -48,6 +48,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(target_os = "linux")]
         "coordinated-sleep" if args.len() == 2 => {
             pathward_server::sleep_fence::coordinated_sleep(args[1].to_str().ok_or(HELP)?)?;
+        }
+        #[cfg(target_os = "linux")]
+        "recover-pool-fence" if args.len() == 3 && args[1] == "--control-dir" => {
+            println!(
+                "{}",
+                pathward_server::pool_recovery::recover(Path::new(&args[2]))?
+            );
         }
         "cutover-policy" => {
             let allowed = cutover_policy::evaluate(&args[1..])?;

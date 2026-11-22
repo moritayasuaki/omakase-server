@@ -78,7 +78,7 @@ impl From<Failure> for io::Error {
     }
 }
 
-fn open_fence(access: OFlags) -> Result<File, Failure> {
+pub(crate) fn open_fence(access: OFlags) -> Result<File, Failure> {
     let fd = open(
         FENCE,
         access | OFlags::CLOEXEC | OFlags::NOFOLLOW | OFlags::NONBLOCK,
@@ -99,15 +99,19 @@ fn open_fence(access: OFlags) -> Result<File, Failure> {
     Ok(file)
 }
 
-fn require_awake(file: &File) -> Result<(), Failure> {
+pub(crate) fn marker(file: &File) -> Result<u8, Failure> {
     let mut state = [0; 1];
-    let count = file.metadata()?.len();
-    if count != 1 {
+    if file.metadata()?.len() != 1 {
         return Err(Failure::Malformed);
     }
     file.read_exact_at(&mut state, 0)?;
-    if !pathward::upstream::sleep_fence_awake(count, state[0]) {
-        return Err(if state[0] == b'S' {
+    Ok(state[0])
+}
+
+fn require_awake(file: &File) -> Result<(), Failure> {
+    let state = marker(file)?;
+    if !pathward::upstream::sleep_fence_awake(1, state) {
+        return Err(if matches!(state, b'S' | b'Q') {
             Failure::Closed
         } else {
             Failure::Malformed
@@ -168,9 +172,19 @@ pub fn coordinated_sleep(mode: &str) -> io::Result<()> {
         Err(e) => return Err(e.into()),
     }
     require_awake(&file)?;
-    // If the supervisor dies while its child is still running, release of the
-    // flock alone must not reopen the gate. A subsequent supervisor checks 'A'.
-    file.write_all_at(b"S", 0)?;
+    let receipt = crate::pool_recovery::managed_origin(mode, &file).unwrap_or_else(|e| {
+        eprintln!("Online sleep recovery unavailable for this invocation: {e}");
+        None
+    });
+    if kernel_state.is_none() {
+        // Orphans from hooks are adopted here, including double forks.
+        rustix::process::set_child_subreaper(Some(rustix::process::Pid::INIT))?;
+    }
+    if let Some(receipt) = &receipt {
+        receipt.begin(&file)?;
+    } else {
+        file.write_all_at(b"S", 0)?;
+    }
     if let Some(state) = kernel_state {
         File::options()
             .write(true)
@@ -186,6 +200,20 @@ pub fn coordinated_sleep(mode: &str) -> io::Result<()> {
                 "systemd-sleep exited with {status}"
             )));
         }
+        // Linux __WALL includes clone children with a non-SIGCHLD exit signal.
+        const ALL_CHILDREN: rustix::process::WaitOptions =
+            rustix::process::WaitOptions::from_bits_retain(0x4000_0000);
+        loop {
+            match rustix::process::wait(ALL_CHILDREN) {
+                Ok(Some(_)) | Err(rustix::io::Errno::INTR) => continue,
+                Err(rustix::io::Errno::CHILD) => break,
+                Ok(None) => return Err(io::Error::other("incomplete sleep child wait")),
+                Err(e) => return Err(e.into()),
+            }
+        }
     }
-    file.write_all_at(b"A", 0)
+    match receipt {
+        Some(r) => r.finish(&file),
+        None => file.write_all_at(b"A", 0),
+    }
 }

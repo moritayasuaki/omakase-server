@@ -1,0 +1,177 @@
+{
+  "date_utc": "2026-11-22",
+  "base_commit": "80f5b933392201acd9995b4c62f99f199f0cb5ac",
+  "implementation_commit": "df829780dd80308407d8cc35584a5a38cf7f56de",
+  "target_manifest": "audit/pool-linux-target.json",
+  "environment": {
+    "rust": "1.99.1",
+    "target": "x86_64-unknown-linux-musl",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "image_sha256": "406630c08b5e545fcc7209854b129d47e3af822db128c9f19336593b5a2d3fe0",
+    "release": "6.8.0-147-generic",
+    "version_signature": "Ubuntu 6.8.0-147.147-generic 6.8.12",
+    "kernel_sha256": "41ba36d860aa0b0cd995f4ca8856d80249b244577e704929b55be13fbd1ebd2f",
+    "qemu": "QEMU emulator version 11.1.3",
+    "isolation": "Disposable x86_64 guests without a NIC. The server and recording peer run as uid 65534. The online scenario uses the real coordinator and a controlled systemd-sleep helper. The S3 and S4 regression runs use real guest power management."
+  },
+  "sources_sha256": {
+    "src/upstream.rs": "8d1dfb88015658794e3b3c56bb54eb75638ca969252a1e51e39828c1363388c8",
+    "server/src/pool_recovery.rs": "827c57a8a3f2e3a1f034ecbcc0255dd4921f0779e70651c87335d3e191dd8c3c",
+    "server/src/pool_sleep_units.rs": "695d4b581879d3c63e4b45340133652c2867da9143fc55ef81d2d6636e719a54",
+    "server/src/pool_preflight.rs": "72e82c2e5e9a44fddbda5c4474a747d03442e5e112dee90e5de1dcbed612fe11",
+    "server/src/sleep_fence.rs": "8d911b9b4e9e750c16041be3a4fea81cdb2eacecf18e6e8707e1e51957fa2eb8",
+    "server/src/backend_pool.rs": "2dfd54ac5ede64fa089ca684db55e62f458d617ffa1662e9ef52ccc9b866fd81",
+    "server/src/pool_linux_tests.rs": "4bdd7310ff9f7896bbb837a977cc6d3ea4c4b21965cf5763138f57163c5030c7",
+    "deploy/pathward-sleep.conf": "bc7a3439005414ff26b140c5abc21bfe561b8219954dbda90dfdd598612907b7",
+    "deploy/pathward-sleep.tmpfiles": "881432840c228372362e7009aac568928f524f5cc18a834cce5dc7956f68d9d4",
+    "scripts/pool_linux_stage.mjs": "352831c20066bad64545cad78c325f179e35726101988379e9efae8312bb4212",
+    "scripts/pool_cold_guest.sh": "1fc9fbc68e0abf61e9be32ce84fe3dd9671665d3bccbf204f393823f59e6fea8",
+    "scripts/pool_online_guest.sh": "103227eb88cc1cc0f3a8aee22ad38bf2c0634551ea63ee0b4f337c8f1e3ca975",
+    "scripts/pool_linux_guest.sh": "560cfc7a75b59e619fc7f56140c028aff13d079dfcfea1be7f1062674b2aa02e",
+    "scripts/pool_linux_s4_guest.sh": "bcec97b44f45acf5698b0f65de00c1ec13670793fb0c438b144672f34adf4fdb",
+    "scripts/pool_sleep_guest.sh": "56567f2c132af2698e4919accce3c0be14f295b2c436215850635e8b2973f061",
+    "proofs/Generated/Pathward.lean": "9a49524a0faa354df139366b6eec2382cc8077c0fef66384c694efd7e5830919",
+    "proofs/LinuxProofs.lean": "f07076299d034a682a97a9cc13585f66ed5601f5db70ccfd7babcb2e3e4d74da"
+  },
+  "seed_sha256": {
+    "pool-tests": "cd58f0e11ca844d9f0ca0798e4cf6ac1d8e7b2ad588f38d2c688486da2807dc5",
+    "pathward-server": "fbefa71af223dcb6ba0666dcaa8daf50f28bef513ca707845ecfb3733bb04cfe",
+    "sleep.conf": "bc7a3439005414ff26b140c5abc21bfe561b8219954dbda90dfdd598612907b7",
+    "sleep.tmpfiles": "881432840c228372362e7009aac568928f524f5cc18a834cce5dc7956f68d9d4",
+    "sleep-guest": "56567f2c132af2698e4919accce3c0be14f295b2c436215850635e8b2973f061",
+    "run": "560cfc7a75b59e619fc7f56140c028aff13d079dfcfea1be7f1062674b2aa02e",
+    "run-cold": "1fc9fbc68e0abf61e9be32ce84fe3dd9671665d3bccbf204f393823f59e6fea8",
+    "run-online": "103227eb88cc1cc0f3a8aee22ad38bf2c0634551ea63ee0b4f337c8f1e3ca975"
+  },
+  "serial_sha256": {
+    "strict-cold/serial-first.log": "72cd72864a2bd6bbf12f300665d3218f74b30d106f03c93cae981eccd800631f",
+    "strict-cold/serial-cold.log": "2b5497528f20e3f397b7d98b147df3189649fe75e7bb08f2c48ffbf3b1c8baa4",
+    "s3/serial.log": "8fc1ff469e8bc6007929e0d6ec92be9a99e151c203d1d1ec9c48eabbc16f218d",
+    "s4/serial-0.log": "648c3baf0f328222d762b35c0c8c40b551941ff51eccb9791cc4296c4f5aace6",
+    "s4/serial-1.log": "e129069684d62ab2c8b6c50b9195e91a711553d92f70ad1213796ed9c7281918",
+    "s4/serial-2.log": "e7decbc7a8850678971dda7eda8c9590d14cde47fab91046d0e4ccc9b5ddecce"
+  },
+  "online_fixture": "The guest sets KillMode=process for one sleep unit to let descendants survive its main process. It places the grandchild in a nested cgroup, confirms populated 1 with the direct group empty and runs a separate queued hibernate job before its ExecStart.",
+  "online_observations": [
+    "ORPHAN_503 http=503 closed_counter_delta=1 extra_applications=0 unit_signal=9",
+    "ONLINE_ACTIVE direct_exited=true subreaper_alive=true http=503 extra_applications=0",
+    "ONLINE_ORPHAN main_pid=0 immediate_cgroup_empty=true descendant_alive=true http=503 extra_applications=0",
+    "ONLINE_QUEUED main_pid=0 cgroup_empty=true pending_job=true http=503 extra_applications=0",
+    "ONLINE_WITNESS missing_control_denied=true foreign_inode_denied=true",
+    "ONLINE_REOPEN one_recovery=true same_boot=true same_server=true same_inode=true http=200 extra_applications=1",
+    "ONLINE_RETRY quiescent_prefix_recovered=true legacy_s_refused=true"
+  ],
+  "cold_boot_observations": [
+    "NEW_BOOT different_id=true old_run_gone=true tmpfiles_awake=true",
+    "COLD_DISPATCH failed_probe_http=503 before_204_applications=0 before_204_bytes=0 after_204_http=200 applications=1 application_bytes=250"
+  ],
+  "power_observations": [
+    {
+      "state": "S3",
+      "entry": "kernel-mem",
+      "exclusive_contended": true,
+      "age_at_read_ns": 9507000,
+      "age_at_peer_ns": 115580000,
+      "age_after_resume_ns": 13241649000,
+      "delivered_before_sleep_bytes": 62,
+      "expired_bytes_after_resume": 0,
+      "requests_after_fresh_204": 1
+    },
+    {
+      "state": "S3",
+      "entry": "systemd-suspend",
+      "exclusive_contended": true,
+      "age_at_read_ns": 11835000,
+      "age_at_peer_ns": 510617000,
+      "age_after_resume_ns": 12371202000,
+      "delivered_before_sleep_bytes": 62,
+      "expired_bytes_after_resume": 0,
+      "requests_after_fresh_204": 1
+    },
+    {
+      "state": "S4",
+      "entry": "kernel-disk",
+      "exclusive_contended": true,
+      "age_at_read_ns": 23716000,
+      "age_at_peer_ns": 105054000,
+      "age_after_resume_ns": 15049735000,
+      "delivered_before_sleep_bytes": 62,
+      "expired_bytes_after_resume": 0,
+      "requests_after_fresh_204": 1,
+      "powered_off_ns": 7002080125,
+      "same_boot_id_after_restore": true,
+      "both_workers_resumed": true
+    },
+    {
+      "state": "S4",
+      "entry": "systemd-hibernate",
+      "exclusive_contended": true,
+      "age_at_read_ns": 15402000,
+      "age_at_peer_ns": 450352000,
+      "age_after_resume_ns": 16976433000,
+      "delivered_before_sleep_bytes": 62,
+      "expired_bytes_after_resume": 0,
+      "requests_after_fresh_204": 1,
+      "powered_off_ns": 7001260334,
+      "same_boot_id_after_restore": true,
+      "both_workers_resumed": true
+    }
+  ],
+  "proofs": {
+    "theorems": 718,
+    "axiom_free": 104,
+    "axiom_counts": {
+      "Classical.choice": 481,
+      "Quot.sound": 496,
+      "propext": 614
+    },
+    "new_statements": [
+      "LinuxProofs.online_recovery_exact",
+      "LinuxProofs.legacy_or_foreign_orphan_stays_closed",
+      "LinuxProofs.outstanding_power_work_denies_recovery",
+      "LinuxProofs.quiescent_journal_prefix_can_retry",
+      "LinuxProofs.journal_crash_prefix_keeps_owner",
+      "LinuxProofs.online_step_preserves_quiescence",
+      "LinuxProofs.online_history_send_requires_empty_tree"
+    ]
+  },
+  "dependency_audit": {
+    "added_crates": 0,
+    "changed_lockfiles": 0,
+    "auditor": "cargo-audit 0.22.2",
+    "database_commit": "d1fe6ac3eba823a3515e849045f36dc34543885d",
+    "advisories": 1560,
+    "reports": {
+      "core": {
+        "locked_packages": 1,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "server_candidate": {
+        "locked_packages": 110,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "configuration": {
+        "locked_packages": 10,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "http_server": {
+        "locked_packages": 160,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "native_administrator": {
+        "locked_packages": 38,
+        "vulnerabilities": 0,
+        "warnings": 0
+      }
+    }
+  },
+  "remaining": [
+    "Host trust covers systemd, logind, the intended service control socket and the kernel contracts for flock, privileged inode attributes, child adoption and recursive cgroup population.",
+    "Recovery covers work descended from the recorded operation in the four fixed units. A privileged hook that delegates work into another service or to a hypervisor requires separate mediation.",
+    "An untracked legacy S cannot establish how its power work was launched. The cold-boot procedure remains applicable."
+  ]
+}

@@ -11,13 +11,13 @@ use std::{
 };
 
 #[path = "pool_sleep_units.rs"]
-mod units;
+pub(crate) mod units;
 
 fn invalid() -> io::Error {
     io::Error::other("invalid service fence observation")
 }
 
-fn clock_domain() -> io::Result<String> {
+pub(crate) fn clock_domain() -> io::Result<String> {
     let s = fs::read_to_string("/proc/sys/kernel/random/boot_id")?;
     let id = s.trim_end();
     if id.len() != 36
@@ -110,10 +110,20 @@ fn service_report(view: ServiceView<'_>) -> io::Result<String> {
     }
 }
 
-fn same_object(a: &str, b: &str) -> io::Result<bool> {
+pub(crate) fn same_object(a: &str, b: &str) -> io::Result<bool> {
     let a = fs::metadata(a)?;
     let b = fs::metadata(b)?;
     Ok((a.dev(), a.ino()) == (b.dev(), b.ino()))
+}
+
+pub(crate) fn host_mount() -> io::Result<bool> {
+    Ok(same_object("/proc/self/ns/mnt", "/proc/1/ns/mnt")? && same_object("/", "/proc/1/root")?)
+}
+
+pub(crate) fn service_sees_exclusive(dir: &Path, id: (u64, u64)) -> io::Result<bool> {
+    let raw = service_report(ServiceView::Control(dir))?;
+    let report = parse_witness(&raw, &clock_domain()?, boot_ms()?)?;
+    Ok(report.identity == Some(id) && report.state == "busy")
 }
 
 pub fn run(config: &Path, view: ServiceView<'_>) -> io::Result<()> {
@@ -145,8 +155,7 @@ pub fn run(config: &Path, view: ServiceView<'_>) -> io::Result<()> {
         println!("NOT_REQUIRED");
         return Ok(());
     }
-    let manager = same_object("/proc/self/ns/mnt", "/proc/1/ns/mnt").unwrap_or(false)
-        && same_object("/", "/proc/1/root").unwrap_or(false);
+    let manager = host_mount().unwrap_or(false);
     let binary = units::coordinator_matches().unwrap_or(false);
     let modes = units::inspect();
     let raw = service_report(view);
