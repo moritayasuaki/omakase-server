@@ -81,6 +81,7 @@ Linux pooled routes require the [sleep coordinator](docs/pool-platform-contract.
 Run `pathward-server pool-preflight CONFIG --control-dir DIR` before enabling a pool.
 It inventories the compiled routes and checks the host and service view of the sleep fence.
 See [diagnostic results and examples](docs/pool-platform-contract.md#read-only-pool-preflight).
+For a failed managed sleep, the administrator can [recover the fence online](docs/pool-platform-contract.md#recovering-a-managed-sleep-fence) once the entire sleep process tree and its jobs have finished.
 See the [proxy guide and audit](docs/reverse-proxy.md) for the trust boundary,
 Lean proofs and limits. Opt in to [WebSocket/SSE streaming](docs/streaming.md) with
 bounded buffers, session budgets and shutdown cancellation.
