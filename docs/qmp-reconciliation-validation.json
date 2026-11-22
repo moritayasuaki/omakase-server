@@ -38,38 +38,109 @@
   },
   "seed_sha256": {
     "serving_guest": {
+      "pool-tests": "56a090d5fcc5bd3fcd901f0bd9642472413ed834912ce3a2559adab1cd26242e",
+      "pathward-server": "8cb8a013014dd9738b4d92a77c72dc9767fa87165c5fbba1f1d7c12e94e29f22",
+      "run": "af550836dca75192eaf50aba8e25d4ce5d0210971a4465da92d62d7b3dd0d03c",
+      "run-cold": "1a91cdd7ddcec94f51173fd17943a5260afe20d1adf37b1788f172fc48e03a42",
+      "run-reconcile": "aae191b568d70fe97dfbdc49efbddf5273f0fe10d8880dc8204c3c2c7ea291f8"
+    },
+    "submitting_witness": {
+      "linux-witness": "ce7819a02b93bde97ca04cb0d3ece8f02b6e9650c78001fa7b533748df278bb5",
+      "linux-relay": "ac650294b4aed8992adfd23d9a354af0a7517d1b47b724a6b9763d13a1218702",
+      "run": "af550836dca75192eaf50aba8e25d4ce5d0210971a4465da92d62d7b3dd0d03c",
+      "run-witness": "a6b43f67cc666e626f1000005c3ef4ffa548d3516d1d2395f07fccc9116c6ae1"
+    },
+    "combined_submitter_store_and_guest_root": {
       "pool-tests": "c20cc86b638016be2222744e2c8ac6d73f311552d7545e6b447aa6ce12801b15",
       "pathward-server": "dd44f06f6b2fc26c94503f3a2bbbbc41b399dbc9f93d1d3caafe9cb49900e852",
       "run": "af550836dca75192eaf50aba8e25d4ce5d0210971a4465da92d62d7b3dd0d03c",
       "run-cold": "1a91cdd7ddcec94f51173fd17943a5260afe20d1adf37b1788f172fc48e03a42",
       "run-reconcile": "7c9dccc5f9270f0e9ee68b3b4dbbf468aa85d656afd7f04bfed4cc903d95d27f"
-    },
-    "submitting_witness": {
-      "linux-witness": "8c7e8b98a5131516de58bae68e3c094b934e1a74f25b6796cfb3413c6ec799a3",
-      "linux-relay": "8f3947d44969109313ff25acb35c7434ceb4acf69f10aad48f34bcd12bd5622b",
-      "run": "af550836dca75192eaf50aba8e25d4ce5d0210971a4465da92d62d7b3dd0d03c",
-      "run-witness": "a6b43f67cc666e626f1000005c3ef4ffa548d3516d1d2395f07fccc9116c6ae1"
     }
   },
   "host_witness_sha256": "19a80f00fdaa28c176bbfa16cf2a29fbd57054e4b822c316556658d334119025",
   "serial_sha256": {
     "serving_guest": [
-      "21755ec07d35b573df076b840bdeb47df50edd27eb347729296ac997d425f73b",
-      "6e0be661becdebe0cc2274c109922fd3ef7a46eeca3c6125064a5b37742e087f",
-      "7a96a2448494faf7ae3d6e6505bf15bc80e3f037a39fac0f8313fd224af655af"
+      "63671033c9b0dea6faca0627b2e5f6fe5127847bebf4c937df728c2d2ea0bb24",
+      "b749d3c8f9a671fc492b572e0cd096b1b56cc2c5dc76e383b4267dc67e309a45",
+      "2e4b760c34b2bd9cfa3edc5fbe2207daa1ee6d049f42d52eaeca02021614282d"
     ],
     "submitting_witness": [
-      "cf66eb376bc98f155f98c235656aae9c9fb1148a5c441c11d0d673f3e2827ec1",
-      "a59bb13e4f1beb3db0303f432c6bc2e5ab961f6685ff63770c33be43de6734ec",
-      "1990db3741159d427a69ce157ac9a48dab236de1a3f05cf93bd43cf61cd776fd"
+      "a5f52caaabdde4e7182cf05926bdd627a947533d98329bf448f65e3088b28f3b",
+      "f17225ef6cd062ef6502a270e672f288b95739815916042d9493f173ed77522d",
+      "5363478834e704b5c10ef00e87b539860fa947ee8eb12a52fe5cf32389f48730"
     ],
     "legacy_delegation": [
       "070b61b1017268d501ee4f298b86c550d6967de84da57fc9c60f1529e9eee1f2",
       "84abc5c548f7bfd464f16395bb72ec4b04f175f9b2a7b7002056031ab38992e8"
+    ],
+    "combined_submitter_store_and_guest_root": [
+      "21755ec07d35b573df076b840bdeb47df50edd27eb347729296ac997d425f73b",
+      "6e0be661becdebe0cc2274c109922fd3ef7a46eeca3c6125064a5b37742e087f",
+      "7a96a2448494faf7ae3d6e6505bf15bc80e3f037a39fac0f8313fd224af655af"
     ]
   },
   "measurements": {
     "guest_root_rollback": {
+      "fixture_commit": "705fd53c3b1c61e24c6fb98185a2e1b87fdb106e",
+      "fixture_sha256": {
+        "scripts/pool_reconcile_host.mjs": "021578a03c042396d1d8d4468f637bb8d0869ed8ce377f04e536ce33db8b1dd3",
+        "scripts/pool_reconcile_guest.sh": "aae191b568d70fe97dfbdc49efbddf5273f0fe10d8880dc8204c3c2c7ea291f8"
+      },
+      "host_witness_sha256": "19a80f00fdaa28c176bbfa16cf2a29fbd57054e4b822c316556658d334119025",
+      "root_snapshot_sha256": "8832fdf58d4dacbeb575a9cb0cbee6d6ed0ea7bf541247efc569db794ca0e12e",
+      "retained_volume_sha256": "d69231c09e6131ec7c3bd83f448b1cf2922ba518273c419ea650b2b01e4ecd8a",
+      "root_changed_between_boots": true,
+      "restored_root_byte_identical": true,
+      "retained_volume_byte_identical_during_restore": true,
+      "original_operation": "GUEST_ONLY_ORIGINAL submitter_exited_successfully=true completion_observed=true duplicate_denied=true",
+      "witness_control": "GUEST_ONLY_ROLLBACK submitter_records_retained=true authority_evidence_unchanged=true",
+      "control_details": "Both monitors completed the original operation normally. The submitting witness kept its original started and resumed records. Their hashes and the authority claim and terminal receipt hashes were identical immediately before and after the serving disk restore.",
+      "guest_observations": [
+        "RECONCILE_BASELINE",
+        "RECONCILE_WITHHELD http=503 delivered=0",
+        "RECONCILE_SUBMITTED",
+        "COLD_GUEST_EXIT=0",
+        "RECONCILE_GUEST_DOWNGRADE legacy_record_closed=true reenrollment_preserves_original=true",
+        "RECONCILE_GUEST_ROLLBACK local_idle=true independent_pending=true before_http=503 before_delivered=0 confirmed_http=200 confirmed_delivered=1",
+        "RECONCILE_STALE_GUEST old_receipt_repairs_local=true newer_guard_pending=true http=503 delivered=0",
+        "RECONCILE_OBSERVER_LOSS running=true completion_unknown=true http=503 delivered=0",
+        "POOL_RECONCILIATION_PASSED",
+        "COLD_GUEST_EXIT=0"
+      ]
+    },
+    "witness_root_rollback": {
+      "root_snapshot_sha256": "704ee4e2e6f29e9314585bc4b1fb95e3cd9c4b6c26ae72e20bfd8297d67c4c88",
+      "retained_volume_sha256": "80daf33ca72a3e28acc6df50afb2fe5aced9cb56dc4ec6417d3f177dca271d34",
+      "root_changed_between_boots": true,
+      "restored_root_byte_identical": true,
+      "retained_volume_byte_identical_during_restore": true,
+      "witness_observations": [
+        "WITNESS_BASELINE",
+        "WITNESS_COMPLETED_BEFORE_RESTORE",
+        "WITNESS_EXIT=0",
+        "WITNESS_ROOT_RESTORED local_claim_absent=true signed_original_recovered=true",
+        "WITNESS_EXIT=0"
+      ],
+      "independent_qmp_trace": "WITNESS_LINUX_ROLLBACK whole_root_restored=true signature_verified=true qmp_stops=1 qmp_resumes=1",
+      "receipt_check": "Two lookups with the private signing key offline returned the same receipt. Node verified the signature for the original VM and ticket with the public key captured before restore.",
+      "fixture_commit": "705fd53c3b1c61e24c6fb98185a2e1b87fdb106e",
+      "control_details": "Only the submitting Linux machine rebooted from its restored root. The target emulator retained a single running process and trace connection throughout the three witness boots."
+    },
+    "qmp_controls": [
+      "WITNESS_ROLLBACK killed_after_pause=true empty_mirror_restored=true duplicate_denied=true original_resume_observed=true",
+      "QMP_TWIN same_uuid=true foreign_emulator_denied=true receipt_absent=true",
+      "QMP_LEGACY_LOSS v2_observation_denied=true receipt_absent=true",
+      "QMP_LEGACY_REPLAY original_claim_reused=true duplicate_stop_denied=true"
+    ],
+    "legacy_delegation": [
+      "DELEGATED_COLD_BOOT same_ticket=true withheld_http=503 withheld_applications=0 confirmed_http=200 confirmed_applications=1",
+      "DELEGATED_REPLAY old_ticket_denied=true old_signature_denied=true other_owner_http=503 confirmed_http=200 applications=1",
+      "DELEGATED_STORAGE missing_ledger_http=503 applications=0 refused_reinitialization=true",
+      "DELEGATED_WITNESS_LOSS console_resumed=true receipt_unavailable=true resubmission_denied=true http=503 applications=0"
+    ],
+    "combined_submitter_store_and_guest_root": {
+      "fixture_commit": "ffd39f3af21d57e39a5bd68a78c105169b5b68a6",
       "root_snapshot_sha256": "6d726592c322978fb963ed604d8104754a940ae7e2a2d90f22312b38ddb85397",
       "retained_volume_sha256": "d539f9b1c03f97f332e031e36d1c9c24d6e533803853605204aeb7624723d183",
       "root_changed_between_boots": true,
@@ -86,36 +157,9 @@
         "RECONCILE_OBSERVER_LOSS running=true completion_unknown=true http=503 delivered=0",
         "POOL_RECONCILIATION_PASSED",
         "COLD_GUEST_EXIT=0"
-      ]
-    },
-    "witness_root_rollback": {
-      "root_snapshot_sha256": "8c55f4011e32ff2a646ef5598748c17b2224659b7646ce5c9b0853e741c54b5d",
-      "retained_volume_sha256": "655a2d2c27448cdefbd82e210d42fd779ca9be03749667244ff304022cc55216",
-      "root_changed_between_boots": true,
-      "restored_root_byte_identical": true,
-      "retained_volume_byte_identical_during_restore": true,
-      "witness_observations": [
-        "WITNESS_BASELINE",
-        "WITNESS_COMPLETED_BEFORE_RESTORE",
-        "WITNESS_EXIT=0",
-        "WITNESS_ROOT_RESTORED local_claim_absent=true signed_original_recovered=true",
-        "WITNESS_EXIT=0"
       ],
-      "independent_qmp_trace": "WITNESS_LINUX_ROLLBACK whole_root_restored=true signature_verified=true qmp_stops=1 qmp_resumes=1",
-      "receipt_check": "Two lookups with the private signing key offline returned the same receipt. Node verified the signature for the original VM and ticket with the public key captured before restore."
-    },
-    "qmp_controls": [
-      "WITNESS_ROLLBACK killed_after_pause=true empty_mirror_restored=true duplicate_denied=true original_resume_observed=true",
-      "QMP_TWIN same_uuid=true foreign_emulator_denied=true receipt_absent=true",
-      "QMP_LEGACY_LOSS v2_observation_denied=true receipt_absent=true",
-      "QMP_LEGACY_REPLAY original_claim_reused=true duplicate_stop_denied=true"
-    ],
-    "legacy_delegation": [
-      "DELEGATED_COLD_BOOT same_ticket=true withheld_http=503 withheld_applications=0 confirmed_http=200 confirmed_applications=1",
-      "DELEGATED_REPLAY old_ticket_denied=true old_signature_denied=true other_owner_http=503 confirmed_http=200 applications=1",
-      "DELEGATED_STORAGE missing_ledger_http=503 applications=0 refused_reinitialization=true",
-      "DELEGATED_WITNESS_LOSS console_resumed=true receipt_unavailable=true resubmission_denied=true http=503 applications=0"
-    ]
+      "controls": "The submitting witness died after acknowledging STOP. Its working directory was restored while the independent observer remained connected. A later disk restore affected only the serving guest and left its guard intact."
+    }
   },
   "proofs": {
     "lean_toolchain": "leanprover/lean4:v4.31.0",
@@ -196,7 +240,8 @@
       "proofs/registry.json": "bef9aff97aa86e685d3a01bd4d92047fd221e3b375c110f8217de38f66cd8e41",
       "proofs/roadmap.json": "2627bd4ad2438be7e3492b73485fbd0aa1742ad3605b081bf19d54edf484e621"
     },
-    "protocol_history": "For each released ticket the milestones in that same history are exactly armed, submitted, finished, witnessed, released, in that order. Restoring either copy or redelivering a receipt preserves the milestone history."
+    "protocol_history": "For each released ticket the milestones in that same history are exactly armed, submitted, finished, witnessed, released, in that order. Restoring either copy or redelivering a receipt preserves the milestone history.",
+    "source_commit": "abddd4e8644b514113ce83c2b9b2c9e31e8e5cce"
   },
   "dependency_audit": {
     "auditor": "cargo-audit 0.22.2",
