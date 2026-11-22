@@ -108,7 +108,7 @@ impl Pool {
                     address,
                     draining: drains.contains(&address),
                     checking: AtomicBool::new(false),
-                    health: Mutex::new(PoolHealth::default()),
+                    health: Mutex::new(pathward::upstream::cold_pool_health()),
                 })
                 .collect(),
             probe: format!(
@@ -244,9 +244,10 @@ impl Pool {
                     // Take a fresh lease even after WouldBlock. Its destructor
                     // runs only after the synchronous write returns or unwinds.
                     #[cfg(target_os = "linux")]
-                    let Ok(_lease) = crate::sleep_fence::first_write_lease() else {
-                        return Ok(None);
-                    };
+                    let _lease = crate::sleep_fence::first_write_lease().map_err(|why| {
+                        why.count_rejection();
+                        http::Rejection(503)
+                    })?;
                     let gate = FirstWriteGate {
                         peer: key(peer),
                         health: *health,

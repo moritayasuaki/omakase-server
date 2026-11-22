@@ -55,6 +55,7 @@ For an ordinary proof run, `make setup` installs the pinned target libraries and
 ```sh
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-lab-run
 node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-hibernation-run s4
+node scripts/pool_linux_stage.mjs /path/to/ubuntu-noble-20261105.img /path/to/new-cold-run cold
 ```
 
 The launcher builds the test executable with the pinned rustc, hashes the guest image, boots a new overlay with no network device, and saves the serial transcript. Only the guest supervisor controls guest power and the test process. Socket and clock observations run as `nobody`.
@@ -82,3 +83,23 @@ The service user needs read access to the fence. Each first-write attempt opens 
 Use a local root-controlled `/run` shared by the service and the manager. Keep the same fence inode for the whole boot, including S4 restoration. A missing, malformed, orphaned or contended fence denies application bytes. A failed or killed coordinator can leave the marker at `S`; pooled routes then return 503. Inspect the journal and perform a normal cold reboot to create a fresh fence after diagnosing the failure. Re-running the supplied tmpfiles rule preserves an existing marker. [tmpfiles creation semantics](https://www.freedesktop.org/software/systemd/man/255/tmpfiles.d.html)
 
 The operating contract requires every host sleep path to use the coordinator. Direct root writes to `/sys/power/state`, kernel autosleep, out-of-band VM pause and snapshot rollback can bypass the file lock. Containers need the host's fence and participating host power manager. The host must also supply an ordered suspend-inclusive clock, the documented flock semantics, and the same restored inode and descriptors. Time spent descheduled while the system is awake can still exceed the remaining TTL. The proof and the measurements apply at first local socket acceptance; application commit time remains a separate event. [Linux power states](https://docs.kernel.org/6.8/admin-guide/pm/sleep-states.html) · [Lean proof](../proofs/LinuxProofs.lean)
+
+## Read-only pool preflight
+
+Run the candidate binary on the systemd host, with access to the KDL and the service's private control socket. The KDL can be a proposed configuration. To compare an active configuration, match the printed SHA-256 to `pathward-server status` for that service.
+
+```sh
+pathward-server pool-preflight /etc/pathward/candidate.kdl --control-dir /var/lib/pathward/control
+```
+
+| Last line | Exit | Interpretation |
+| --- | --- | --- |
+| `NOT_REQUIRED` | 0 | The compiled KDL contains zero `proxy-pool` routes. Fixed upstreams and resource-owner searches operate independently of this fence. |
+| `READY` | 0 | The four reviewed sleep entries use the coordinator and both host and service observed an awake marker on the same inode. Members start cold and require their own fresh health checks. |
+| `BLOCKED` | nonzero | A prerequisite failed or the service's observation could not be verified. Read the host, service and per-unit lines. Invalid KDL also exits nonzero and reports the compiler error. |
+
+The service handles the read-only `POOL-FENCE` verb in its actual credential and mount context. When testing a candidate before it has a control socket, run `pathward-server pool-fence-witness` in its intended service unit with the same user, groups and sandbox. Feed that output on standard input to `pathward-server pool-preflight CONFIG --service-stdin` on the host. This alternative trusts the origin of the input. A witness expires at 30 seconds, uses suspend-inclusive time and must match the boot and time namespace. A missing or incompatible daemon provides no witness. The diagnostic issues no backend requests, starts no units and leaves the marker, configuration and metrics untouched.
+
+Host inspection compares the coordinator executable with the diagnostic binary, checks ownership and permissions, and verifies the host mount namespace and root. It reads the four loaded systemd sleep commands, their typed argument vectors and flags, and the supported service profile. A missing property, pending daemon reload or unexpected entry blocks the check. Extra host-specific power paths, security policies and later changes need host-specific review. These observations span several reads. Every application write still goes through the live first-write gate. [systemd unit properties](https://www.freedesktop.org/software/systemd/man/255/org.freedesktop.systemd1.html) · [Linux time namespaces](https://man7.org/linux/man-pages/man7/time_namespaces.7.html)
+
+For a pooled 503, compare the change in `pathward_pool_fence_rejections_total` on the private monitor with `pool-preflight`. The `busy` label means another descriptor holds an incompatible lock. The `closed` label means a reader acquired the lock and found `S`. Correlate it with the sleep unit's `last_result`, `exit_code`, `exit_status` and journal. A closed marker alone cannot identify which process died. `missing`, `permission`, `untrusted`, `malformed` and `io` distinguish other fence failures. Counters restart with the server and each counts a real first-write refusal. After a cold boot, tmpfiles creates the awake marker and each member starts with no positive observation. The isolated two-boot test records what arrives at the backend before and after its first successful probe. [Test record](pool-preflight-validation.json)

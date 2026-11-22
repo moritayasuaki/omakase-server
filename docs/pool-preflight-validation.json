@@ -1,0 +1,134 @@
+{
+  "date_utc": "2026-11-22",
+  "base_commit": "34ff90ec26cb1a8b91ef11b119b07c9d40d73045",
+  "target_manifest": "audit/pool-linux-target.json",
+  "environment": {
+    "rust": "1.99.1",
+    "target": "x86_64-unknown-linux-musl",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "kernel": "Ubuntu 6.8.0-147.147-generic 6.8.12",
+    "kernel_sha256": "41ba36d860aa0b0cd995f4ca8856d80249b244577e704929b55be13fbd1ebd2f",
+    "image_sha256": "406630c08b5e545fcc7209854b129d47e3af822db128c9f19336593b5a2d3fe0",
+    "qemu": "QEMU emulator version 11.1.3",
+    "isolation": "Two separate QEMU processes on one disposable disk. No NIC or resume image. Service and recording peer run as uid 65534. The HTTP service uses PrivateTmp and ProtectSystem=strict."
+  },
+  "sources_sha256": {
+    "scripts/pool_cold_guest.sh": "75e34ce82275392dddfe53e34b5e0d57c72d11689d97672918eea6ab9f1e3da7",
+    "scripts/pool_linux_guest.sh": "560cfc7a75b59e619fc7f56140c028aff13d079dfcfea1be7f1062674b2aa02e",
+    "scripts/pool_linux_stage.mjs": "2f1bedc4b23aff0eac492688aa455b179e41cd3229a52a12558111ccfb8aedb9",
+    "server/src/pool_linux_tests.rs": "4bdd7310ff9f7896bbb837a977cc6d3ea4c4b21965cf5763138f57163c5030c7",
+    "server/src/pool_preflight.rs": "6b1cf4b5928e1722112488ce0be6189e54bb767ac0a023c0c2c663a61465f368",
+    "server/src/pool_sleep_units.rs": "90be13fc3b767621743d0183294a33d32e49ad01de0cfddb7ef12a030289b21d",
+    "server/src/backend_pool.rs": "2dfd54ac5ede64fa089ca684db55e62f458d617ffa1662e9ef52ccc9b866fd81",
+    "server/src/sleep_fence.rs": "1727f1d5e395a04d097fe25265cbbd552c8b5bb724edb7f7b0ca7a577ef02c82",
+    "server/src/deployment.rs": "13626105eb52f86b261758d25c98e2c10dfb08469d25a6872588a1af1cdeea5b",
+    "server/src/observe.rs": "f42604eafe5f1bf21892f3629d0098d102af1ba98e265f5be180a496addf78c5",
+    "src/upstream.rs": "873fa9b90d53eacbc9d48a215220157fac3772af2b8076f6c97ed53999833f7a",
+    "proofs/LinuxProofs.lean": "f3373c2e858fd20e9b95d23c15731a2bf8dbb1c0898945c741f07dac6a3c8fe3"
+  },
+  "seed_sha256": {
+    "pool-tests": "83e0716228adc3c6c687f4ff341d615c9c1ae7851553737c9378be7addc15e28",
+    "pathward-server": "6a942c2dcafadbbbc8c65088b5d18b8cc308b9f28cf34adc319a20ca6891dab1",
+    "sleep.conf": "c4bdce34ed7cd0b4e0c39686d56de4296735908e96eb8320876fecfb7152b278",
+    "sleep.tmpfiles": "881432840c228372362e7009aac568928f524f5cc18a834cce5dc7956f68d9d4",
+    "sleep-guest": "56567f2c132af2698e4919accce3c0be14f295b2c436215850635e8b2973f061",
+    "run": "560cfc7a75b59e619fc7f56140c028aff13d079dfcfea1be7f1062674b2aa02e",
+    "run-cold": "75e34ce82275392dddfe53e34b5e0d57c72d11689d97672918eea6ab9f1e3da7"
+  },
+  "serial_sha256": {
+    "serial-first.log": "613e3f677e51ca8c9a51a24aa76abb657839aecaa6f345d785ede0503a2e5efe",
+    "serial-cold.log": "3db8233fea9043318388cac223aa71f8d53f4949ea677a58a838fd4246d29e83"
+  },
+  "preflight": {
+    "non_pool_fixture": "NOT_REQUIRED with a resource-owner route, a default upstream and a pool keyword in a comment",
+    "healthy_contract": "READY",
+    "service_permission_denied": "BLOCKED",
+    "one_effective_entry_bypasses_coordinator": "BLOCKED",
+    "service_sees_another_awake_inode": "BLOCKED",
+    "exclusive_holder": "busy on both sides",
+    "checks_made_no_application_requests": true
+  },
+  "first_boot": {
+    "healthy_post_http": 200,
+    "coordinator": "systemd-suspend.service",
+    "backend": "The guest temporarily bind-mounts a waiting child over systemd-sleep; the real coordinator and unit run throughout the test.",
+    "systemd_result": "signal",
+    "main_exit_code": 2,
+    "signal": 9,
+    "marker_after_exit": "S",
+    "service_and_host_same_inode": true,
+    "preflight": "BLOCKED",
+    "post_http": 503,
+    "closed_counter_delta": 1,
+    "additional_application_requests": 0
+  },
+  "cold_boot": {
+    "boot_id_changed": true,
+    "previous_tmpfs_canary_absent": true,
+    "tmpfiles_marker": "A",
+    "preflight": "READY",
+    "failed_health_status": 503,
+    "post_before_success_http": 503,
+    "application_requests_before_new_2xx": 0,
+    "application_bytes_before_new_2xx": 0,
+    "closed_counter": 0,
+    "new_health_status": 204,
+    "post_after_success_http": 200,
+    "application_requests_after_new_204": 1,
+    "application_bytes_after_new_204": 250
+  },
+  "proofs": {
+    "theorems": 711,
+    "axiom_free": 104,
+    "axiom_counts": {
+      "Classical.choice": 474,
+      "Quot.sound": 489,
+      "propext": 607
+    },
+    "new_statements": [
+      "LinuxProofs.preflight_ready_exact",
+      "LinuxProofs.service_witness_current_exact",
+      "LinuxProofs.cold_first_write_preserves_writer",
+      "LinuxProofs.ready_preflight_cannot_warm_a_cold_member",
+      "LinuxProofs.cold_history_effect_requires_timely_healthy_probe"
+    ]
+  },
+  "dependency_audit": {
+    "added_crates": 0,
+    "auditor": "cargo-audit 0.22.2",
+    "database_commit": "d1fe6ac3eba823a3515e849045f36dc34543885d",
+    "advisories": 1560,
+    "reports": {
+      "core": {
+        "locked_packages": 1,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "server_candidate": {
+        "locked_packages": 110,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "configuration": {
+        "locked_packages": 10,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "http_server": {
+        "locked_packages": 160,
+        "vulnerabilities": 0,
+        "warnings": 0
+      },
+      "native_administrator": {
+        "locked_packages": 38,
+        "vulnerabilities": 0,
+        "warnings": 0
+      }
+    }
+  },
+  "remaining": [
+    "The systemd profile and service-side observation describe one inspected host and time interval. Authenticity of procfs, systemd, the private socket and the supplied stdin witness are operating assumptions.",
+    "The host controls raw sleep paths, the boot-scoped inode and namespace policy. Safe manual recovery without a cold boot remains open.",
+    "A member health check can reach the peer before any client application bytes. Backend application commit and kernel implementation correctness remain outside these proofs."
+  ]
+}

@@ -127,6 +127,52 @@ fn fixture_dir() -> PathBuf {
     )
 }
 
+#[test]
+#[ignore = "loopback HTTP peer for the two-boot Linux lab"]
+fn cold_boot_http_peer() {
+    let dir = fixture_dir();
+    let listener = TcpListener::bind("127.0.0.1:43065").unwrap();
+    let mut events = fs::File::create(dir.join("events")).unwrap();
+    fs::write(dir.join("listening"), b"ready").unwrap();
+    for incoming in listener.incoming() {
+        let mut socket = incoming.unwrap();
+        socket.set_read_timeout(Some(WAIT)).unwrap();
+        let mut head = Vec::new();
+        let mut buf = [0; 1024];
+        while !head.windows(4).any(|w| w == b"\r\n\r\n") {
+            let count = socket.read(&mut buf).unwrap();
+            if count == 0 {
+                break;
+            }
+            head.extend_from_slice(&buf[..count]);
+            assert!(head.len() <= 8192);
+        }
+        if head.is_empty() {
+            continue;
+        }
+        if head.starts_with(b"GET /ready HTTP/1.1\r\n") {
+            let code = fs::read_to_string(dir.join("status")).unwrap();
+            assert!(matches!(code.as_str(), "503" | "204"));
+            socket
+                .write_all(
+                    format!(
+                        "HTTP/1.1 {code} Health\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
+            writeln!(events, "HEALTH {code}").unwrap();
+        } else {
+            // Count even a truncated first request head, before replying.
+            writeln!(events, "APP {}", head.len()).unwrap();
+            assert!(head.starts_with(b"POST /api/write HTTP/1.1\r\n"));
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                .unwrap();
+        }
+    }
+}
+
 fn nanos(clock: ClockId) -> u128 {
     let t = clock_gettime(clock);
     t.tv_sec as u128 * 1_000_000_000 + t.tv_nsec as u128

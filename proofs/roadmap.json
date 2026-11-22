@@ -33,6 +33,7 @@
     "LinuxProofs.callback_returns_or_unwinds_through_both_drops"
   ],
   "model_only_theorems": [
+    "LinuxProofs.cold_history_effect_requires_timely_healthy_probe",
     "LinuxProofs.closing_requires_all_readers_released",
     "LinuxProofs.orphaned_fence_cannot_write_or_restart",
     "LinuxProofs.held_step_preserves_suspended_time",
@@ -158,6 +159,7 @@
     "Atomic・Arc・ロック・FutureのpollとDropの実行・実行器の公平性",
     "OSのファイルオープン・ディスク永続化・時計・ソケット・systemd",
     "Linuxの全休止入口が同じ管理者所有の/run上のinodeを使うこと。独立openのflock、同期的な休止処理の終了、S4での記述子復元とCLOCK_BOOTTIMEの進行を信頼する。rootによる直接のsysfs操作、外部VM停止、稼働中のスケジューリング遅延は別の境界。",
+    "導入前診断は、ホストのprocfs・systemdが報告する実効設定、端末から指定した管理ソケットまたは信頼できるサービス実行環境の観測、同じ起動と時刻名前空間でのCLOCK_BOOTTIMEを前提とする。診断はその時点の観測であり、将来の設定変更を拘束しない。コールドブートでは/runが再生成され、サーバーが各メンバーをcold_pool_healthで初期化する。",
     "公開マニフェストの内容が機密ではないという運用判断とバックエンドの認証",
     "Rustの公開元FD走査・不変スナップショット・受領票の観測値、JSON parserと暗号学的hash、OSのロックとfsync。抽出判断と状態モデルは証明済みだが、アダプター全体の対応は未証明。",
     "ACMEアダプターが同じInstantと予算を保持し、試行数を正しく渡すこと。DNS候補の由来・選択とFuture/ソケットのDrop実行は回帰試験・レビュー対象。",
@@ -825,6 +827,28 @@
         "LinuxProofs.coordinated_resume_effect_requires_recheck",
         "LinuxProofs.long_sleep_requires_post_resume_probe"
       ]
+    },
+    {
+      "id": "LOCAL-POOL-PREFLIGHT-COLD-BOOT",
+      "title": "読取り専用の導入診断とコールドブート後の初回送信",
+      "priority": "P1",
+      "status": "proved",
+      "acceptance": "ホストとサービスの有効な観測、同じinode、全4休止入口を導入判定の必要十分条件とする。同じ時計領域の30秒未満の観測だけを採用する。初期ヘルスでは書込みも送信権消費も起こらず、初期化後の任意の履歴で書込みが呼ばれれば新鮮な2xxがある。隔離Linuxで管理プロセス異常終了時の503、電源断を挟む新規起動、2xx前後の要求バイト数を照合する。",
+      "theorems": [
+        "LinuxProofs.preflight_ready_exact",
+        "LinuxProofs.service_witness_current_exact",
+        "LinuxProofs.cold_first_write_preserves_writer",
+        "LinuxProofs.ready_preflight_cannot_warm_a_cold_member",
+        "LinuxProofs.cold_history_effect_requires_timely_healthy_probe"
+      ]
+    },
+    {
+      "id": "LOCAL-POOL-ORPHAN-ONLINE-RECOVERY",
+      "title": "休止管理プロセスの停止後に再起動を要しない安全な復旧",
+      "priority": "P2",
+      "status": "planned",
+      "acceptance": "旧休止処理と子プロセスが完了し、新旧の利用者が同じinodeを観測していることを、競合する再起動と遅延した復帰を含めて確認できる場合にだけ復旧を許す。ホストごとに独自の休止経路と名前空間を評価する。",
+      "theorems": []
     },
     {
       "id": "LOCAL-POOL-KERNEL-SEMANTICS",

@@ -3527,4 +3527,42 @@ def upstream.sleep_fence_awake
   then ok (first = 65#u8)
   else ok false
 
+/-- [pathward::upstream::cold_pool_health]:
+    Source: 'src/upstream.rs', lines 197:0-203:1
+    Visibility: public -/
+def upstream.cold_pool_health : RustM upstream.PoolHealth := do
+  ok { revision := 0#u64, «at» := 0#u64, status := 0#u16 }
+
+/-- [pathward::upstream::pool_preflight_ready]:
+    Source: 'src/upstream.rs', lines 206:0-213:1
+    Visibility: public -/
+def upstream.pool_preflight_ready
+  (service_awake : Bool) (host_awake : Bool) (same_file : Bool)
+  (modes : Std.U8) :
+  RustM Bool
+  := do
+  if service_awake
+  then
+    if host_awake
+    then if same_file
+         then ok (modes = 15#u8)
+         else ok false
+    else ok false
+  else ok false
+
+/-- [pathward::upstream::pool_witness_current]:
+    Source: 'src/upstream.rs', lines 216:0-218:1
+    Visibility: public -/
+def upstream.pool_witness_current
+  (same_boot : Bool) (observed_ms : Std.U64) (now_ms : Std.U64) :
+  RustM Bool
+  := do
+  if same_boot
+  then
+    if observed_ms <= now_ms
+    then let i ← now_ms - observed_ms
+         ok (i < 30000#u64)
+    else ok false
+  else ok false
+
 end pathward
