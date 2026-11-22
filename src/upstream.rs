@@ -192,3 +192,27 @@ pub fn guarded_first_write<W: FirstWriter>(
 pub fn sleep_fence_awake(count: u64, first: u8) -> bool {
     count == 1 && first == b'A'
 }
+
+/// A new process starts every member without an observation from a previous boot.
+pub fn cold_pool_health() -> PoolHealth {
+    PoolHealth {
+        revision: 0,
+        at: 0,
+        status: 0,
+    }
+}
+
+/// The four reviewed systemd sleep entry points occupy bits 0 through 3.
+pub fn pool_preflight_ready(
+    service_awake: bool,
+    host_awake: bool,
+    same_file: bool,
+    modes: u8,
+) -> bool {
+    service_awake && host_awake && same_file && modes == 15
+}
+
+/// A service observation uses one boot and clock namespace and expires after 30s.
+pub fn pool_witness_current(same_boot: bool, observed_ms: u64, now_ms: u64) -> bool {
+    same_boot && observed_ms <= now_ms && now_ms - observed_ms < 30_000
+}

@@ -129,6 +129,11 @@ query strings and other paths are not matched. With IPv6 loopback transport use
 | `/readyz` | 200 only while serving, not draining, and (in TLS mode) a currently valid certificate is installed; otherwise 503 |
 | `/metrics` | Prometheus text format with fixed metric names and bounded status-class labels |
 
+Linux exposes `pathward_pool_fence_rejections_total` with a fixed set of reason
+labels. A `closed` increase together with an unheld `S` marker and a failed
+sleep unit identifies a distinct source of pooled 503 responses. Check the
+unit result and service view with the [read-only preflight](pool-platform-contract.md#read-only-pool-preflight).
+
 `pathward_response_phase_microseconds` reports fixed histogram buckets for
 finite HTTP/2 and HTTP/3 responses from the common responder. The `prepare`
 sample covers selection, upstream or file work, and any representation encoding

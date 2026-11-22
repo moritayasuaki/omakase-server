@@ -70,6 +70,13 @@ it can receive a request. A request needing a fresh observation can run or join 
 its original deadline. There is at most one outstanding probe per member of a
 route generation. The process readiness endpoint keeps its frontend meaning.
 
+Before adding the first pool, run `pool-preflight` on the candidate KDL. On
+Linux a pooled first-write refusal increments
+`pathward_pool_fence_rejections_total{reason="closed"}` when the lock is free
+and the marker is still `S`. An unhealthy backend can also cause 503, with no
+fence-counter increase. The [preflight guide](pool-platform-contract.md#read-only-pool-preflight)
+explains how to distinguish these cases.
+
 Round-robin selection starts at the next member for each request. At most two
 application TCP connects share the original service deadline. A refused connect
 marks that member unavailable. A pending health probe carries the revision it

@@ -474,6 +474,10 @@ impl Managed {
                     let result = (|| -> io::Result<String> {
                         let line = read_line(&mut stream, deadline)?;
                         let fields: Vec<_> = line.split(' ').collect();
+                        #[cfg(target_os = "linux")]
+                        if fields == ["POOL-FENCE"] {
+                            return Ok(format!("{}\n", crate::pool_preflight::witness()?));
+                        }
                         if fields == ["STATUS"] {
                             let (generation, revision) = server.status();
                             return Ok(format!("OK {generation} {revision}\n"));
@@ -602,8 +606,8 @@ pub fn command(
 ) -> io::Result<String> {
     let mut stream = UnixStream::connect(directory.join("control.sock"))?;
     let deadline = Instant::now() + Duration::from_secs(30);
-    let header = if action == "STATUS" {
-        "STATUS\n".into()
+    let header = if matches!(action, "STATUS" | "POOL-FENCE") {
+        format!("{action}\n")
     } else {
         let (generation, revision) = expected
             .ok_or_else(error)?

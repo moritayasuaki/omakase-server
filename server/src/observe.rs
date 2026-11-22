@@ -403,6 +403,8 @@ impl Observability {
     ) -> String {
         let mut out = String::new();
         self.response_metrics(&mut out);
+        #[cfg(target_os = "linux")]
+        crate::sleep_fence::rejection_metrics(&mut out);
         for (name, kind, value) in [
             (
                 "h2_retired_streams_total",

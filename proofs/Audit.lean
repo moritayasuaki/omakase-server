@@ -286,6 +286,11 @@ import UpstreamProofs
 #print axioms LinuxProofs.sleep_wins_expired_first_write_is_inert
 #print axioms LinuxProofs.coordinated_resume_effect_requires_recheck
 #print axioms LinuxProofs.long_sleep_requires_post_resume_probe
+#print axioms LinuxProofs.preflight_ready_exact
+#print axioms LinuxProofs.service_witness_current_exact
+#print axioms LinuxProofs.cold_first_write_preserves_writer
+#print axioms LinuxProofs.ready_preflight_cannot_warm_a_cold_member
+#print axioms LinuxProofs.cold_history_effect_requires_timely_healthy_probe
 #print axioms PathwardProofs.name_byte_eq
 #print axioms PathwardProofs.step_eq
 #print axioms PathwardProofs.accepting_eq

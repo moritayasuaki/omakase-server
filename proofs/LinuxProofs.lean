@@ -402,4 +402,58 @@ theorem long_sleep_requires_post_resume_probe {W} (writer : upstream.FirstWriter
   have start := quiescent e s f code mem
   exact ⟨e, s, f, code, mem, by omega, timely, fresh, status⟩
 
+theorem preflight_ready_exact (service host same : Bool) (modes : U8) :
+    upstream.pool_preflight_ready service host same modes =
+      ok (decide (service = true ∧ host = true ∧ same = true ∧ modes = 15#u8)) := by
+  cases service <;> cases host <;> cases same <;> simp [upstream.pool_preflight_ready]
+
+theorem service_witness_current_exact (boot : Bool) (atMs now : U64) :
+    upstream.pool_witness_current boot atMs now =
+      ok (decide (boot = true ∧ atMs.val ≤ now.val ∧ now.val - atMs.val < 30000)) := by
+  cases boot with
+  | false => simp [upstream.pool_witness_current]
+  | true =>
+    by_cases ordered : atMs.val ≤ now.val
+    · obtain ⟨age, step, value, _⟩ := WP.spec_imp_exists (U64.sub_bv_spec (x := now) (y := atMs) ordered)
+      simp [upstream.pool_witness_current, ordered, step, value]
+    · simp [upstream.pool_witness_current, ordered]
+
+theorem cold_first_write_preserves_writer {W} (writer : upstream.FirstWriter W) (state : W)
+    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent : Bool) :
+    (do let initial ← upstream.cold_pool_health
+        upstream.guarded_first_write writer m i {g with health := initial} sent state) =
+      ok (none, sent, state) := by
+  change upstream.guarded_first_write writer m i {g with health := ⟨0#u64, 0#u64, 0#u16⟩} sent state = _
+  apply UpstreamProofs.unusable_health_preserves_writer
+  left
+  simp [UpstreamProofs.FreshAt]
+
+theorem ready_preflight_cannot_warm_a_cold_member {W} (writer : upstream.FirstWriter W) (state : W)
+    (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate) (sent : Bool) :
+    (do let ready ← upstream.pool_preflight_ready true true true 15#u8
+        let initial ← upstream.cold_pool_health
+        let result ← upstream.guarded_first_write writer m i {g with health := initial} sent state
+        ok (ready, result)) = ok (true, none, sent, state) := by
+  have closed := cold_first_write_preserves_writer writer state m i g sent
+  change upstream.guarded_first_write writer m i {g with health := ⟨0#u64,0#u64,0#u16⟩} sent state = _ at closed
+  simp [upstream.pool_preflight_ready, upstream.cold_pool_health, closed]
+
+theorem cold_history_effect_requires_timely_healthy_probe {W} (writer : upstream.FirstWriter W)
+    (state next : W) (m : Slice U32) (i : Usize) (g : upstream.FirstWriteGate)
+    (initial : upstream.PoolHealth) (cold : upstream.cold_pool_health = ok initial)
+    (events : List HealthEvent) (history : HealthHistory initial events g.health)
+    (sent spent : Bool) (event : upstream.FirstIo)
+    (effect : upstream.guarded_first_write writer m i g sent state = ok (some event, spent, next)) :
+    ∃ expected start finish code, HealthEvent.probe expected start finish code ∈ events ∧
+      UpstreamProofs.WithinTTL start finish ∧ UpstreamProofs.WithinTTL start g.now ∧
+      200 ≤ code.val ∧ code.val < 300 := by
+  obtain ⟨_, fresh, status, _⟩ := UpstreamProofs.effect_targets_registered_healthy_peer
+    writer m i g sent state event spent next effect
+  rcases healthy_record_has_probe history status.1 with same | ⟨e,s,f,n,mem,win,time,code⟩
+  · rw [same] at status
+    simp [upstream.cold_pool_health] at cold
+    rw [← cold] at status
+    simp at status
+  · exact ⟨e,s,f,n,mem,win,time ▸ fresh.2.2,code ▸ status⟩
+
 end LinuxProofs

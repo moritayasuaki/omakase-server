@@ -22,10 +22,29 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = env::args_os().skip(1).collect();
     if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
         println!("{HELP}");
+        #[cfg(target_os = "linux")]
+        println!(
+            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness"
+        );
         return Ok(());
     }
     let command = args.first().and_then(|s| s.to_str()).ok_or(HELP)?;
     match command {
+        #[cfg(target_os = "linux")]
+        "pool-fence-witness" if args.len() == 1 => {
+            println!("{}", pathward_server::pool_preflight::witness()?)
+        }
+        #[cfg(target_os = "linux")]
+        "pool-preflight" => {
+            use pathward_server::pool_preflight::{self, ServiceView};
+            let view = match &args[1..] {
+                [_] => ServiceView::Unobserved,
+                [_, flag] if flag == "--service-stdin" => ServiceView::Stdin,
+                [_, flag, dir] if flag == "--control-dir" => ServiceView::Control(Path::new(dir)),
+                _ => return Err(HELP.into()),
+            };
+            pool_preflight::run(Path::new(&args[1]), view)?;
+        }
         #[cfg(target_os = "linux")]
         "coordinated-sleep" if args.len() == 2 => {
             pathward_server::sleep_fence::coordinated_sleep(args[1].to_str().ok_or(HELP)?)?;

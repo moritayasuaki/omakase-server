@@ -7,9 +7,9 @@ import {join, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 
-assert([4,5].includes(process.argv.length), 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY [s3|s4]');
+assert([4,5].includes(process.argv.length), 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY [s3|s4|cold]');
 const mode = process.argv[4] ?? 's3';
-assert(['s3','s4'].includes(mode));
+assert(['s3','s4','cold'].includes(mode));
 const root = fileURLToPath(new URL('../', import.meta.url));
 const pin = JSON.parse(readFileSync(join(root, 'audit/pool-linux-target.json')));
 const image = realpathSync(process.argv[2]);
@@ -46,11 +46,13 @@ copyFileSync(join(root,'scripts/pool_linux_guest.sh'), join(seed,'run'));
 if (mode === 's4') {
     copyFileSync(join(root,'scripts/pool_linux_s4_guest.sh'), join(seed,'run-s4'));
 }
+if (mode === 'cold') copyFileSync(join(root,'scripts/pool_cold_guest.sh'),join(seed,'run-cold'));
 function file(name, contents) { writeFileSync(join(seed, name), contents + '\n'); }
 file('release', pin.guest.release);
 file('version-signature', pin.guest.version_signature);
 file('kernel.sha256', pin.guest.kernel_sha256 + '  /boot/vmlinuz-' + pin.guest.release);
-file('binary.sha256', (await Promise.all(['pool-tests','pathward-server','sleep.conf','sleep.tmpfiles','sleep-guest']
+file('binary.sha256', (await Promise.all(['pool-tests','pathward-server','sleep.conf','sleep.tmpfiles','sleep-guest','run',
+    ...(mode === 'cold' ? ['run-cold'] : mode === 's4' ? ['run-s4'] : [])]
     .map(async name => await digest(join(seed,name)) + '  ' + name))).join('\n'));
 file('meta-data', 'instance-id: pool-linux-refinement\nlocal-hostname: pool-lab');
 file('network-config', 'version: 2\nethernets: {}');
@@ -67,7 +69,17 @@ function boot(serial) {
     run('qemu-system-x86_64',[...machine,'-serial','file:' + serial],{timeout:600000,killSignal:'SIGKILL'});
     return readFileSync(join(out,serial),'utf8').replaceAll('\r','').split('\n');
 }
-if (mode === 's3') {
+if (mode === 'cold') {
+    machine.push('-drive','file=overlay.qcow2,format=qcow2,if=virtio,cache=none');
+    const first = boot('serial-first.log');
+    assert(first.includes('ORPHAN_503 http=503 closed_counter_delta=1 extra_applications=0 unit_signal=9')
+        && first.includes('POOL_COLD_FIRST_POWEROFF'), 'first boot did not finish the orphan test');
+    const second = boot('serial-cold.log');
+    assert(second.includes('NEW_BOOT different_id=true old_run_gone=true tmpfiles_awake=true')
+        && second.includes('POOL_COLD_RECOVERY_PASSED') && second.includes('COLD_GUEST_EXIT=0'),
+        'cold boot did not complete recovery');
+    console.log('POOL_COLD_RECOVERY_PASSED',out);
+} else if (mode === 's3') {
     machine.push('-drive','file=overlay.qcow2,format=qcow2,if=virtio,cache=none');
     assert(boot('serial.log').includes('POOL_LINUX_REFINEMENT_PASSED'), 'guest checks failed; see serial.log');
     console.log('POOL_LINUX_REFINEMENT_PASSED',join(out,'serial.log'));
