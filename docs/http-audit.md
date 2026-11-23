@@ -7,7 +7,7 @@ records the current dependency graph and additional controls.
 
 The actual HTTP server is a separate crate using std threads/TCP, the existing KDL
 adapter, `httparse` 1.10.1, `httpdate` 1.0.3 and Linux-only `rustix` 1.1.6. It does
-not link the 163-package Axum/TLS candidate. The verified `pathward` core remains
+not link the 163-package Axum/TLS candidate. The verified `omakase` core remains
 zero-dependency, no_std and free of unsafe code and I/O.
 
 The [manifest](../server/Cargo.toml), [lockfile](../server/Cargo.lock),
@@ -60,7 +60,7 @@ dependencies; arbitrary local or Git sources are rejected.
 The reviewed httparse request code can skip initial empty lines and recognize
 bare-LF line endings. Its defaults reject request-side obsolete header folding
 and invalid header skipping, but parser defaults alone are not a complete framing
-policy. PathWard adds explicit CRLF/request-line validation, caps the buffer and
+policy. Omakase adds explicit CRLF/request-line validation, caps the buffer and
 header array, and requires a complete parse consuming the entire buffer. It
 requires one Host, no transfer coding, no request body and at most one canonical
 Content-Length: 0. Expect/Upgrade/Trailer and unsupported Connection tokens fail.

@@ -1,6 +1,6 @@
 //! TLS transport and atomic certificate selection. Rustls and OS I/O are trusted.
 use crate::http::{self, Transport};
-use pathward::tls::{activate, identity_allowed};
+use omakase::tls::{activate, identity_allowed};
 use rustls::{
     ServerConfig, ServerConnection, StreamOwned,
     server::{Acceptor, ClientHello, ResolvesServerCert},
@@ -240,7 +240,7 @@ struct Resolver {
 }
 impl fmt::Debug for Resolver {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("PathWardCertificateResolver")
+        f.write_str("OmakaseCertificateResolver")
     }
 }
 impl ResolvesServerCert for Resolver {
@@ -548,7 +548,7 @@ impl TlsTransport {
             received: 0,
             write_closed: false,
         });
-        if !pathward::delivery::h2_peer_drain_allowed(
+        if !omakase::delivery::h2_peer_drain_allowed(
             drain.began.elapsed().as_millis().min(u64::MAX as u128) as u64,
             drain.received,
         ) {

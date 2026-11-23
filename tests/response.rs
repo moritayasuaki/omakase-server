@@ -1,4 +1,4 @@
-use pathward::response::*;
+use omakase::response::*;
 #[test]
 fn external_authority_is_independent_of_forwarded_socket_port() {
     for local in 0..=u16::MAX {
@@ -69,28 +69,28 @@ fn redirects_and_header_boundaries() {
 }
 #[test]
 fn manifest_correspondence_and_activation() {
-    assert!(pathward::release::generated_rule(
+    assert!(omakase::release::generated_rule(
         b"/a.txt", b"a.txt", b"a.txt", false
     ));
-    assert!(!pathward::release::generated_rule(
+    assert!(!omakase::release::generated_rule(
         b"/a.txt", b"b.txt", b"a.txt", false
     ));
-    assert!(!pathward::release::generated_rule(
+    assert!(!omakase::release::generated_rule(
         b"/extra", b"a.txt", b"a.txt", false
     ));
-    assert!(pathward::release::generated_rule(
+    assert!(omakase::release::generated_rule(
         b"/",
         b"index.html",
         b"index.html",
         true
     ));
-    assert!(!pathward::release::generated_rule(
+    assert!(!omakase::release::generated_rule(
         b"/",
         b"index.html",
         b"index.html",
         false
     ));
-    assert!(!pathward::release::commit_allowed(
+    assert!(!omakase::release::commit_allowed(
         &[b'a'; 64],
         &[b'b'; 64],
         true,
@@ -100,7 +100,7 @@ fn manifest_correspondence_and_activation() {
     for mask in 0..8 {
         let (p, s, d) = (mask & 1 != 0, mask & 2 != 0, mask & 4 != 0);
         assert_eq!(
-            pathward::release::commit_allowed(&[b'a'; 64], &[b'a'; 64], p, s, d),
+            omakase::release::commit_allowed(&[b'a'; 64], &[b'a'; 64], p, s, d),
             p && s && !d
         );
     }

@@ -6,7 +6,7 @@ use crate::{
     storage::Checkpoint,
     system::{System, words},
 };
-use pathward::recovery::{self as policy, ContractChoice as Choice};
+use omakase::recovery::{self as policy, ContractChoice as Choice};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::fs::{self, File};

@@ -37,6 +37,7 @@ pub fn uuid(s: &str) -> bool {
 }
 
 pub fn terminal_message(vm: &str, ticket: &str) -> String {
+    // This domain separator is part of the bytes signed by existing witnesses.
     format!("PathWard hypervisor sleep completed v1\n{vm}\n{ticket}\n")
 }
 

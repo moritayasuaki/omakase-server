@@ -2,7 +2,7 @@
 //! Writers and hooks lock the directory inode; replacing the state file never
 //! changes the lock. Nothing in the boot or recovery path creates idle state.
 use crate::{pool_preflight, pool_recovery, sleep_fence::Failure, sleep_ticket::*};
-use pathward::upstream::{delegate_can_retire, delegates_allow_write, reconcile_ticket};
+use omakase::upstream::{delegate_can_retire, delegates_allow_write, reconcile_ticket};
 #[path = "qmp_guard.rs"]
 mod qmp_guard;
 use ring::{

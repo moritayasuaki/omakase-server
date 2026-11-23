@@ -12,7 +12,7 @@ import tempfile
 import threading
 import time
 ROOT=Path(__file__).resolve().parents[1]
-BIN=ROOT/'server/target/release/pathward-server'
+BIN=ROOT/'server/target/release/omakase-server'
 def run(*args,ok=True):
     result=subprocess.run([str(BIN),*map(str,args)],capture_output=True,text=True,timeout=10)
     assert (result.returncode==0)==ok,(args,result.stdout,result.stderr)
@@ -23,7 +23,7 @@ def get(port,path='/'):
         out=b''
         while chunk:=s.recv(8192):out+=chunk
         return out
-with tempfile.TemporaryDirectory(prefix='pathward-release-') as tmp:
+with tempfile.TemporaryDirectory(prefix='omakase-release-') as tmp:
     root=Path(tmp)
     for name in ['v1','v2']:
         (root/name).mkdir();(root/name/'index.html').write_text(name);(root/name/'secret.txt').write_text('NEVER DISCOVER')

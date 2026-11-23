@@ -30,18 +30,18 @@ const build = execFileSync('cargo', ['+' + pin.rust_release, 'test', '--offline'
     '--manifest-path', 'server/Cargo.toml', '--lib', '--target', pin.target, '--no-run', '--message-format=json'],
     {cwd:root, encoding:'utf8', stdio:['ignore','pipe','inherit'], maxBuffer:16 << 20});
 const artifacts = build.trim().split('\n').map(s => JSON.parse(s)).filter(a =>
-    a.reason === 'compiler-artifact' && a.target.name === 'pathward_server' && a.executable);
+    a.reason === 'compiler-artifact' && a.target.name === 'omakase_server' && a.executable);
 assert.equal(artifacts.length, 1);
 mkdirSync(out, {mode:0o700});
 mkdirSync(seed, {mode:0o700});
 copyFileSync(artifacts[0].executable, join(seed, 'pool-tests'));
 const cli = execFileSync('cargo', ['+' + pin.rust_release, 'build', '--offline', '--locked', '--manifest-path',
-    'server/Cargo.toml', '--target', pin.target, '--bin', 'pathward-server', '--message-format=json'],
+    'server/Cargo.toml', '--target', pin.target, '--bin', 'omakase-server', '--message-format=json'],
     {cwd:root, encoding:'utf8', stdio:['ignore','pipe','inherit'], maxBuffer:16 << 20});
 const servers = cli.trim().split('\n').map(line => JSON.parse(line)).filter(a =>
-    a.reason === 'compiler-artifact' && a.target.name === 'pathward-server' && a.executable);
+    a.reason === 'compiler-artifact' && a.target.name === 'omakase-server' && a.executable);
 assert.equal(servers.length, 1);
-copyFileSync(servers[0].executable, join(seed, 'pathward-server'));
+copyFileSync(servers[0].executable, join(seed, 'omakase-server'));
 copyFileSync(join(root,'deploy/pathward-sleep.conf'), join(seed,'sleep.conf'));
 copyFileSync(join(root,'deploy/pathward-sleep.tmpfiles'), join(seed,'sleep.tmpfiles'));
 copyFileSync(join(root,'scripts/pool_sleep_guest.sh'), join(seed,'sleep-guest'));
@@ -60,7 +60,7 @@ const witnessFiles=[];
 if (mode==='witness-rollback') {
     copyFileSync(join(root,'scripts/pool_witness_guest.sh'),join(seed,'run-witness'));
     witnessFiles.push('run-witness');
-    for(const [kind,name,dest] of [['bin','pathward-qmp-sleep','linux-witness'],['example','qmp_lab_relay','linux-relay']]) {
+    for(const [kind,name,dest] of [['bin','omakase-qmp-sleep','linux-witness'],['example','qmp_lab_relay','linux-relay']]) {
         const output=execFileSync('cargo',['+'+pin.rust_release,'build','--offline','--locked','--manifest-path','admin/Cargo.toml',
             '--target',pin.target,'--'+kind,name,'--message-format=json'],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','inherit']});
         const binary=output.trim().split('\n').map(s=>JSON.parse(s)).find(v=>v.executable && v.target?.name===name);
@@ -77,7 +77,7 @@ if(provider) {
 file('release', pin.guest.release);
 file('version-signature', pin.guest.version_signature);
 file('kernel.sha256', pin.guest.kernel_sha256 + '  /boot/vmlinuz-' + pin.guest.release);
-file('binary.sha256', (await Promise.all(['pool-tests','pathward-server','sleep.conf','sleep.tmpfiles','sleep-guest','run',...witnessFiles,
+file('binary.sha256', (await Promise.all(['pool-tests','omakase-server','sleep.conf','sleep.tmpfiles','sleep-guest','run',...witnessFiles,
     ...(mode === 'cold' ? ['run-cold','run-online'] : provider ? ['run-cold',delegateFixture,'delegated.service','provider'] : mode === 's4' ? ['run-s4'] : [])]
     .map(async name => await digest(join(seed,name)) + '  ' + name))).join('\n'));
 file('meta-data', 'instance-id: pool-linux-refinement\nlocal-hostname: pool-lab');
@@ -89,7 +89,7 @@ run('xorriso',['-as','mkisofs','-quiet','-o','seed.iso','-V','cidata','-J','-r',
 run('qemu-img',['create','-q','-f','qcow2','-F','qcow2','-b',image,'overlay.qcow2']);
 const machine = ['-machine','pc','-accel','tcg,thread=multi','-m','1024','-smp','2',
     '-display','none','-monitor','none','-nic','none','-no-reboot',
-    '-rtc','base=utc,clock=host','-smbios','type=1,product=PathWardPoolLab',
+    '-rtc','base=utc,clock=host','-smbios','type=1,product=OmakasePoolLab',
     '-drive','file=seed.iso,format=raw,media=cdrom,readonly=on'];
 function boot(serial) {
     run('qemu-system-x86_64',[...machine,'-serial','file:' + serial],{timeout:600000,killSignal:'SIGKILL'});
@@ -124,7 +124,7 @@ if (mode==='witness-rollback') {
     machine.push('-drive','if=none,id=systemdisk,file=overlay.qcow2,format=qcow2,cache=none',
         '-device','virtio-blk-pci,drive=systemdisk,addr=0x5,bootindex=1',
         '-drive','if=none,id=hibswap,file=swap.raw,format=raw,cache=none',
-        '-device','virtio-blk-pci,drive=hibswap,addr=0x6,serial=PathWardS4Swap');
+        '-device','virtio-blk-pci,drive=hibswap,addr=0x6,serial=OmakaseS4Swap');
     function signature() {
         const fd = openSync(path,'r');
         try {
@@ -137,7 +137,7 @@ if (mode==='witness-rollback') {
         const lines = boot('serial-' + cycle + '.log');
         if (cycle > 0) {
             assert(lines.some(s => s.includes('Kernel command line:') && s.includes('resume=/dev/vdb resumewait') &&
-                s.includes('root=/dev/pathward-no-root')), 'restore-only kernel did not boot');
+                s.includes('root=/dev/omakase-no-root')), 'restore-only kernel did not boot');
             assert(lines.some(s => /PM: hibernation: Read [1-9]\d* kbytes/.test(s)), 'kernel did not read a disk image');
             assert(lines.includes('S4_CONTINUITY trial=' + cycle + ' same_boot_id=true both_workers_alive=true'));
             assert(lines.includes('S4_RESTORED trial=' + cycle), 'hibernated tests did not continue');

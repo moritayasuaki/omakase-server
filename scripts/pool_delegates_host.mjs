@@ -9,9 +9,9 @@ import {setTimeout as delay} from 'node:timers/promises';
 
 export const vmUuid='3acefc01-45b6-4e29-88cb-119ccc6c25c3';
 export function prepareProvider(root,out) {
-    const args=['+1.98.1','build','--offline','--locked','--manifest-path','admin/Cargo.toml','--bin','pathward-qmp-sleep','--message-format=json'];
+    const args=['+1.98.1','build','--offline','--locked','--manifest-path','admin/Cargo.toml','--bin','omakase-qmp-sleep','--message-format=json'];
     const lines=execFileSync('cargo',args,{cwd:root,encoding:'utf8',maxBuffer:16<<20}).trim().split('\n');
-    const bin=lines.map(s=>JSON.parse(s)).find(e=>e.target?.name==='pathward-qmp-sleep' && e.executable)?.executable;
+    const bin=lines.map(s=>JSON.parse(s)).find(e=>e.target?.name==='omakase-qmp-sleep' && e.executable)?.executable;
     assert(bin);
     const dir=join(out,'witness');
     const key=execFileSync(bin,['keygen',dir,vmUuid],{encoding:'utf8'}).trim();

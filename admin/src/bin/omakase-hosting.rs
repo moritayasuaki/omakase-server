@@ -1,4 +1,4 @@
-use pathward_admin::{
+use omakase_admin::{
     Result, codec, confined,
     publication::{self as p, Bridge},
     require,
@@ -11,7 +11,7 @@ use std::{
 };
 fn main() {
     if run().is_err() {
-        eprintln!("PathWard publication failed; no success receipt was issued");
+        eprintln!("Omakase publication failed; no success receipt was issued");
         std::process::exit(1);
     }
 }
@@ -138,7 +138,7 @@ fn run() -> Result<()> {
     let stamp = codec::parse(get("--stamp")?.as_bytes())?;
     require(
         stamp["routing"] == "pathward",
-        "native acknowledgement requires PathWard",
+        "native acknowledgement requires Omakase",
     )?;
     require(
         stamp["profile"] == profile

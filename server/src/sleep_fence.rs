@@ -110,7 +110,7 @@ pub(crate) fn marker(file: &File) -> Result<u8, Failure> {
 
 fn require_awake(file: &File) -> Result<(), Failure> {
     let state = marker(file)?;
-    if !pathward::upstream::sleep_fence_awake(1, state) {
+    if !omakase::upstream::sleep_fence_awake(1, state) {
         return Err(if matches!(state, b'S' | b'Q') {
             Failure::Closed
         } else {
@@ -169,7 +169,7 @@ pub fn coordinated_sleep(mode: &str) -> io::Result<()> {
     match flock(&file, FlockOperation::NonBlockingLockExclusive) {
         Ok(()) => {}
         Err(rustix::io::Errno::WOULDBLOCK) => {
-            eprintln!("Waiting for the PathWard sleep fence");
+            eprintln!("Waiting for the Omakase sleep fence");
             flock(&file, FlockOperation::LockExclusive)?;
         }
         Err(e) => return Err(e.into()),

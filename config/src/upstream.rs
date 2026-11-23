@@ -10,7 +10,7 @@ pub struct ProxyRoute<'a> {
     pub drained: Vec<SocketAddr>,
 }
 pub(crate) fn prefix(s: &str) -> bool {
-    pathward::valid_path(s.as_bytes()) && (s == "/" || !s.ends_with('/'))
+    omakase::valid_path(s.as_bytes()) && (s == "/" || !s.ends_with('/'))
 }
 impl<'a> ProxyRoute<'a> {
     pub(crate) fn parse(v: &[&'a str], kind: &str) -> Option<Self> {
@@ -31,7 +31,7 @@ impl<'a> ProxyRoute<'a> {
         let candidates = endpoints(v[if resource || pool { 2 } else { 1 }])?;
         if (!resource && !pool && candidates.len() != 1)
             || (pool
-                && (!pathward::valid_path(v[1].as_bytes())
+                && (!omakase::valid_path(v[1].as_bytes())
                     || candidates
                         .iter()
                         .any(|a| SocketAddr::new(a.ip(), a.port()) != *a)))
@@ -53,7 +53,7 @@ pub(crate) fn endpoints(value: &str) -> Option<Vec<SocketAddr>> {
     for endpoint in value.split(',') {
         let addr: SocketAddr = endpoint.parse().ok()?;
         if addr.to_string() != endpoint
-            || !pathward::proxy::endpoint_allowed(addr.ip().to_string().as_bytes(), addr.port())
+            || !omakase::proxy::endpoint_allowed(addr.ip().to_string().as_bytes(), addr.port())
             || result.contains(&addr)
             || result.len() == 32
         {

@@ -1,6 +1,6 @@
 {
-  "manifest_sha256": "04d6da64edb6fd5ea483d1784e018272397b1761ac5494b445d092593321acd6",
-  "lockfile_sha256": "f516345a20719bfcea53b16e8826200003ee15e69f5ccb44a46532a11518532a",
+  "manifest_sha256": "cef9a23fecc37793962b67e6acbfffe77fa6193aafeeb2dde08f34cdb6265249",
+  "lockfile_sha256": "787e081aade4b853bed253a4c707e3209c7f4d754ab8b0d2762ab5757db6b09b",
   "packages": [
     {
       "name": "bitflags",
@@ -110,7 +110,7 @@
       "proc_macro": false
     },
     {
-      "name": "pathward",
+      "name": "omakase",
       "version": "0.1.0",
       "source": "path:.",
       "license": "MIT",

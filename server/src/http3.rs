@@ -86,7 +86,7 @@ async fn exchange(
                     .await?
                     .map_err(error)?;
                 let Some(mut chunk) = next else { break };
-                if !pathward::routing::chunk_fits(
+                if !omakase::routing::chunk_fits(
                     body.len() as u64,
                     chunk.remaining() as u64,
                     request.length.unwrap_or(request.limit),
@@ -99,7 +99,7 @@ async fn exchange(
                 .await?
                 .map_err(error)?
                 .is_some();
-            if !pathward::delivery::multiplex_body_allowed(
+            if !omakase::delivery::multiplex_body_allowed(
                 body.len() as u64,
                 request.length,
                 trailers,
@@ -284,7 +284,7 @@ async fn connection(
         }
         match futures_lite::future::poll_once(h3.accept()).await {
             Some(Ok(Some(resolver))) => {
-                let slot = pathward::delivery::multiplex_slot(
+                let slot = omakase::delivery::multiplex_slot(
                     tasks.len() as u64,
                     seen,
                     accepted.elapsed().as_millis().min(u64::MAX as u128) as u64,
@@ -457,7 +457,7 @@ mod tests {
     #[test]
     fn real_quic_migration_zstd_and_early_proxy_rejection() {
         let backend = TcpListener::bind("127.0.0.1:0").unwrap();
-        let config=pathward_config::ParsedConfig::parse(&format!("capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nproxy-timeout \"request-body\" \"500ms\"\nencode \"gzip,zstd\"\n}}",backend.local_addr().unwrap())).unwrap();
+        let config=omakase_config::ParsedConfig::parse(&format!("capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nproxy-timeout \"request-body\" \"500ms\"\nencode \"gzip,zstd\"\n}}",backend.local_addr().unwrap())).unwrap();
         let server = Server::new(&config.compile().unwrap()).unwrap();
         let (identity, client) = configs();
         let tls = tls::TlsServer::new(identity).unwrap();

@@ -1,6 +1,6 @@
 #![cfg(target_os = "linux")]
-use pathward_config::ParsedConfig;
-use pathward_server::Server;
+use omakase_config::ParsedConfig;
+use omakase_server::Server;
 use std::{
     fs,
     io::{BufRead, BufReader, Read, Write},
@@ -24,7 +24,7 @@ fn with_server(test: impl FnOnce(SocketAddr)) {
 
 fn with_running_server(test: impl FnOnce(SocketAddr, &Server, &str)) {
     let path = std::env::temp_dir().join(format!(
-        "pathward-http-{}-{}",
+        "omakase-http-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -216,7 +216,7 @@ fn network_attacks_and_unlisted_or_linked_files_are_denied() {
 fn oversized_and_stalled_clients_cannot_grow_the_worker_pool() {
     with_server(|address| {
         let mut large = b"GET / HTTP/1.1\r\nHost: example.com\r\nX: ".to_vec();
-        large.resize(pathward_server::http::MAX_HEAD_BYTES, b'a');
+        large.resize(omakase_server::http::MAX_HEAD_BYTES, b'a');
         assert!(exchange(address, &large).starts_with(b"HTTP/1.1 431"));
         let mut streams = Vec::new();
         for _ in 0..32 {
@@ -245,7 +245,7 @@ fn oversized_and_stalled_clients_cannot_grow_the_worker_pool() {
 #[test]
 fn reload_switches_exclusive_proxy_and_file_modes_without_a_fallback() {
     let root = std::env::temp_dir().join(format!(
-        "pathward-proxy-switch-{}-{}",
+        "omakase-proxy-switch-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -325,7 +325,7 @@ fn reload_switches_exclusive_proxy_and_file_modes_without_a_fallback() {
 #[test]
 fn mixed_site_denials_and_static_failures_never_contact_the_fallback_proxy() {
     let root = std::env::temp_dir().join(format!(
-        "pathward-mixed-{}-{}",
+        "omakase-mixed-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)

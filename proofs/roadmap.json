@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "areas": {
-    "PathwardProofs": "パス検証・公開集合・補助補題",
+    "OmakaseProofs": "パス検証・公開集合・補助補題",
     "RulesProofs": "公開ルール生成と検索の対応",
     "ServingProofs": "Host・メソッド・ファイル属性の公開判断",
     "TlsProofs": "証明書の識別・期限・保存後の有効化",
@@ -207,9 +207,9 @@
       "acceptance": "実際のRustから抽出したstemが受理した場合、出力は入力と完全に同一。リテラルの+を空白に変換せず、percent escape・隠し成分・親参照は従来の拒否定理を維持する。転送先アプリによるURL解釈は前提として別管理。",
       "theorems": [
         "RoutingProofs.stem_preserves_bytes",
-        "PathwardProofs.published_bytes_safe",
-        "PathwardProofs.published_no_traversal",
-        "PathwardProofs.deny_unlisted"
+        "OmakaseProofs.published_bytes_safe",
+        "OmakaseProofs.published_no_traversal",
+        "OmakaseProofs.deny_unlisted"
       ]
     },
     {

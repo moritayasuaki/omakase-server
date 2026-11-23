@@ -42,11 +42,11 @@ fn lookup_preserves_the_original_receipt_and_refuses_a_spent_legacy_ticket() {
     use ring::rand::{SecureRandom, SystemRandom};
     let mut nonce = [0; 16];
     SystemRandom::new().fill(&mut nonce).unwrap();
-    let dir = std::env::temp_dir().join(format!("pathward-qmp-{}", encode(&nonce)));
+    let dir = std::env::temp_dir().join(format!("omakase-qmp-{}", encode(&nonce)));
     let vm = "00000000-0000-4000-8000-000000000001";
     let id = encode(&[1; 32]);
     let old = encode(&[2; 32]);
-    let witness = env!("CARGO_BIN_EXE_pathward-qmp-sleep");
+    let witness = env!("CARGO_BIN_EXE_omakase-qmp-sleep");
     let run = |mode: &str, args: &[&str]| {
         Command::new(witness)
             .arg(mode)

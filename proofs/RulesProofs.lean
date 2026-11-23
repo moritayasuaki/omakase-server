@@ -1,7 +1,7 @@
-import PathwardProofs
+import OmakaseProofs
 
 open Aeneas Aeneas.Std RustM
-open pathward PathwardProofs
+open omakase OmakaseProofs
 
 namespace RulesProofs
 

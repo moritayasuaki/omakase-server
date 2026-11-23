@@ -120,7 +120,7 @@
       "configFile": "lakefile.toml"
     }
   ],
-  "name": "pathward_proofs",
+  "name": "omakase_proofs",
   "lakeDir": ".lake",
   "fixedToolchain": false
 }

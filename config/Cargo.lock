@@ -51,15 +51,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "pathward"
+name = "omakase"
 version = "0.1.0"
 
 [[package]]
-name = "pathward-config"
+name = "omakase-config"
 version = "0.1.0"
 dependencies = [
  "kdl",
- "pathward",
+ "omakase",
 ]
 
 [[package]]

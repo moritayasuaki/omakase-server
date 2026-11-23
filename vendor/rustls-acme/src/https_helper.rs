@@ -2,7 +2,7 @@
 use futures_lite::{AsyncRead, AsyncReadExt, AsyncWriteExt, future};
 use futures_rustls::{TlsConnector, pki_types::ServerName, rustls::ClientConfig};
 use http::{Method, Response, Uri};
-use pathward::connection;
+use omakase::connection;
 use std::{
     future::Future,
     io,
@@ -264,7 +264,7 @@ async fn https_budget(
             .await?;
         let path = uri.path_and_query().map_or("/", |p| p.as_str());
         let head = format!(
-            "{method} {path} HTTP/1.1\r\nHost: {}\r\nUser-Agent: PathWard/0.1 rustls-acme/0.15.4\r\nContent-Type: application/jose+json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            "{method} {path} HTTP/1.1\r\nHost: {}\r\nUser-Agent: Omakase/0.1 rustls-acme/0.15.4\r\nContent-Type: application/jose+json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             client.authority,
             body.len()
         );

@@ -30,20 +30,20 @@ jobs:
         run: make soak SOAK_SECONDS=120 SOAK_REPORT=.tools/soak-calibration.json
       - name: Start one uninterrupted hour of load and renewal
         run: |
-          setsid python3 scripts/acme_integration.py --soak-seconds 3600 --report .tools/soak-hour.json > "$RUNNER_TEMP/pathward-soak.log" 2>&1 &
-          echo "$!" > "$RUNNER_TEMP/pathward-soak.pid"
+          setsid python3 scripts/acme_integration.py --soak-seconds 3600 --report .tools/soak-hour.json > "$RUNNER_TEMP/omakase-soak.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/omakase-soak.pid"
       - name: Verify 10-minute continuous checkpoint
-        run: python3 scripts/soak_checkpoint.py 600 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/pathward-soak.pid"
+        run: python3 scripts/soak_checkpoint.py 600 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/omakase-soak.pid"
       - name: Verify 20-minute continuous checkpoint
-        run: python3 scripts/soak_checkpoint.py 1200 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/pathward-soak.pid"
+        run: python3 scripts/soak_checkpoint.py 1200 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/omakase-soak.pid"
       - name: Verify 30-minute continuous checkpoint
-        run: python3 scripts/soak_checkpoint.py 1800 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/pathward-soak.pid"
+        run: python3 scripts/soak_checkpoint.py 1800 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/omakase-soak.pid"
       - name: Verify 40-minute continuous checkpoint
-        run: python3 scripts/soak_checkpoint.py 2400 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/pathward-soak.pid"
+        run: python3 scripts/soak_checkpoint.py 2400 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/omakase-soak.pid"
       - name: Verify 50-minute continuous checkpoint
-        run: python3 scripts/soak_checkpoint.py 3000 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/pathward-soak.pid"
+        run: python3 scripts/soak_checkpoint.py 3000 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/omakase-soak.pid"
       - name: Verify 60-minute continuous checkpoint
-        run: python3 scripts/soak_checkpoint.py 3600 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/pathward-soak.pid" --final
+        run: python3 scripts/soak_checkpoint.py 3600 --report .tools/soak-hour.json --pid "$RUNNER_TEMP/omakase-soak.pid" --final
       - name: Collect bounded reports and stop remaining test processes
         if: always()
         run: |
@@ -54,10 +54,10 @@ jobs:
               path = Path(".tools") / name
               if path.exists():
                   print("SOAK_REPORT " + path.read_text())
-          log = Path(os.environ["RUNNER_TEMP"]) / "pathward-soak.log"
+          log = Path(os.environ["RUNNER_TEMP"]) / "omakase-soak.log"
           if log.exists():
               print(log.read_text()[-16000:])
-          pidfile = Path(os.environ["RUNNER_TEMP"]) / "pathward-soak.pid"
+          pidfile = Path(os.environ["RUNNER_TEMP"]) / "omakase-soak.pid"
           if pidfile.exists():
               pid = int(pidfile.read_text())
               try:

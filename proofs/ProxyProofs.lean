@@ -1,6 +1,6 @@
 import ReleaseProofs
 open Aeneas Aeneas.Std RustM
-open pathward PathwardProofs RulesProofs ServingProofs ResponseProofs
+open omakase OmakaseProofs RulesProofs ServingProofs ResponseProofs
 namespace ProxyProofs
 
 abbrev modePolicy (r p d x : Bool) : Prop :=

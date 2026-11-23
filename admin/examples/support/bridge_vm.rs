@@ -1,6 +1,6 @@
 //! Cooperative legacy/native bridge switch, reverse migration and interrupted retry.
 use super::*;
-use pathward_admin::{bridge_rollout, publication, publication_gate};
+use omakase_admin::{bridge_rollout, publication, publication_gate};
 const OLD: &str = "pathward-hosting.service";
 const NEW: &str = "pathward-native-hosting.service";
 const POLICY: &str = "/etc/pathward/hosting.json";
@@ -41,7 +41,7 @@ fn ready(config: &Value, m: &str) -> Result<()> {
 fn switch(input: &Value, m: &str) -> Result<()> {
     let mut e = engine();
     let _l = e.lock()?;
-    bridge_rollout::switch(&mut e, input, m, &path("pathward-admin"), &mut |_| Ok(()))?;
+    bridge_rollout::switch(&mut e, input, m, &path("omakase-admin"), &mut |_| Ok(()))?;
     Ok(())
 }
 fn legacy_begin() -> Result<String> {
@@ -134,7 +134,7 @@ fn replay(uid: u32) -> Result<Value> {
                 path("legacy-bridge.py").to_str().unwrap(),
             ]),
         ),
-        ("new", words(&[path("pathward-hosting").to_str().unwrap()])),
+        ("new", words(&[path("omakase-hosting").to_str().unwrap()])),
     ] {
         let state = path("replay").join(format!("{label}-state"));
         dir(&state, false)?;
@@ -345,7 +345,7 @@ pub fn initialize() -> Result<()> {
         server.display()
     );
     let new_text = format!(
-        "[Unit]\nDescription=Native publication bridge\nRequires=pathward.service\nAfter=pathward.service\n[Service]\nType=simple\nUser=pathward\nExecStart={ROOT}/pathward-hosting reconcile --policy {ROOT}/native-policy.json --state {ROOT}/native-state --binary {} --control {ROOT}/service/control --receipt {RECEIPT} --watch\n{bridge_restrictions}[Install]\nWantedBy=multi-user.target\n",
+        "[Unit]\nDescription=Native publication bridge\nRequires=pathward.service\nAfter=pathward.service\n[Service]\nType=simple\nUser=pathward\nExecStart={ROOT}/omakase-hosting reconcile --policy {ROOT}/native-policy.json --state {ROOT}/native-state --binary {} --control {ROOT}/service/control --receipt {RECEIPT} --watch\n{bridge_restrictions}[Install]\nWantedBy=multi-user.target\n",
         server.display()
     );
     service(OLD, &old_text)?;
@@ -416,9 +416,9 @@ pub fn initialize() -> Result<()> {
         &server,
         &python,
         &path("legacy-bridge.py"),
-        &path("pathward-hosting"),
-        &path("pathward-publish"),
-        &path("pathward-admin"),
+        &path("omakase-hosting"),
+        &path("omakase-publish"),
+        &path("omakase-admin"),
         &path("role_fixture"),
         &path("publisher.json"),
         Path::new(POLICY),
@@ -432,9 +432,9 @@ pub fn initialize() -> Result<()> {
         .join("publication-fence.json")
         .to_str()
         .unwrap()] = codec::hash(&codec::encode(&fence)).into();
-    let old = json!({"units":{OLD:template("legacy-template.service",&old_text)?},"files":files,"executable_aliases":{"/usr/bin/python3":python},"check":check,"health":[path("pathward-admin"),"--root",engine().root,"bridge-health",path("publisher.json"),"legacy"]});
-    let new = json!({"units":{NEW:template("native-template.service",&new_text)?},"files":files,"check":check,"health":[path("pathward-admin"),"--root",engine().root,"bridge-health",path("publisher.json"),"native"]});
-    let input = json!({"schema":1,"minimum_free_bytes":134217728,"publisher":path("publisher.json"),"legacy_policy":POLICY,"account":"pathward","uid":uid,"gid":gid,"deployment_uid":65534,"deployment_gid":65534,"state":path("native-state"),"hosting_binary":path("pathward-hosting"),"server_binary":server,"fence":fence,"contract":{"selected":"new","old":old,"new":new}});
+    let old = json!({"units":{OLD:template("legacy-template.service",&old_text)?},"files":files,"executable_aliases":{"/usr/bin/python3":python},"check":check,"health":[path("omakase-admin"),"--root",engine().root,"bridge-health",path("publisher.json"),"legacy"]});
+    let new = json!({"units":{NEW:template("native-template.service",&new_text)?},"files":files,"check":check,"health":[path("omakase-admin"),"--root",engine().root,"bridge-health",path("publisher.json"),"native"]});
+    let input = json!({"schema":1,"minimum_free_bytes":134217728,"publisher":path("publisher.json"),"legacy_policy":POLICY,"account":"pathward","uid":uid,"gid":gid,"deployment_uid":65534,"deployment_gid":65534,"state":path("native-state"),"hosting_binary":path("omakase-hosting"),"server_binary":server,"fence":fence,"contract":{"selected":"new","old":old,"new":new}});
     record("bridge-input.json", &input)?;
     record(
         "bridge-report.json",
@@ -507,7 +507,7 @@ pub fn cases() -> Result<()> {
         {
             let _l = e.lock()?;
             let err =
-                bridge_rollout::prepare(&mut e, &invalid, &path("pathward-admin"), &mut |_| Ok(()))
+                bridge_rollout::prepare(&mut e, &invalid, &path("omakase-admin"), &mut |_| Ok(()))
                     .expect_err("live unit resource accepted");
             require(
                 err.to_string() == "live unit files cannot be sealed resources",
@@ -533,7 +533,7 @@ pub fn cases() -> Result<()> {
         emit("PW_BRIDGE_STAGE live unit resource rejected after partial preparation")?;
         {
             let _l = e.lock()?;
-            bridge_rollout::prepare(&mut e, &input, &path("pathward-admin"), &mut |_| Ok(()))?;
+            bridge_rollout::prepare(&mut e, &input, &path("omakase-admin"), &mut |_| Ok(()))?;
         }
         unchanged(&before)?;
         require(
@@ -613,7 +613,7 @@ pub fn cases() -> Result<()> {
                     "-u",
                     "nobody",
                     "--",
-                    path("pathward-publish").to_str().unwrap(),
+                    path("omakase-publish").to_str().unwrap(),
                     "describe",
                     "--config",
                     path("publisher.json").to_str().unwrap(),
@@ -626,7 +626,7 @@ pub fn cases() -> Result<()> {
                 !accepted && error.contains("noncanonical source"),
                 &format!("unexpected authority refusal: {error}"),
             )?;
-            let old_hash = hash(&path("pathward-publish"))?;
+            let old_hash = hash(&path("omakase-publish"))?;
             let staged = stage("site0", "BEFORE PUBLISHER UPGRADE")?;
             for side in ["old", "new"] {
                 input["contract"][side]["files"][path("candidate-publisher").to_str().unwrap()] =
@@ -636,7 +636,7 @@ pub fn cases() -> Result<()> {
             put(&upgrade, &codec::canonical(&input), 0o600)?;
             // Exercise the retained, already-installed administrator itself.
             run(&[
-                path("pathward-admin").to_str().unwrap(),
+                path("omakase-admin").to_str().unwrap(),
                 "--root",
                 engine().root.to_str().unwrap(),
                 "bridge-native",
@@ -646,7 +646,7 @@ pub fn cases() -> Result<()> {
             put(&path("use-candidate-publisher"), b"1", 0o600)?;
             record("bridge-input.json", &input)?;
             require(
-                hash(&path("pathward-publish"))? == old_hash,
+                hash(&path("omakase-publish"))? == old_hash,
                 "publisher upgrade overwrote sealed legacy binary",
             )?;
             let description = codec::parse(native("describe", "site8", &[])?.as_bytes())?;
@@ -682,7 +682,7 @@ pub fn cases() -> Result<()> {
                     0o600,
                 )?;
                 run(&[
-                    path("pathward-admin").to_str().unwrap(),
+                    path("omakase-admin").to_str().unwrap(),
                     "--root",
                     engine().root.to_str().unwrap(),
                     "manual-publish",
@@ -720,7 +720,7 @@ pub fn cases() -> Result<()> {
             &mut e,
             &input,
             "native",
-            &path("pathward-admin"),
+            &path("omakase-admin"),
             &mut |label| {
                 if label == "unit-pathward-native-hosting.service:durable" {
                     emit("PW_CUT_POWER bridge-partial-unit")?;

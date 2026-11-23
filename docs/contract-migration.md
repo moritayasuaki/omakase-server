@@ -1,6 +1,6 @@
 # Native service-role and startup-contract migration
 
-`admin/` builds `pathward-admin`, a Rust administrator and boot-recovery program.
+`admin/` builds `omakase-admin`, a Rust administrator and boot-recovery program.
 It imports a stable, completed PR #15 managed guard and can then change service
 names, OLD/NEW roles, unit definitions and `simple`, `exec` or `notify` startup.
 Migration drains all affected services before changing their contracts. Plan a
@@ -25,9 +25,9 @@ The CLI requires Linux root. Every mutation shares the existing
 private JSON input and retain its SHA-256 independently, then run:
 
 ```
-pathward-admin --root /opt/pathward-native prepare /root/role-input.json INPUT_SHA256
-pathward-admin --root /opt/pathward-native apply REQUEST_SHA256
-pathward-admin --root /opt/pathward-native status
+omakase-admin --root /opt/pathward-native prepare /root/role-input.json INPUT_SHA256
+omakase-admin --root /opt/pathward-native apply REQUEST_SHA256
+omakase-admin --root /opt/pathward-native status
 ```
 
 Preparation prints `PREPARED_NATIVE_REQUEST` and the exact sealed request hash.

@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT/'deploy/pathward_recovery.py'
 spec = importlib.util.spec_from_file_location('recovery', SOURCE)
 recovery = importlib.util.module_from_spec(spec); spec.loader.exec_module(recovery)
-KERNEL = Path(os.environ.get('PATHWARD_RECOVERY_BINARY', Path(os.environ.get('CARGO_TARGET_DIR', ROOT/'target'))/'release/pathward-recovery'))
+KERNEL = Path(os.environ.get('OMAKASE_RECOVERY_BINARY', Path(os.environ.get('CARGO_TARGET_DIR', ROOT/'target'))/'release/omakase-recovery'))
 
 
 class RecoveryTests(unittest.TestCase):

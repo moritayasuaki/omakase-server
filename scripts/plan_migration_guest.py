@@ -42,12 +42,12 @@ def prepare(n):
     current=u.current(STORE);old=u.validate_generation(current)
     plan=dict(old,transaction=f'{n:032x}',journal=str(ROOT/f'journal-{n}.json'),
               permit=f'/run/pathward-plan-{n}/permit.json',state_seed=r.journal(old),
-              kernel=str(ROOT/'pathward-recovery'),kernel_sha256=r.digest_file(ROOT/'pathward-recovery'))
+              kernel=str(ROOT/'omakase-recovery'),kernel_sha256=r.digest_file(ROOT/'omakase-recovery'))
     path=ROOT/f'plan-{n}.json';r.write_record(path,plan)
     candidate=ROOT/f'helper-{n}.py'
     b.file(candidate,(ROOT/'pathward_recovery.py').read_bytes()+f'\n# Reviewed migration {n}\n'.encode(),0o600)
     return m.prepare_migration(STORE,UNITS,path,r.digest_file(path),candidate,r.digest_file(candidate),
-                               ROOT/'pathward-recovery',r.digest_file(ROOT/'pathward-recovery'),request(n))
+                               ROOT/'omakase-recovery',r.digest_file(ROOT/'omakase-recovery'),request(n))
 def apply(n,checkpoint=lambda _:None):return m.apply_migration(request(n),r.digest_file(request(n)),checkpoint)
 def gc(checkpoint=lambda _:None):return m.apply_gc(ROOT/'collect.json',r.digest_file(ROOT/'collect.json'),checkpoint)
 def cut(stage):
@@ -73,7 +73,7 @@ def run():
             candidate=ROOT/'adopt.py';b.file(candidate,(ROOT/'pathward_recovery.py').read_bytes()+b'\n# adoption\n',0o600)
             req=ROOT/'adopt.json'
             sha=u.prepare(STORE,UNITS,b.PLAN,r.digest_file(b.PLAN),ROOT/'pathward_recovery.py',r.digest_file(ROOT/'pathward_recovery.py'),
-                          candidate,r.digest_file(candidate),ROOT/'pathward-recovery',r.digest_file(ROOT/'pathward-recovery'),req)
+                          candidate,r.digest_file(candidate),ROOT/'omakase-recovery',r.digest_file(ROOT/'omakase-recovery'),req)
             assert u.apply(req,sha)['epoch']==1
         elif case<=4:assert apply(case+1)['epoch']==case+1
         report['results'].append({'case':case,'selected':side,'epoch':u.current(STORE)['epoch']})
@@ -108,7 +108,7 @@ def run():
             source_sha=r.digest_file(plan['journal']);prepare(7);assert apply(7)['epoch']==7
             assert r.digest_file(plan['journal'])==source_sha
             assert b.command('systemctl','show','test-new.service','--property=MainPID','--value')==pid
-            try:m.prepare_gc(STORE,UNITS,ROOT/'pathward-recovery',r.digest_file(ROOT/'pathward-recovery'),ROOT/'too-soon.json')
+            try:m.prepare_gc(STORE,UNITS,ROOT/'omakase-recovery',r.digest_file(ROOT/'omakase-recovery'),ROOT/'too-soon.json')
             except RuntimeError as error:assert 'later boot' in str(error)
             else:raise AssertionError('Same-boot collection allowed')
             prepare(8) # A prepared future plan must remain available across GC.
@@ -117,7 +117,7 @@ def run():
             save(report,5);b.emit('PW_COLD_REBOOT plan handoff complete')
         elif case==5:
             assert apply(7)['epoch']==7
-            m.prepare_gc(STORE,UNITS,ROOT/'pathward-recovery',r.digest_file(ROOT/'pathward-recovery'),ROOT/'collect.json')
+            m.prepare_gc(STORE,UNITS,ROOT/'omakase-recovery',r.digest_file(ROOT/'omakase-recovery'),ROOT/'collect.json')
             save(report,6);gc(cut('gc:moved:generations'));raise RuntimeError('Missing GC rename cut')
         elif case==6:
             save(report,7);gc(cut('gc:unlink:pathward-recovery.service'));raise RuntimeError('Missing GC unlink cut')
@@ -132,7 +132,7 @@ def run():
             report.update(final_epoch=7,collected=result,retained_epochs=sorted(r.read_record(p/'manifest.json')['epoch'] for p in (STORE/'generations').iterdir()),
                           protected_objects_preserved=True,completed_retry_after_gc=True,
                           initial_kernel_sha256=r.digest_file(ROOT/'initial-recovery') if (ROOT/'initial-recovery').exists() else None,
-                          kernel_sha256=r.digest_file(ROOT/'pathward-recovery'),
+                          kernel_sha256=r.digest_file(ROOT/'omakase-recovery'),
                           versions={'systemd':b.command('systemd','--version').splitlines()[0],'kernel':b.command('uname','-r'),'python':sys.version.split()[0]})
             b.emit('PW_VM_RECOVERY_PASS '+json.dumps(report,sort_keys=True));b.command('systemctl','poweroff');return
     b.command('systemctl','reboot')

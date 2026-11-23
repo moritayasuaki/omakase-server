@@ -38,13 +38,13 @@ def port():
         sock.bind(("127.0.0.1", 0))
         return sock.getsockname()[1]
 
-with tempfile.TemporaryDirectory(prefix="pathward-acme-integration-") as temporary:
+with tempfile.TemporaryDirectory(prefix="omakase-acme-integration-") as temporary:
     os.umask(0o077)
     work = Path(temporary)
     # All private keys are ephemeral test keys and never enter the repository.
     with (work / "openssl.log").open("w") as log:
         commands = [
-            ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "2", "-subj", "/CN=PathWard Test CA", "-keyout", "ca.key", "-out", "ca.pem"],
+            ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "2", "-subj", "/CN=Omakase Test CA", "-keyout", "ca.key", "-out", "ca.pem"],
             ["req", "-newkey", "rsa:2048", "-nodes", "-subj", "/CN=localhost", "-keyout", "server.key", "-out", "server.csr"],
             ["x509", "-req", "-days", "2", "-in", "server.csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial", "-extfile", "extensions", "-out", "server.pem"],
         ]
@@ -94,7 +94,7 @@ with tempfile.TemporaryDirectory(prefix="pathward-acme-integration-") as tempora
     config = {"pebble": {"listenAddress": f"127.0.0.1:{api}", "managementListenAddress": f"127.0.0.1:{management}",
         "certificate": str(work / "server.pem"), "privateKey": str(work / "server.key"),
         "httpPort": port(), "tlsPort": serving, "keyAlgorithm": "ecdsa",
-        "profiles": {"default": {"description": "PathWard local renewal test", "validityPeriod": 60 if args.soak_seconds or args.rehearsal else 30}}}}
+        "profiles": {"default": {"description": "Omakase local renewal test", "validityPeriod": 60 if args.soak_seconds or args.rehearsal else 30}}}}
     (work / "pebble.json").write_text(json.dumps(config))
     env = dict(os.environ, PEBBLE_VA_NOSLEEP="1", PEBBLE_WFE_NONCEREJECT="0", PEBBLE_AUTHZREUSE="0")
     # Validation is real: deliberately do NOT set PEBBLE_VA_ALWAYS_VALID.
@@ -114,9 +114,9 @@ with tempfile.TemporaryDirectory(prefix="pathward-acme-integration-") as tempora
                     time.sleep(0.1)
             else:
                 raise RuntimeError("Pebble startup timeout")
-            env.update(PATHWARD_TEST_CA=str(work / "ca.pem"), PATHWARD_TEST_ISSUER=str(work / "issued-root.pem"),
-                       PATHWARD_TEST_DIRECTORY=f"https://localhost:{api}/dir", PATHWARD_TEST_PORT=str(serving),
-                       PATHWARD_TEST_FALLBACK_CERT=str(work / "server.pem"), PATHWARD_TEST_FALLBACK_KEY=str(work / "server.key"))
+            env.update(OMAKASE_TEST_CA=str(work / "ca.pem"), OMAKASE_TEST_ISSUER=str(work / "issued-root.pem"),
+                       OMAKASE_TEST_DIRECTORY=f"https://localhost:{api}/dir", OMAKASE_TEST_PORT=str(serving),
+                       OMAKASE_TEST_FALLBACK_CERT=str(work / "server.pem"), OMAKASE_TEST_FALLBACK_KEY=str(work / "server.key"))
             command = ([sys.executable, "scripts/soak.py", "--seconds", str(args.soak_seconds), "--report", args.report]
                        if args.soak_seconds else ["cargo", "+1.99.1", "test", "--offline", "--locked", "--manifest-path", "server/Cargo.toml", "--test", "acme_lifecycle", "--", "--ignored", "--nocapture", "--test-threads=1"])
             if args.rehearsal:

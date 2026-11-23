@@ -443,6 +443,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "521739c6d2bac4aa25192232afe6841231376b2b26d4d9fae5ecf8ca5772e441"
 
 [[package]]
+name = "omakase"
+version = "0.1.0"
+
+[[package]]
+name = "omakase-server-dependency-review"
+version = "0.0.0"
+dependencies = [
+ "axum",
+ "rustls",
+ "rustls-acme",
+ "tower-http",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -453,20 +467,6 @@ name = "parking"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f38d5652c16fde515bb1ecef450ab0f6a219d619a7274976324d5e377f7dceba"
-
-[[package]]
-name = "pathward"
-version = "0.1.0"
-
-[[package]]
-name = "pathward-server-dependency-review"
-version = "0.0.0"
-dependencies = [
- "axum",
- "rustls",
- "rustls-acme",
- "tower-http",
-]
 
 [[package]]
 name = "pem"
@@ -604,7 +604,7 @@ dependencies = [
  "futures-rustls",
  "http",
  "httparse",
- "pathward",
+ "omakase",
  "rcgen",
  "ring",
  "serde",

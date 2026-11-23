@@ -1,5 +1,5 @@
 //! Real PID 1 and persistent filesystem assertions. No Python in this driver.
-use pathward_admin::{
+use omakase_admin::{
     Result, codec,
     engine::{Engine, Environment},
     require, storage as f,
@@ -44,7 +44,7 @@ fn engine() -> Engine<Real> {
         sys: Real,
     }
 }
-fn settled_lock(e: &Engine<Real>) -> Result<pathward_admin::engine::AdministrationLease> {
+fn settled_lock(e: &Engine<Real>) -> Result<omakase_admin::engine::AdministrationLease> {
     // A listening fallback can be visible just before its recovery worker
     // finishes the final health check and releases the shared lock.
     let until = std::time::Instant::now() + Duration::from_secs(30);
@@ -125,7 +125,7 @@ fn initialize() -> Result<()> {
     let initial = json!({"phase":"committed","transaction":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","prepared_at":1793950000.125});
     f::write_record(&journal, &initial, "fixture", &mut |_| Ok(()))?;
     let mut value = json!({"schema":1,"transaction":initial["transaction"],"journal":journal,"permit":"/run/pathward-recovery/permit.json",
-        "kernel":p("pathward-recovery"),"kernel_sha256":digest(&p("pathward-recovery"))?,"state_seed":initial});
+        "kernel":p("omakase-recovery"),"kernel_sha256":digest(&p("omakase-recovery"))?,"state_seed":initial});
     for (side, label) in [("old", "OLD"), ("new", "SOURCE")] {
         let name = format!("test-{side}.service");
         file(&Path::new(UNITS).join(&name), &unit(label, "simple"), 0o644)?;
@@ -266,7 +266,7 @@ fn run() -> Result<()> {
     let id = if case == 0 {
         let id = e.prepare(
             &f::record(&p("input.json"))?,
-            &p("pathward-admin"),
+            &p("omakase-admin"),
             &mut |_| Ok(()),
         )?;
         file(&p("request"), &id, 0o600)?;
@@ -340,7 +340,7 @@ fn run() -> Result<()> {
         let input = json!({"source_current":id,"target":{"selected":"new",
             "old":fixture_role("test-new.service","FALLBACK","notify")?,
             "new":fixture_role("test-third.service","THIRD","notify")?}});
-        let next = e.prepare(&input, &p("pathward-admin"), &mut |_| Ok(()))?;
+        let next = e.prepare(&input, &p("omakase-admin"), &mut |_| Ok(()))?;
         e.apply(&next, &mut |_| Ok(()))?;
         probe("THIRD")?;
         file(&p("second-request"), &next, 0o600)?;
@@ -438,7 +438,7 @@ fn run() -> Result<()> {
         report["role_rename_and_notify_primary"] = true.into();
         report["native_runtime_has_no_python"] = true.into();
         report["final_request"] = active.into();
-        report["admin_sha256"] = digest(&p("pathward-admin"))?.into();
+        report["admin_sha256"] = digest(&p("omakase-admin"))?.into();
         report["versions"] = json!({"systemd":command(&["/usr/bin/systemd","--version"])?.lines().next(),"kernel":command(&["/usr/bin/uname","-r"])?.trim()});
         save("report.json", &report)?;
         emit(&format!(

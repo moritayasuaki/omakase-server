@@ -1,6 +1,6 @@
 import UpstreamProofs
 
-open Aeneas Aeneas.Std RustM pathward
+open Aeneas Aeneas.Std RustM omakase
 namespace PlatformProofs
 
 /- The adapter supplies ordered samples from one generation clock. -/

@@ -51,7 +51,7 @@ TCP tunnel, a compressed shared tunnel, and 24 independent SOCKS tunnels with
 one per browser context. The latter preserve the same browser origin and
 loopback source identity; browser proxy bypass is disabled only for loopback
 so requests actually take the test tunnel. None is a public-link performance
-benchmark, and SSH compression does not implement PathWard HTTP compression. The application uses captured public
+benchmark, and SSH compression does not implement Omakase HTTP compression. The application uses captured public
 frontend files and two separately launched backend versions with synthetic state
 and empty private-photo storage. Six rooms are created through the actual UI,
 with one host and three guests in each; all 24 actor IDs must be distinct.
@@ -90,7 +90,7 @@ Browser counters and server counters are reported separately: browser cache and
 request cancellation mean they are not interchangeable request totals.
 
 The entire server group has CPUQuota=100%, MemoryMax=512M and TasksMax=128.
-One-second samples enforce PathWard RSS <256 MiB, at most 32 threads and 512 FDs.
+One-second samples enforce Omakase RSS <256 MiB, at most 32 threads and 512 FDs.
 The browser harness caps summed process RSS at 12 GiB and stops if OS-reported
 free memory falls below 15%. Summed Chrome RSS double-counts shared memory; it
 is not unique physical memory usage. Production Caddy/config/routes/service PIDs
@@ -179,7 +179,7 @@ server before accepting cold-entry and reconnect latency.
 Full replacement remains gated on all current host/route/header/publication
 policies, deployment ownership, real-entry-point recovery and external alerts.
 One inspected long-response upstream allows six concurrent connections; the
-current PathWard service maximum is three. This difference and shared-worker
+current Omakase service maximum is three. This difference and shared-worker
 occupancy must be resolved or explicitly accepted before full migration.
 
 Primary browser references: [Chrome Headless](https://developer.chrome.com/docs/automation-and-testing/headless),
@@ -191,14 +191,14 @@ Primary browser references: [Chrome Headless](https://developer.chrome.com/docs/
 The [sanitized result](browser-capacity-result-2026-11-02.json) records the failed
 acceptance result, earlier candidates, exact binary/source identity and counters.
 The last run completed 229 configuration switches and rejected 33 attempted
-capacity changes without mixed-release/private-file failures. PathWard peaked at
+capacity changes without mixed-release/private-file failures. Omakase peaked at
 14,544 KiB sampled RSS, 25 threads and 25 descriptors; these measurements are not
 worst-case capacity guarantees. All three isolated server processes exited with
 code zero. Seven retained environment comparisons found production configuration,
 routes, service PIDs and TCP listeners unchanged.
 
-Runtime source `3a919a1` passed [Linux/Rust/Lean CI](https://github.com/moritayasuaki/pathward/actions/runs/41428275462).
-The documentation/audit snapshot `99b0c85` also passed [PR CI](https://github.com/moritayasuaki/pathward/actions/runs/41443505623).
+Runtime source `3a919a1` passed [Linux/Rust/Lean CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41428275462).
+The documentation/audit snapshot `99b0c85` also passed [PR CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41443505623).
 Neither green CI nor bounded-resource proofs turn the failed browser acceptance
 into a pass.
 

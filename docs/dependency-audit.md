@@ -20,7 +20,7 @@ implementation. The original high-level candidate remains unused.
 `std`, `axum`, `tower-http`, `rustls`, and `rustls-acme` are permitted for the
 future server, subject to the integration requirements below. **This is a
 dependency and focused source review, not approval to expose a server yet.**
-There is no server in this revision. The proved `pathward` core still has zero
+There is no server in this revision. The proved `omakase` core still has zero
 external dependencies, and its Lean statements do not extend to these libraries.
 
 The isolated [candidate manifest](../audit/server-stack/Cargo.toml), its
@@ -76,7 +76,7 @@ Recent certificate-verification advisories were checked explicitly:
 
 ## Integration findings
 
-These are observed upstream behaviors and requirements for PathWard's future
+These are observed upstream behaviors and requirements for Omakase's future
 integration, not claims of newly discovered upstream vulnerabilities. They
 remain open because a server adapter has not been implemented.
 
@@ -197,7 +197,7 @@ The proof extractor remains on its compatible nightly, a distinct trust boundary
 See [official release notes](https://doc.rust-lang.org/releases.html).
 
 The ring provider includes native code/build scripts. Neither `forbid(unsafe_code)`
-in PathWard nor the Lean proofs certify that provider, Tokio, Hyper, Rustls,
+in Omakase nor the Lean proofs certify that provider, Tokio, Hyper, Rustls,
 the compiler, or OS. No third-party TLS verifier, permissive certificate verifier,
 TLS key logging, or 0-RTT policy is approved by this review. Dependencies and
 procedural macros also execute code during builds; the inventory is not a

@@ -1,5 +1,5 @@
 import RoutingProofs
-open Aeneas Aeneas.Std RustM pathward
+open Aeneas Aeneas.Std RustM omakase
 namespace UpstreamProofs
 
 theorem probe_eq (g c r : Bool) (b n : U64) :
@@ -76,7 +76,7 @@ theorem pool_selected_member (m : Slice U32) (i : Usize) (r d s : Bool) (out : U
     · by_cases bound : i < Slice.len m
       · have hi : i.val < m.val.length := by simpa using bound
         have eq : m.val[i.val] = out := by
-          simpa [upstream.pool_select, cap, bound, PathwardProofs.index_eq m i hi] using select
+          simpa [upstream.pool_select, cap, bound, OmakaseProofs.index_eq m i hi] using select
         exact ⟨eq ▸ List.getElem_mem hi, rfl, rfl, rfl⟩
       · simp_all [upstream.pool_select]
     · simp_all [upstream.pool_select]
@@ -203,7 +203,7 @@ theorem pool_select_exact (m : Slice U32) (i : Usize) (ready drain sent : Bool) 
   by_cases cap : Slice.len m ≤ 32#usize
   · by_cases bound : i < Slice.len m
     · have hi : i.val < m.val.length := by simpa using bound
-      simp [upstream.pool_select, memberAt, cap, bound, hi, PathwardProofs.index_eq m i hi]
+      simp [upstream.pool_select, memberAt, cap, bound, hi, OmakaseProofs.index_eq m i hi]
     · have hi : ¬ i.val < m.val.length := by simpa using bound
       simp [upstream.pool_select, memberAt, cap, bound, hi]
   · simp [upstream.pool_select, memberAt, cap]

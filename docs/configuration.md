@@ -1,6 +1,6 @@
 # KDL configuration
 
-PathWard reads a deliberately restricted profile of **KDL 2**, then compiles
+Omakase reads a deliberately restricted profile of **KDL 2**, then compiles
 explicit URL-to-file declarations through the dependency-free, Lean-verified
 Rust rule compiler. The CLI validates and resolves rules; it does not serve files
 or obtain certificates. The separate [Linux HTTP server](http-serving.md) can now
@@ -33,8 +33,8 @@ From the repository root:
 
 ```sh
 make config-setup  # Explicit fetch of the pinned parser dependencies, once.
-cargo run --offline --locked --manifest-path config/Cargo.toml -- check examples/Pathward.kdl
-cargo run --offline --locked --manifest-path config/Cargo.toml -- resolve examples/Pathward.kdl example.com /style.css
+cargo run --offline --locked --manifest-path config/Cargo.toml -- check examples/Omakase.kdl
+cargo run --offline --locked --manifest-path config/Cargo.toml -- resolve examples/Omakase.kdl example.com /style.css
 ```
 
 The check prints `OK: 1 site(s), 2 publication(s)`. Resolution prints:
@@ -128,9 +128,9 @@ same URL and therefore conflict. URL percent escapes are never decoded.
 ## Rust API and verification boundary
 
 ```rust
-use pathward_config::ParsedConfig;
+use omakase_config::ParsedConfig;
 
-let parsed = ParsedConfig::parse(include_str!("../../examples/Pathward.kdl"))?;
+let parsed = ParsedConfig::parse(include_str!("../../examples/Omakase.kdl"))?;
 let compiled = parsed.compile()?;
 let site = compiled.site("example.com").expect("configured host");
 assert_eq!(site.resolve(b"/style.css"), Some("assets/style.css"));
@@ -140,9 +140,9 @@ assert_eq!(site.resolve(b"/unlisted"), None);
 `ParsedConfig` owns the AST and decoded strings. `CompiledConfig` borrows them;
 keep the parsed value alive while using the compiled configuration. Fields are
 private, and published tables are exposed only as shared slices. The adapter
-builds each table, calls `pathward::rules::compile`, and moves that same vector
+builds each table, calls `omakase::rules::compile`, and moves that same vector
 into the compiled site without adding or changing entries. `resolve` calls the
-verified `pathward::rules::lookup`.
+verified `omakase::rules::lookup`.
 
 Lean verifies the extracted Rust compiler/lookup on those byte declarations:
 whole-table validity, duplicate rejection, unchanged declarations, and exact

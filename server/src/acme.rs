@@ -49,6 +49,7 @@ impl Groups {
         HttpsClient::new(directory, client.clone())?;
         let groups = partition(domains, groups)?;
         let parent = SecretStore::open(cache, roots)?;
+        // Versioned cache identities must match already issued accounts and certificates.
         parent.bind(
             format!(
                 "pathward-acme-groups-v1\n{directory}\n{}\n",
@@ -286,7 +287,7 @@ impl Manager {
             .ok()
             .and_then(|c| {
                 c.as_ref()
-                    .map(|c| pathward::tls::renewal_due(c.not_before, c.not_after, now))
+                    .map(|c| omakase::tls::renewal_due(c.not_before, c.not_after, now))
             })
             .unwrap_or(true)
     }
@@ -423,7 +424,7 @@ impl Manager {
                         c.as_ref().map(|c| {
                             if now < c.not_before || now >= c.not_after {
                                 "unavailable"
-                            } else if pathward::tls::renewal_due(c.not_before, c.not_after, now) {
+                            } else if omakase::tls::renewal_due(c.not_before, c.not_after, now) {
                                 "renewal_due"
                             } else {
                                 "ready"
@@ -462,7 +463,7 @@ impl Manager {
                     }
                     let result = result.and_then(|pem| {
                         let cert = Certificate::parse(&pem, &self.domains)?;
-                        if !pathward::tls::activate(
+                        if !omakase::tls::activate(
                             cert.not_before,
                             cert.not_after,
                             unix_now()?,

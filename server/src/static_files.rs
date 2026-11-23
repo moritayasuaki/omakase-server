@@ -3,7 +3,7 @@ use crate::{
     files::OpenedFile,
     http::{Rejection, Request},
 };
-use pathward_config::CachePolicy;
+use omakase_config::CachePolicy;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub(crate) struct Plan {
@@ -111,7 +111,7 @@ fn range(value: &[u8], size: u64) -> Option<Result<(u64, u64), ()>> {
         }
         (start, end.min(size - 1) - start + 1)
     };
-    Some(if pathward::content::span_allowed(size, span.0, span.1) {
+    Some(if omakase::content::span_allowed(size, span.0, span.1) {
         Ok(span)
     } else {
         Err(())
@@ -157,7 +157,7 @@ pub(crate) fn plan(
     let ius = date(header(req, "if-unmodified-since")?);
     let inm = header(req, "if-none-match")?;
     let ims = date(header(req, "if-modified-since")?);
-    let status = pathward::content::precondition_status(
+    let status = omakase::content::precondition_status(
         im.map(|v| tag_matches(v, &tag, true)).transpose()?,
         modified.zip(ius).map(|(m, d)| m <= d),
         inm.map(|v| tag_matches(v, &tag, false)).transpose()?,
@@ -208,10 +208,10 @@ pub(crate) fn plan(
         CachePolicy::Public { seconds, .. } => seconds,
         _ => 0,
     };
-    if pathward::content::shared_cache_allowed(plan.status, true, credentials, seconds) {
+    if omakase::content::shared_cache_allowed(plan.status, true, credentials, seconds) {
         plan.cache = cache.value();
     }
-    if !pathward::content::span_allowed(file.length, plan.start, plan.count) {
+    if !omakase::content::span_allowed(file.length, plan.start, plan.count) {
         return Err(Rejection(500));
     }
     Ok(plan)

@@ -12,7 +12,7 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = ROOT / "server/target/release/pathward-server"
+BINARY = ROOT / "server/target/release/omakase-server"
 
 def response(stream):
     chunks = []
@@ -40,12 +40,12 @@ def wait_for(check, seconds=8):
         time.sleep(.03)
     raise AssertionError("condition timed out")
 
-with tempfile.TemporaryDirectory(prefix="pathward-runtime-") as temporary:
+with tempfile.TemporaryDirectory(prefix="omakase-runtime-") as temporary:
     directory = Path(temporary)
     for name in ("old", "new"):
         (directory / name).mkdir()
         (directory / name / "index.html").write_text(name.upper())
-    config = directory / "Pathward.kdl"
+    config = directory / "Omakase.kdl"
     def content(root, host="example.com", path="/"):
         return f'site "{host}" {{\nroot "{root}"\npublish "{path}" "index.html"\nredirect "/legacy" "example.com" "/new" "308"\nheader "*" "referrer-policy" "no-referrer"\nheader "/new" "referrer-policy" "same-origin"\ntls "auto"\n}}\n'
     def replace(text):

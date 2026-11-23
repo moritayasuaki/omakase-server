@@ -62,7 +62,7 @@ pub fn capture(args: &[String], seconds: u64, limit: u64) -> Result<(bool, Strin
         "invalid command",
     )?;
     let name = std::env::temp_dir().join(format!(
-        "pathward-admin-output-{}-{}",
+        "omakase-admin-output-{}-{}",
         std::process::id(),
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));

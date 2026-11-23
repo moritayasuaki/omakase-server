@@ -1,15 +1,32 @@
-# PathWard
+# Omakase
 
-A small Rust path authorization and publication-rule compiler, with Lean proofs
-tied to the Rust implementation through Charon and Aeneas extraction. A separate
-KDL configuration crate turns explicit site declarations into checked rules.
-A separate Linux HTTP/1.1 and HTTP/2 server serves those rules with descriptor-based file
-opening, rustls TLS, private ACME key storage and automatic certificate renewal.
-Explicit whole-host delegation to a bounded local HTTP reverse proxy is also available.
+Omakase is a Rust web server and reverse proxy. It serves static files from an
+explicit allowlist, manages HTTPS certificates automatically, and can route
+requests to a pool of local backends. It supports HTTP/1.1 and HTTP/2, with
+opt-in HTTP/3. The authorization core is verified in Lean against code
+extracted from Rust with Charon and Aeneas.
 
 The Rust library has **zero external dependencies**, uses `no_std`, forbids
 `unsafe`, allocates nothing, and performs no I/O. Verification tools are separate
 development dependencies; they are not linked into the library.
+
+## Upgrading from PathWard
+
+The GitHub repository is now [omakase-server](https://github.com/moritayasuaki/omakase-server).
+New builds produce `omakase-server`, `omakase-config`, `omakase-admin`,
+`omakase-hosting`, `omakase-publish`, `omakase-recovery`, and `omakase-qmp-sleep`.
+Rust consumers can use the `omakase` crate. The example configuration is
+[`examples/Omakase.kdl`](examples/Omakase.kdl). Existing KDL files work with
+their original names.
+
+For an existing installation, keep its service account, systemd unit names,
+configured paths, and ACME cache. Use the normal reviewed binary update for
+any executable pinned by a deployment contract. The Linux sleep coordinator
+still uses `/usr/local/libexec/pathward-server` as its installed executable and
+`/run/pathward-sleep.gate` as its shared lock. Certificate cache identities,
+signed sleep receipts, publication records, and `pathward_*` monitoring names
+remain compatible across the rename. The proxy recognizes both names in
+`Via` headers so a mixed-version chain can still detect a loop.
 
 ## KDL configuration
 
@@ -24,8 +41,8 @@ site "example.com" {
 
 ```sh
 make config-setup
-cargo run --offline --locked --manifest-path config/Cargo.toml -- check examples/Pathward.kdl
-cargo run --offline --locked --manifest-path config/Cargo.toml -- resolve examples/Pathward.kdl example.com /style.css
+cargo run --offline --locked --manifest-path config/Cargo.toml -- check examples/Omakase.kdl
+cargo run --offline --locked --manifest-path config/Cargo.toml -- resolve examples/Omakase.kdl example.com /style.css
 ```
 
 Only listed URL-to-file pairs resolve. Unknown settings, duplicate decoded URLs,
@@ -45,7 +62,7 @@ before planning deployment or a Caddy migration.
 ```sh
 make server-setup
 make server-build
-server/target/release/pathward-server serve-http examples/Pathward.kdl 127.0.0.1:8080
+server/target/release/omakase-server serve-http examples/Omakase.kdl 127.0.0.1:8080
 curl -H 'Host: example.com' http://127.0.0.1:8080/
 ```
 
@@ -78,7 +95,7 @@ denied subtrees, explicit local files and proxy scopes, with bounded service bud
 For interchangeable local replicas, configure a [per-route backend pool](docs/reverse-proxy.md#local-backend-pools)
 with HTTP readiness checks, pre-send failover and graceful drain through reload.
 Linux pooled routes require the [sleep coordinator](docs/pool-platform-contract.md#installing-the-linux-sleep-coordinator).
-Run `pathward-server pool-preflight CONFIG --control-dir DIR` before enabling a pool.
+Run `omakase-server pool-preflight CONFIG --control-dir DIR` before enabling a pool.
 It inventories the compiled routes and checks the host and service view of the sleep fence.
 See [diagnostic results and examples](docs/pool-platform-contract.md#read-only-pool-preflight).
 For a failed managed sleep, the administrator can [recover the fence online](docs/pool-platform-contract.md#recovering-a-managed-sleep-fence) once the entire sleep process tree and its jobs have finished.
@@ -90,11 +107,11 @@ bounded buffers, session budgets and shutdown cancellation.
 ## TLS and automatic renewal
 
 ```sh
-server/target/release/pathward-server serve-tls /etc/pathward/Pathward.kdl \
+server/target/release/omakase-server serve-tls /etc/pathward/Pathward.kdl \
   /var/lib/pathward/staging --accept-terms --acme staging --listen 0.0.0.0:8443
 ```
 
-The cache parent must already be trusted and service-owned; PathWard creates the
+The cache parent must already be trusted and service-owned; Omakase creates the
 private 0700 leaf and 0600 account/certificate records. Public TCP/443 must reach
 the TLS listener for TLS-ALPN-01. The command defaults to staging and requires
 explicit CA terms acceptance; select production with a separate persistent cache.
@@ -171,7 +188,7 @@ be used for dispatch, without decoding or normalizing it before or after checkin
   comparison use loops. This avoids a nested-borrow loop limitation in Aeneas.
 
 ```rust
-use pathward::is_public;
+use omakase::is_public;
 
 let published: &[&[u8]] = &[b"/", b"/index.html", b"/assets/main.js"];
 assert!(is_public(b"/assets/main.js", published));
@@ -237,11 +254,11 @@ distributed Rust library. The setup changes no default toolchain.
 After changing the Rust core, run `make extract`, adapt the proofs, then run
 `make check`. Checks reject a stale extracted model, extraction warnings,
 proof holes, unexpected axioms, and any added Rust dependency. The generated
-[Lean model](proofs/Generated/Pathward.lean) must not be hand edited.
+[Lean model](proofs/Generated/Omakase.lean) must not be hand edited.
 
 ## Verified properties
 
-The [proofs](proofs/PathwardProofs.lean) establish:
+The [proofs](proofs/OmakaseProofs.lean) establish:
 
 | Theorem | Guarantee about the extracted Rust implementation |
 | --- | --- |

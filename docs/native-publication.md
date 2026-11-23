@@ -1,7 +1,7 @@
 # Native publication and retention
 
-`pathward-hosting` replaces the hosting bridge and publication acknowledgement
-runtime with Rust. `pathward-admin gc-*` replaces collection of retired native
+`omakase-hosting` replaces the hosting bridge and publication acknowledgement
+runtime with Rust. `omakase-admin gc-*` replaces collection of retired native
 requests and the **tombstoned** legacy Python guard generations. These operations
 use the existing administrator dependencies; the only feature change is
 `rustix/time` for a monotonic clock. The authorization core still has no external
@@ -27,10 +27,10 @@ defaulting to `["index.html", "index.txt"]`. Translate any former site-specific
 index exception into this field before changing the bridge.
 
 ```
-pathward-hosting build --policy /etc/pathward/hosting.json \
-  --state /var/lib/pathward/snapshots --binary /opt/pathward/pathward-server
-pathward-hosting reconcile --policy /etc/pathward/hosting.json \
-  --state /var/lib/pathward/snapshots --binary /opt/pathward/pathward-server \
+omakase-hosting build --policy /etc/pathward/hosting.json \
+  --state /var/lib/pathward/snapshots --binary /opt/pathward/omakase-server
+omakase-hosting reconcile --policy /etc/pathward/hosting.json \
+  --state /var/lib/pathward/snapshots --binary /opt/pathward/omakase-server \
   --control /var/lib/pathward/control \
   --receipt /run/pathward-hosting/receipt.json --watch
 ```
@@ -55,7 +55,7 @@ Prepare a unique `releases/NAME/public` tree and a manifest whose lines are
 `SHA256  public/relative-file`. With the numeric service UID supplied explicitly:
 
 ```
-pathward-hosting publish --policy /etc/pathward/hosting.json \
+omakase-hosting publish --policy /etc/pathward/hosting.json \
   --receipt /run/pathward-hosting/receipt.json --receipt-owner 991 \
   --profile portal --expect releases/OLD --reference releases/NEW \
   --manifest /private/staging/public.sha256
@@ -69,9 +69,9 @@ All writers of `current` must use this same command/lock. `begin` and `ack` also
 exist for reviewed integrations that retain their own transaction protocol;
 `ack --stamp` consumes the JSON returned by `begin`. Publishers must read the
 service UID from administrator-controlled configuration, not a public receipt.
-`publish`/`ack` require an active PathWard receipt. `begin` may identify Caddy
+`publish`/`ack` require an active Omakase receipt. `begin` may identify Caddy
 routing for an outer integration, but Caddy-only publication still needs its
-existing public HTTP verification; this command never reports it as a PathWard
+existing public HTTP verification; this command never reports it as a Omakase
 acknowledgement. `.nojekyll` manifest metadata is ignored and never published.
 
 Do not run the Python and Rust bridges together. Receipt schema 2 alone does not
@@ -91,14 +91,14 @@ All native administrator operations share the same administrator lock. First
 record a stable, verified terminal request and its exact inventory:
 
 ```
-pathward-admin --root /opt/pathward-native gc-observe
+omakase-admin --root /opt/pathward-native gc-observe
 ```
 
 After a real host restart, and only while that same request is still current:
 
 ```
-pathward-admin --root /opt/pathward-native gc-plan
-pathward-admin --root /opt/pathward-native gc-apply REVIEWED_REQUEST_SHA256
+omakase-admin --root /opt/pathward-native gc-plan
+omakase-admin --root /opt/pathward-native gc-apply REVIEWED_REQUEST_SHA256
 ```
 
 `gc-plan` accepts optional explicit `native-DIGEST` / `legacy-DIGEST` pins and

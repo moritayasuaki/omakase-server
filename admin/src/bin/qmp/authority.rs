@@ -1,7 +1,7 @@
 //! Independent QMP event observer and single-use submission journal.
 //! The authority directory is outside the submitter's rollback domain.
 use super::*;
-use pathward::upstream::{original_resume_proven, original_stop_permitted};
+use omakase::upstream::{original_resume_proven, original_stop_permitted};
 use rustix::fs::{FlockOperation, flock};
 
 struct Operation<'a> {

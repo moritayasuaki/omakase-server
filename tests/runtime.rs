@@ -1,4 +1,4 @@
-use pathward::runtime::{commit_generation, ready};
+use omakase::runtime::{commit_generation, ready};
 #[test]
 fn transaction_edges_and_failure_states() {
     for current in [0, 1, 2, u64::MAX - 1, u64::MAX] {

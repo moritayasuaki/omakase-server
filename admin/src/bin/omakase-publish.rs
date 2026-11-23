@@ -1,5 +1,5 @@
 //! Native local transfer and remote publication entry point; no remote code upload.
-use pathward_admin::{
+use omakase_admin::{
     Result, codec, confined, publisher as p, require, storage as f,
     system::{self, Real, words},
 };
@@ -11,7 +11,7 @@ use std::{
 };
 fn main() {
     if let Err(e) = run() {
-        eprintln!("PathWard publisher: {e}");
+        eprintln!("Omakase publisher: {e}");
         std::process::exit(1);
     }
 }
@@ -98,7 +98,7 @@ fn run() -> Result<()> {
         let zip = std::env::current_dir()?.join(get("--zip-report")?);
         let out = std::env::temp_dir()
             .canonicalize()?
-            .join(format!("pathward-reviewed-{}", p::nonce()?));
+            .join(format!("omakase-reviewed-{}", p::nonce()?));
         p::offline_package(&source, &report, &zip, &out)?;
         fs::remove_dir_all(out)?;
         println!("VERIFIED_OFFLINE_PACKAGE");
@@ -136,7 +136,7 @@ fn run() -> Result<()> {
         let expected = codec::parse(remote(host, exe, config, id, "describe", &[])?.as_bytes())?;
         let temp = std::env::temp_dir()
             .canonicalize()?
-            .join(format!("pathward-upload-{}", p::nonce()?));
+            .join(format!("omakase-upload-{}", p::nonce()?));
         let source = PathBuf::from(get("--source")?);
         let mut source = if source.is_absolute() {
             source
@@ -150,7 +150,7 @@ fn run() -> Result<()> {
         let reviewed = if let Some(report) = opts.get("--offline-report") {
             let out = std::env::temp_dir()
                 .canonicalize()?
-                .join(format!("pathward-reviewed-{}", p::nonce()?));
+                .join(format!("omakase-reviewed-{}", p::nonce()?));
             p::offline_package(
                 &source,
                 &std::env::current_dir()?.join(report),
@@ -216,10 +216,10 @@ fn run() -> Result<()> {
             config["profiles"].get(id).is_some() || config["manual_profiles"].get(id).is_some(),
             "unknown publication profile",
         )?;
-        let _lease = pathward_admin::publication_gate::publisher(&config, None)?;
+        let _lease = omakase_admin::publication_gate::publisher(&config, None)?;
         println!(
             "{}",
-            pathward_admin::publication_gate::observe(&config, &mut Real)?
+            omakase_admin::publication_gate::observe(&config, &mut Real)?
         );
         return Ok(());
     }
@@ -227,11 +227,11 @@ fn run() -> Result<()> {
     let result: Value = match mode.as_str() {
         "describe" => p::describe(&config, id, &mut Real)?,
         "receive" => {
-            let _lease = pathward_admin::publication_gate::publisher(&config, None)?;
-            pathward_admin::publication_gate::native_epoch(&config, &mut Real)?;
+            let _lease = omakase_admin::publication_gate::publisher(&config, None)?;
+            omakase_admin::publication_gate::native_epoch(&config, &mut Real)?;
             let work = PathBuf::from(codec::string(profile, "work")?);
             f::directory(&work)?;
-            let _lock = pathward_admin::publication::lock(&work)?;
+            let _lock = omakase_admin::publication::lock(&work)?;
             let uploads = work.join("uploads");
             f::directory(&uploads)?;
             require(
