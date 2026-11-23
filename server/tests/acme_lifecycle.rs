@@ -286,46 +286,72 @@ fn failed_group_does_not_block_another_groups_renewal() {
             self.0.store(true, Ordering::Release);
         }
     }
-    let (frozen, durable, good) = thread::scope(|scope| {
-        let _stop = Stop(&stop);
-        let listener = TcpListener::bind(("127.0.0.1", port)).unwrap();
-        scope.spawn(|| server.serve_tls(listener, &stop, &tls).unwrap());
-        for worker in groups.workers() {
-            scope.spawn(|| worker.run(&stop));
-        }
-        let first = wait_for_name(port, issued.clone(), names[0], None).1;
-        let second = wait_for_name(port, issued.clone(), names[1], None).1;
-        assert_ne!(first, second);
-        let frozen = fs::read_dir(&cache)
+    let group_dir = |name: &str| {
+        fs::read_dir(&cache)
             .unwrap()
             .filter_map(Result::ok)
             .map(|e| e.path())
             .find(|p| {
-                fs::read_to_string(p.join(".identity"))
-                    .is_ok_and(|s| s.lines().any(|l| l == names[0]))
+                fs::read_to_string(p.join(".identity")).is_ok_and(|s| s.lines().any(|l| l == name))
             })
-            .unwrap();
+            .unwrap()
+    };
+    let cached_leaf = |bundle: &[u8]| {
+        pem::parse_many(bundle)
+            .unwrap()
+            .into_iter()
+            .find(|entry| entry.tag() == "CERTIFICATE")
+            .expect("cached leaf certificate")
+            .into_contents()
+    };
+    let frozen = group_dir(names[0]);
+    let healthy = group_dir(names[1]);
+    let durable = thread::scope(|scope| {
+        let _stop = Stop(&stop);
+        let listener = TcpListener::bind(("127.0.0.1", port)).unwrap();
+        scope.spawn(|| server.serve_tls(listener, &stop, &tls).unwrap());
+        // Both groups can rotate while waiting for the other to become ready.
+        // Join the issuers so the permission change and snapshot share a boundary.
+        let warmup = AtomicBool::new(false);
+        thread::scope(|issuers| {
+            let _stop_warmup = Stop(&warmup);
+            for worker in groups.workers() {
+                issuers.spawn(|| worker.run(&warmup));
+            }
+            let first = wait_for_name(port, issued.clone(), names[0], None).1;
+            let second = wait_for_name(port, issued.clone(), names[1], None).1;
+            assert_ne!(first, second);
+            // Exercise a rotation before the snapshot even on a fast runner.
+            wait_for_name(port, issued.clone(), names[0], Some(&first));
+        });
         fs::set_permissions(&frozen, fs::Permissions::from_mode(0o500)).unwrap();
         let durable = fs::read(frozen.join(".certificate")).unwrap();
-        assert_eq!(
-            fetch_named(port, issued.clone(), "GET", names[0], names[0])
-                .unwrap()
-                .1,
-            first
-        );
-        let (_, leaf) = x509_parser::parse_x509_certificate(&first).unwrap();
+        let frozen_leaf = cached_leaf(&durable);
+        let healthy_before = cached_leaf(&fs::read(healthy.join(".certificate")).unwrap());
+        let (_, leaf) = x509_parser::parse_x509_certificate(&frozen_leaf).unwrap();
         let expiry = u64::try_from(leaf.validity().not_after.timestamp()).unwrap();
+        for worker in groups.workers() {
+            scope.spawn(|| worker.run(&stop));
+        }
         let deadline = Instant::now() + Duration::from_secs(45);
         while omakase_server::tls::unix_now().unwrap() < expiry {
             assert!(Instant::now() < deadline, "test certificate did not expire");
-            thread::sleep(Duration::from_millis(100));
+            match fetch_named(port, issued.clone(), "GET", names[0], names[0]) {
+                Ok((_, presented)) => assert_eq!(presented, frozen_leaf),
+                Err(e) => assert!(
+                    omakase_server::tls::unix_now().unwrap() >= expiry,
+                    "frozen group failed before its durable certificate expired: {e}"
+                ),
+            }
+            thread::sleep(Duration::from_millis(250));
         }
         assert!(fetch_named(port, issued.clone(), "GET", names[0], names[0]).is_err());
-        let renewed = wait_for_name(port, issued.clone(), names[1], Some(&second)).1;
-        assert_eq!(fs::read(frozen.join(".certificate")).unwrap(), durable);
-        (frozen, durable, renewed)
+        wait_for_name(port, issued.clone(), names[1], Some(&healthy_before));
+        assert!(fs::read(frozen.join(".certificate")).unwrap() == durable);
+        durable
     });
     drop(groups);
+    let good = cached_leaf(&fs::read(healthy.join(".certificate")).unwrap());
     fs::set_permissions(&frozen, fs::Permissions::from_mode(0o700)).unwrap();
     let restarted = make([names[1], names[0]]);
     let tls = TlsServer::for_groups(Arc::new(
@@ -344,6 +370,6 @@ fn failed_group_does_not_block_another_groups_renewal() {
                 .1,
             good
         );
-        assert_eq!(fs::read(frozen.join(".certificate")).unwrap(), durable);
+        assert!(fs::read(frozen.join(".certificate")).unwrap() == durable);
     });
 }
