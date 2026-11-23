@@ -1,6 +1,6 @@
 //! CLI signals and a read-only loopback monitoring listener.
 use crate::{Server, http, tls};
-use pathward_config::ParsedConfig;
+use omakase_config::ParsedConfig;
 use std::{
     fs::File,
     io,
@@ -84,7 +84,7 @@ pub fn read_bytes(path: &Path) -> io::Result<Vec<u8>> {
     }
     use std::io::Read;
     let mut bytes = Vec::new();
-    file.take(pathward_config::MAX_CONFIG_BYTES as u64 + 1)
+    file.take(omakase_config::MAX_CONFIG_BYTES as u64 + 1)
         .read_to_end(&mut bytes)?;
     if bytes.len() > 1_048_576 {
         return Err(io::Error::other("input exceeds 1048576 bytes"));
@@ -163,7 +163,7 @@ fn monitor_certificates<T>(
                     let valid = cert
                         .zip(tls::unix_now().ok())
                         .is_some_and(|((b, e), n)| b <= n && n < e);
-                    let ready = pathward::runtime::ready(
+                    let ready = omakase::runtime::ready(
                         draining,
                         server.observe.serving.load(Ordering::Acquire),
                         identity.is_some(),
@@ -241,7 +241,7 @@ mod tests {
     #[test]
     fn monitoring_tracks_certificate_validity_and_drain_without_exposing_secrets() {
         let root = std::env::temp_dir().join(format!(
-            "pathward-monitor-{}-{}",
+            "omakase-monitor-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)

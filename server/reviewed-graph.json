@@ -1,6 +1,6 @@
 {
-  "manifest_sha256": "348a8b599feb846232c418ecf33fc041bf1b91045d02f0d7f1fe52f12a158b6b",
-  "lockfile_sha256": "00b3997489169e7a52e49c822c03b83d6d8c946b6c598aa0459cd02681af5c79",
+  "manifest_sha256": "929ed36d866fe0d9d9dc2de60648ee5bc832ee3c1b725bb3dd20d89119ad4c1f",
+  "lockfile_sha256": "0a067f24cb38eacea24d03a2b4804a624ee2309b9547709354f1bc41acd59d40",
   "packages": [
     {
       "name": "adler2",
@@ -877,6 +877,24 @@
       "proc_macro": false
     },
     {
+      "name": "omakase",
+      "version": "0.1.0",
+      "source": "path:.",
+      "license": "MIT",
+      "features": [],
+      "build_script": false,
+      "proc_macro": false
+    },
+    {
+      "name": "omakase-config",
+      "version": "0.1.0",
+      "source": "path:config",
+      "license": "MIT",
+      "features": [],
+      "build_script": false,
+      "proc_macro": false
+    },
+    {
       "name": "once_cell",
       "version": "1.21.4",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
@@ -895,24 +913,6 @@
       "version": "2.2.1",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "license": "Apache-2.0 OR MIT",
-      "features": [],
-      "build_script": false,
-      "proc_macro": false
-    },
-    {
-      "name": "pathward",
-      "version": "0.1.0",
-      "source": "path:.",
-      "license": "MIT",
-      "features": [],
-      "build_script": false,
-      "proc_macro": false
-    },
-    {
-      "name": "pathward-config",
-      "version": "0.1.0",
-      "source": "path:config",
-      "license": "MIT",
       "features": [],
       "build_script": false,
       "proc_macro": false
@@ -1832,13 +1832,13 @@
     }
   ],
   "vendor_files_sha256": {
-    "Cargo.toml": "c8569051a2ae737fc1f3d8f11d646b03c59d3fa64841e7dce2cf8b122d5279b2",
+    "Cargo.toml": "787a07e316fc750a46929a9d7e56862d9cb5b6e449e5a5dd56ea7fe82c9dbb80",
     "LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
     "LICENSE-MIT": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
-    "PROVENANCE.md": "1c9ed212ccb017f6eefc4318294b9fd8dd37f2373dc8a045ce4256a9292521f1",
+    "PROVENANCE.md": "53ef19c1681b12dc4905afff6e6299e5369c972aa3d2a9217c68f5e6ebdbc8b5",
     "src/acme.rs": "fd5d9c179cdd783c9dc64439a7d0587323cc983c28f2b56443228a2f4c5d26ef",
-    "src/https_helper.rs": "05bb81b7eb36cd6d4be3ab488e5ac8ea9d815dae23ee4a195e66cd78f7ddcf41",
+    "src/https_helper.rs": "d67af5ddb42d266b91ddc40b0d27414d425d1d65e46ee1e8f3006afc1681eaff",
     "src/jose.rs": "c8fe2b0ee1f8a687b0d0762138fdbf0b610dd8c39f301c3c2a5dbf7883046080",
-    "src/lib.rs": "d898b71308f8341ccfc61fe42ececb48f773680254589bebd52ca927293106a1"
+    "src/lib.rs": "297e567d127b92dbf833d1eca1339068c071356bba47fc0e2906a20365e85968"
   }
 }

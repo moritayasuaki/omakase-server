@@ -1,6 +1,6 @@
 {
-  "manifest_sha256": "dbfe5c00032a706f6e3cd84c587b191324d27b46179cb9822705f605d064af41",
-  "lockfile_sha256": "39aa9909061dd6333615ce36e10add4b0be1b31cde1fb4b0790386c343057ee7",
+  "manifest_sha256": "66c9acd8642348f299de7d84687341b4d0bf4d9fdd7c8b62cded3253579d5450",
+  "lockfile_sha256": "940f9297a0111654b9932c1e483a9bd401460dd7bd28c356f0b979ec97237ed7",
   "packages": [
     {
       "name": "autocfg",
@@ -65,7 +65,7 @@
       "proc_macro": false
     },
     {
-      "name": "pathward",
+      "name": "omakase",
       "version": "0.1.0",
       "source": "path:.",
       "license": "MIT",

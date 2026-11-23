@@ -1,6 +1,6 @@
 import StreamingProofs
 open Aeneas Aeneas.Std RustM
-open pathward PathwardProofs
+open omakase OmakaseProofs
 namespace DeliveryProofs
 
 def trailersToken : List U8 :=

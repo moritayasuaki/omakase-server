@@ -1,5 +1,5 @@
 import RuntimeProofs
-open Aeneas Aeneas.Std RustM pathward
+open Aeneas Aeneas.Std RustM omakase
 namespace CutoverProofs
 
 theorem stop_old_eq (pending armed preflight unchanged : Bool) :

@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 name.trim_start_matches('/')
             };
-            if !pathward_admin::publisher::safe_asset(name) {
+            if !omakase_admin::publisher::safe_asset(name) {
                 continue;
             }
             std::fs::read(std::path::Path::new(label).join(name)).unwrap_or_default()

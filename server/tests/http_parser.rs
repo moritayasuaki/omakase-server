@@ -1,4 +1,4 @@
-use pathward_server::http::{MAX_HEAD_BYTES, MAX_HEADERS, parse};
+use omakase_server::http::{MAX_HEAD_BYTES, MAX_HEADERS, parse};
 
 fn request(extra: &str) -> String {
     format!("GET /asset.css?v=1 HTTP/1.1\r\nHost: example.com\r\n{extra}\r\n")
@@ -141,7 +141,7 @@ fn header_deadline_is_total_not_reset_by_slow_progress() {
             let (mut stream, _) = listener.accept().unwrap();
             let start = Instant::now();
             let result =
-                pathward_server::http::read_head(&mut stream, start + Duration::from_millis(250));
+                omakase_server::http::read_head(&mut stream, start + Duration::from_millis(250));
             assert!(result.is_err());
             assert!(start.elapsed() < Duration::from_secs(1));
         });

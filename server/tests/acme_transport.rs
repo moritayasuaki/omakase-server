@@ -4,7 +4,7 @@ use rustls_acme::https_helper::{HttpsClient, read_response};
 fn discovered_urls_cannot_change_origin() {
     let client = HttpsClient::new(
         "https://acme.example.test/directory",
-        pathward_server::acme::public_client_config().unwrap(),
+        omakase_server::acme::public_client_config().unwrap(),
     )
     .unwrap();
     assert!(

@@ -1,7 +1,7 @@
 import DeliveryProofs
 import RuntimeProofs
 open Aeneas Aeneas.Std RustM
-open pathward PathwardProofs RulesProofs ServingProofs DeliveryProofs
+open omakase OmakaseProofs RulesProofs ServingProofs DeliveryProofs
 namespace SafetyProofs
 
 /-- Removing declarations from valid compiled tables cannot introduce a mapping. -/

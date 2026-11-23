@@ -54,8 +54,8 @@ server.serve_forever()
 '''
     file(service,code)
     plan={'schema':1,'transaction':'a'*32,'journal':str(JOURNAL),
-          'permit':'/run/pathward-recovery/permit.json','kernel':str(ROOT/'pathward-recovery'),
-          'kernel_sha256':r.digest_file(ROOT/'pathward-recovery'),'state_seed':old}
+          'permit':'/run/pathward-recovery/permit.json','kernel':str(ROOT/'omakase-recovery'),
+          'kernel_sha256':r.digest_file(ROOT/'omakase-recovery'),'state_seed':old}
     for side in ['old','new']:
         plan[side]={'units':['test-'+side+'.service'],'files':{str(service):r.digest_file(service)},'check':['/usr/bin/true']}
         file(Path('/etc/systemd/system/test-'+side+'.service'),f'''[Unit]
@@ -133,7 +133,7 @@ def run():
         report['results'].append({'case':case,'selected':'HOLD'})
         report['versions']={'systemd':command('systemd','--version').splitlines()[0],
                             'python':sys.version.split()[0],'kernel':command('uname','-r')}
-        report['kernel_sha256']=r.digest_file(ROOT/'pathward-recovery')
+        report['kernel_sha256']=r.digest_file(ROOT/'omakase-recovery')
         emit('PW_VM_RECOVERY_PASS '+json.dumps(report,sort_keys=True))
         command('systemctl','poweroff');return
     expected={'NEW'} if case==4 else ({'OLD','NEW'} if case==3 else {'OLD'})

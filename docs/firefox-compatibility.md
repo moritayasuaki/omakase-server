@@ -53,7 +53,7 @@ the removed stream. No dependency or lockfile changes are required.
 Build the server's test executable with
 `cargo +1.99.1 test --offline --locked --manifest-path server/Cargo.toml --lib --no-run`.
 Then run `node scripts/firefox_smoke.mjs FIREFOX SERVER_TEST_BINARY` with an
-existing Firefox executable and the printed `pathward_server-*` test path.
+existing Firefox executable and the printed `omakase_server-*` test path.
 No browser or package is installed by this script.
 
 The ignored fixture runs only on loopback, creates an ephemeral test key in

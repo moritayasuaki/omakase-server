@@ -10,8 +10,8 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = ROOT / "server/target/release/pathward-server"
-with tempfile.TemporaryDirectory(prefix="pathward-fairness-") as temporary:
+BINARY = ROOT / "server/target/release/omakase-server"
+with tempfile.TemporaryDirectory(prefix="omakase-fairness-") as temporary:
     root = Path(temporary)
     (root / "a").write_text("HEALTHY")
     config = root / "config.kdl"

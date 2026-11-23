@@ -9,7 +9,7 @@ import path from 'node:path';
 
 const [binary, reportPath] = process.argv.slice(2);
 if (!binary || !reportPath) throw Error('Usage: node scripts/transport_benchmark.mjs TEST_BINARY NEW_REPORT');
-const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'pathward-throughput-'));
+const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'omakase-throughput-'));
 const report = { bytes: 818100, clients: 24, results: [] };
 const body = Buffer.alloc(report.bytes);
 for (let i = 0; i < body.length; ++i) body[i] = i % 251;
@@ -105,7 +105,7 @@ async function phaseTotals(port, protocol, expectedCount) {
 
 async function trial(window) {
   const proc = spawn(binary, ['--exact','browser_fixture::transport_benchmark_fixture','--ignored','--nocapture'],
-    { env: { ...process.env, PATHWARD_TEST_SEND_WINDOW: window }, stdio: ['pipe','pipe','pipe'] });
+    { env: { ...process.env, OMAKASE_TEST_SEND_WINDOW: window }, stdio: ['pipe','pipe','pipe'] });
   const exited = once(proc, 'close');
   const timer = setTimeout(() => proc.kill(), 240000);
   try {

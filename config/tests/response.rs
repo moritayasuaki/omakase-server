@@ -1,4 +1,4 @@
-use pathward_config::ParsedConfig;
+use omakase_config::ParsedConfig;
 fn config(extra: &str) -> String {
     format!(
         "site \"example.com\" {{\nroot \"/srv/www\"\npublish \"/\" \"index.html\"\ntls \"auto\"\n{extra}\n}}"

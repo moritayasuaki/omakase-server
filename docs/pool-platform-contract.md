@@ -1,6 +1,6 @@
 # Local pool writes on Linux
 
-Suppose a POST begins on replica A and its first nonblocking write accepts only part of the request head. PathWard spends the request's dispatch permission at that point. On the same connection it offers the remaining bytes. If the socket fills up, the offset stays put. Retiring A during this wait still permits this exchange to finish. If the first call had returned `WouldBlock` before accepting any bytes, retirement would instead prevent A from starting the exchange. [Rust driver](../src/upstream.rs) · [socket adapter](../server/src/backend_pool.rs) · [continuation](../server/src/async_http.rs)
+Suppose a POST begins on replica A and its first nonblocking write accepts only part of the request head. Omakase spends the request's dispatch permission at that point. On the same connection it offers the remaining bytes. If the socket fills up, the offset stays put. Retiring A during this wait still permits this exchange to finish. If the first call had returned `WouldBlock` before accepting any bytes, retirement would instead prevent A from starting the exchange. [Rust driver](../src/upstream.rs) · [socket adapter](../server/src/backend_pool.rs) · [continuation](../server/src/async_http.rs)
 
 | Boundary | What Lean checks | What the runtime supplies |
 | --- | --- | --- |
@@ -63,10 +63,10 @@ The launcher builds the test executable with the pinned rustc, hashes the guest 
 
 ## Installing the Linux sleep coordinator
 
-On an administrator-managed systemd host, install the coordinator from the same server build. Complete the unit changes before creating the awake file or starting the new pooled server. The example uses the existing service group `pathward` and systemd's Ubuntu path `/usr/lib/systemd/systemd-sleep`. Use a root-owned executable and directories. Run the following as administrator during the initial installation with all four sleep services idle.
+On an administrator-managed systemd host, install the coordinator from the same server build. Complete the unit changes before creating the awake file or starting the new pooled server. The example uses the existing service group `omakase` and systemd's Ubuntu path `/usr/lib/systemd/systemd-sleep`. Use a root-owned executable and directories. Run the following as administrator during the initial installation with all four sleep services idle.
 
 ```sh
-install -Dm0755 server/target/release/pathward-server /usr/local/libexec/pathward-server
+install -Dm0755 server/target/release/omakase-server /usr/local/libexec/pathward-server
 /usr/local/libexec/pathward-server sleep-delegate init-local
 for mode in suspend hibernate hybrid-sleep suspend-then-hibernate; do
     install -Dm0644 deploy/pathward-sleep.conf "/etc/systemd/system/systemd-$mode.service.d/50-pathward.conf"
@@ -88,10 +88,10 @@ The operating contract requires every host sleep path to use the coordinator. Di
 
 ## Read-only pool preflight
 
-Run the candidate binary on the systemd host, with access to the KDL and the service's private control socket. The KDL can be a proposed configuration. To compare an active configuration, match the printed SHA-256 to `pathward-server status` for that service.
+Run the candidate binary on the systemd host, with access to the KDL and the service's private control socket. The KDL can be a proposed configuration. To compare an active configuration, match the printed SHA-256 to `omakase-server status` for that service.
 
 ```sh
-pathward-server pool-preflight /etc/pathward/candidate.kdl --control-dir /var/lib/pathward/control
+omakase-server pool-preflight /etc/pathward/candidate.kdl --control-dir /var/lib/pathward/control
 ```
 
 | Last line | Exit | Interpretation |
@@ -100,7 +100,7 @@ pathward-server pool-preflight /etc/pathward/candidate.kdl --control-dir /var/li
 | `READY` | 0 | The four reviewed sleep entries use the coordinator and both host and service observed an awake marker on the same inode. Members start cold and require their own fresh health checks. |
 | `BLOCKED` | nonzero | A prerequisite failed or the service's observation could not be verified. Read the host, service and per-unit lines. Invalid KDL also exits nonzero and reports the compiler error. |
 
-The service handles the read-only `POOL-FENCE` verb in its actual credential and mount context. When testing a candidate before it has a control socket, run `pathward-server pool-fence-witness` in its intended service unit with the same user, groups and sandbox. Feed that output on standard input to `pathward-server pool-preflight CONFIG --service-stdin` on the host. This alternative trusts the origin of the input. A witness expires at 30 seconds, uses suspend-inclusive time and must match the boot and time namespace. A missing or incompatible daemon provides no witness. The diagnostic issues no backend requests, starts no units and leaves the marker, configuration and metrics untouched.
+The service handles the read-only `POOL-FENCE` verb in its actual credential and mount context. When testing a candidate before it has a control socket, run `omakase-server pool-fence-witness` in its intended service unit with the same user, groups and sandbox. Feed that output on standard input to `omakase-server pool-preflight CONFIG --service-stdin` on the host. This alternative trusts the origin of the input. A witness expires at 30 seconds, uses suspend-inclusive time and must match the boot and time namespace. A missing or incompatible daemon provides no witness. The diagnostic issues no backend requests, starts no units and leaves the marker, configuration and metrics untouched.
 
 Host inspection compares the coordinator executable with the diagnostic binary, checks ownership and permissions, and verifies the host mount namespace and root. It reads the four loaded systemd sleep commands, their typed argument vectors and flags, and the supported service profile. A missing property, pending daemon reload or unexpected entry blocks the check. Extra host-specific power paths, security policies and later changes need host-specific review. These observations span several reads. Every application write still goes through the live first-write gate. [systemd unit properties](https://www.freedesktop.org/software/systemd/man/255/org.freedesktop.systemd1.html) · [Linux time namespaces](https://man7.org/linux/man-pages/man7/time_namespaces.7.html)
 

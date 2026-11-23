@@ -1,4 +1,4 @@
-//! Iterative preflight for PathWard's deliberately small KDL 2 surface grammar.
+//! Iterative preflight for Omakase's deliberately small KDL 2 surface grammar.
 //! This admits bounded, well-formed syntax before calling the upstream parser,
 //! avoiding its recursive children, block comments, slashdash and error recovery.
 //! It never decodes or rewrites values; kdl remains the authoritative decoder.

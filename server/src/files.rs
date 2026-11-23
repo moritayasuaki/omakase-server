@@ -9,7 +9,7 @@ pub struct OpenedFile {
 #[cfg(target_os = "linux")]
 mod platform {
     use super::*;
-    use pathward::{
+    use omakase::{
         rules::valid_target,
         serving::{FileFacts, file_allowed},
     };
@@ -35,7 +35,7 @@ mod platform {
 
     impl DocumentRoot {
         pub fn open(path: &str) -> io::Result<Self> {
-            if !pathward::valid_path(path.as_bytes()) || (path.len() > 1 && path.ends_with('/')) {
+            if !omakase::valid_path(path.as_bytes()) || (path.len() > 1 && path.ends_with('/')) {
                 return Err(denied());
             }
             // The configured absolute root may live on its own filesystem.

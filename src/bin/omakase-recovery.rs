@@ -1,5 +1,5 @@
 //! Small read-only recovery decision executable; no server dependencies.
-use pathward::recovery::{self, Selection};
+use omakase::recovery::{self, Selection};
 use std::{env, process::ExitCode};
 
 fn boolean(s: &str) -> Result<bool, ()> {

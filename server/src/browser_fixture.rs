@@ -15,7 +15,7 @@ use std::{
 fn firefox_loopback_fixture() {
     let backend = TcpListener::bind("127.0.0.1:0").unwrap();
     backend.set_nonblocking(true).unwrap();
-    let config = pathward_config::ParsedConfig::parse(&format!(
+    let config = omakase_config::ParsedConfig::parse(&format!(
         "site \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nencode \"gzip,zstd\"\n}}",
         backend.local_addr().unwrap()
     ))
@@ -59,7 +59,7 @@ fn firefox_loopback_fixture() {
                 let body = if head.starts_with(b"GET /pixel.svg ") {
                     "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"/>".to_owned()
                 } else {
-                    format!("<!doctype html><title>PathWard compatibility fixture</title><h1>Firefox transport OK</h1><img src=\"/pixel.svg\">{}", "<!-- bounded test -->".repeat(100))
+                    format!("<!doctype html><title>Omakase compatibility fixture</title><h1>Firefox transport OK</h1><img src=\"/pixel.svg\">{}", "<!-- bounded test -->".repeat(100))
                 };
                 let mime = if head.starts_with(b"GET /pixel.svg ") { "image/svg+xml" } else { "text/html; charset=utf-8" };
                 let response = format!("HTTP/1.1 200 OK\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
@@ -89,7 +89,7 @@ fn transport_benchmark_fixture() {
          proxy-timeout \"total\" \"60s\"\n}}",
         backend.local_addr().unwrap()
     );
-    let parsed = pathward_config::ParsedConfig::parse(&policy).unwrap();
+    let parsed = omakase_config::ParsedConfig::parse(&policy).unwrap();
     let config = parsed.compile().unwrap();
     let server = Server::new(&config).unwrap();
     let names = vec!["app.example".to_owned()];
@@ -102,7 +102,7 @@ fn transport_benchmark_fixture() {
     let group = tls::Certificate::parse(pem.as_bytes(), &names).unwrap();
     let mut tls = tls::TlsServer::new(Arc::new(tls::Identity::new(names, Some(group)))).unwrap();
     tls.set_quic_send_window(
-        tls::QuicSendWindow::parse(&std::env::var("PATHWARD_TEST_SEND_WINDOW").unwrap()).unwrap(),
+        tls::QuicSendWindow::parse(&std::env::var("OMAKASE_TEST_SEND_WINDOW").unwrap()).unwrap(),
     );
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();

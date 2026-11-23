@@ -16,7 +16,7 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = ROOT / "server/target/release/pathward-server"
+BINARY = ROOT / "server/target/release/omakase-server"
 PAYLOAD = b"bounded delivery\n" * (4 * 1024 * 1024 // 17)
 created = 0
 lock = threading.Lock()
@@ -75,7 +75,7 @@ def finish(stream):
 
 upstream = ThreadingHTTPServer(("127.0.0.1", 0), Upstream)
 threading.Thread(target=upstream.serve_forever, daemon=True).start()
-with tempfile.TemporaryDirectory(prefix="pathward-delivery-") as tmp:
+with tempfile.TemporaryDirectory(prefix="omakase-delivery-") as tmp:
     root = Path(tmp)
     config = root / "config.kdl"
 

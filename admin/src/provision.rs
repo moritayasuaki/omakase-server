@@ -162,6 +162,21 @@ fn validate_network<S: System>(sys: &mut S, input: &Value, policy: &Value) -> Re
     }
     Ok(())
 }
+// Both schema-1 inventories can have live, hash-sealed installation contracts.
+fn package_programs(members: &serde_json::Map<String, Value>) -> Result<[&'static str; 3]> {
+    require(
+        members.len() == 4 && members.contains_key("hosting.json"),
+        "exact native package inventory",
+    )?;
+    [
+        ["omakase-server", "omakase-hosting", "omakase-publish"],
+        ["pathward-server", "pathward-hosting", "pathward-publish"],
+    ]
+    .into_iter()
+    .find(|family| family.iter().all(|name| members.contains_key(*name)))
+    .ok_or_else(|| "exact native package inventory".into())
+}
+
 pub fn prepare<S: System>(
     e: &mut Engine<S>,
     input: &Value,
@@ -185,18 +200,7 @@ pub fn prepare<S: System>(
         "dedicated account name",
     )?;
     let members = input["members"].as_object().ok_or("package members")?;
-    require(
-        members.len() == 4
-            && [
-                "pathward-server",
-                "pathward-hosting",
-                "pathward-publish",
-                "hosting.json",
-            ]
-            .iter()
-            .all(|n| members.contains_key(*n)),
-        "exact native package inventory",
-    )?;
+    let [server_name, hosting_name, _] = package_programs(members)?;
     let mut contents = std::collections::BTreeMap::new();
     for (name, item) in members {
         let p = Path::new(string(item, "source")?);
@@ -308,8 +312,8 @@ pub fn prepare<S: System>(
         owned_dir(&state.join(name), uid, gid, 0o700)?;
     }
     owned_dir(&base.join("receipts"), uid, gid, 0o755)?;
-    let server = base.join("pathward-server");
-    let hosting = base.join("pathward-hosting");
+    let server = base.join(server_name);
+    let hosting = base.join(hosting_name);
     let policy = base.join("hosting.json");
     let args = vec![
         hosting.display().to_string(),
@@ -376,12 +380,7 @@ pub fn prepare<S: System>(
         ]),
     )?;
     let target = contract::materialize(&input["contract"])?;
-    for name in [
-        "pathward-server",
-        "pathward-hosting",
-        "pathward-publish",
-        "hosting.json",
-    ] {
+    for name in members.keys() {
         require(
             target["new"]["files"][base.join(name).to_str().unwrap()] == members[name]["sha256"],
             "candidate contract must seal installed members",
@@ -482,5 +481,34 @@ mod tests {
         input["network"] = "skip".into();
         assert!(validate_network(&mut Resolver("192.0.2.1 STREAM"), &input, &policy).is_err());
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod package_tests {
+    use super::*;
+
+    #[test]
+    fn complete_package_names_are_accepted_and_mixed_inventories_are_rejected() {
+        for prefix in ["omakase", "pathward"] {
+            let mut members = serde_json::Map::new();
+            members.insert("hosting.json".into(), Value::Null);
+            for tool in ["server", "hosting", "publish"] {
+                members.insert(format!("{prefix}-{tool}"), Value::Null);
+            }
+            assert_eq!(
+                package_programs(&members).unwrap()[0],
+                format!("{prefix}-server")
+            );
+            let other = if prefix == "omakase" {
+                "pathward"
+            } else {
+                "omakase"
+            };
+            members.insert(format!("{other}-server"), Value::Null);
+            assert!(package_programs(&members).is_err());
+            members.remove(&format!("{prefix}-server"));
+            assert!(package_programs(&members).is_err());
+        }
     }
 }

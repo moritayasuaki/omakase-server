@@ -1,6 +1,6 @@
 //! Local replica selection and the first application write. Probes carry no client data.
 use crate::{async_http, http, proxy};
-use pathward::upstream::{
+use omakase::upstream::{
     FirstIo, FirstWriteGate, FirstWriter, PoolHealth, first_write_report, fresh_health,
     guarded_first_write, healthy_response, pool_select, pool_tick, publish_health, publish_probe,
     retire_pool,
@@ -108,11 +108,11 @@ impl Pool {
                     address,
                     draining: drains.contains(&address),
                     checking: AtomicBool::new(false),
-                    health: Mutex::new(pathward::upstream::cold_pool_health()),
+                    health: Mutex::new(omakase::upstream::cold_pool_health()),
                 })
                 .collect(),
             probe: format!(
-                "GET {path} HTTP/1.1\r\nHost: {host}\r\nVia: 1.1 pathward\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+                "GET {path} HTTP/1.1\r\nHost: {host}\r\nVia: 1.1 omakase\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
             ),
             next: AtomicUsize::new(0),
             retired: Mutex::new(false),

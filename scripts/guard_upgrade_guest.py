@@ -41,7 +41,7 @@ def prepare(number):
     b.file(candidate,(ROOT/'pathward_recovery.py').read_bytes()+f'\n# Reviewed fixture guard {number}\n'.encode(),0o600)
     return u.prepare(STORE,UNITS,b.PLAN,r.digest_file(b.PLAN),ROOT/'pathward_recovery.py',
                      r.digest_file(ROOT/'pathward_recovery.py'),candidate,r.digest_file(candidate),
-                     ROOT/'pathward-recovery',r.digest_file(ROOT/'pathward-recovery'),request(number))
+                     ROOT/'omakase-recovery',r.digest_file(ROOT/'omakase-recovery'),request(number))
 
 
 def apply(number,checkpoint=lambda _:None):return u.apply(request(number),r.digest_file(request(number)),checkpoint)
@@ -135,7 +135,7 @@ def run():
             report.update(final_epoch=7,stale_retry_rejected=True,corrupt_candidate_rejected=True,
                           reload_failure_retry_passed=True,application_files_unchanged=True,
                           live_service_pid_unchanged=True,committed_live_upgrade_passed=True,
-                          kernel_sha256=r.digest_file(ROOT/'pathward-recovery'),
+                          kernel_sha256=r.digest_file(ROOT/'omakase-recovery'),
                           versions={'systemd':b.command('systemd','--version').splitlines()[0],
                                     'kernel':b.command('uname','-r'),'python':sys.version.split()[0]})
             b.file(b.STATE,json.dumps(report),0o600);b.advance(6)

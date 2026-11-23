@@ -23,7 +23,7 @@ import time
 from soak_checks import check_release, payload, resource_report
 
 ROOT = Path(__file__).resolve().parents[1]
-BIN = ROOT / "server/target/release/pathward-server"
+BIN = ROOT / "server/target/release/omakase-server"
 DRIVER = ROOT / "server/target/release/examples/soak_server"
 HOSTS = ("one.pathward.test", "two.pathward.test")
 BUCKETS = (5, 10, 25, 50, 100, 250, 500, 1000, 2000, 3000, 10000)
@@ -113,8 +113,8 @@ def config(root, release):
     ).encode()
 
 def start_driver(control, cache):
-    p = subprocess.Popen([str(DRIVER), str(control), str(cache), os.environ["PATHWARD_TEST_DIRECTORY"],
-                          os.environ["PATHWARD_TEST_CA"], os.environ["PATHWARD_TEST_PORT"]],
+    p = subprocess.Popen([str(DRIVER), str(control), str(cache), os.environ["OMAKASE_TEST_DIRECTORY"],
+                          os.environ["OMAKASE_TEST_CA"], os.environ["OMAKASE_TEST_PORT"]],
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     startup = queue.Queue()
     def stdout():
@@ -180,7 +180,7 @@ def report(state, extra=None):
     return data
 
 try:
-    with tempfile.TemporaryDirectory(prefix="pathward-soak-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="omakase-soak-") as temporary:
         root = Path(temporary)
         for release in ("A", "B"):
             for host in HOSTS:
@@ -196,7 +196,7 @@ try:
         initial.write_bytes(configs["A"])
         control, cache = root / "control", root / "cache"
         subprocess.run([str(BIN), "init", str(control), str(initial)], check=True, capture_output=True)
-        context = ssl.create_default_context(cafile=os.environ["PATHWARD_TEST_ISSUER"])
+        context = ssl.create_default_context(cafile=os.environ["OMAKASE_TEST_ISSUER"])
         context.set_alpn_protocols(["http/1.1"])
         process, ports = start_driver(control, cache)
         deadline = time.monotonic()+90

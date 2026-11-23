@@ -1,6 +1,6 @@
 import RuntimeProofs
 open Aeneas Aeneas.Std RustM
-open pathward PathwardProofs RulesProofs ServingProofs
+open omakase OmakaseProofs RulesProofs ServingProofs
 namespace ResponseProofs
 
 theorem authority_port_eq (l : U16) (e r : Bool) :

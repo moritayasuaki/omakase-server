@@ -1,6 +1,6 @@
 #![cfg(target_os = "linux")]
-use pathward_config::ParsedConfig;
-use pathward_server::{
+use omakase_config::ParsedConfig;
+use omakase_server::{
     Server,
     deployment::{ConfigStore, validate},
 };
@@ -90,7 +90,7 @@ impl ConfigStore for Store {
 #[test]
 fn failed_durable_write_restores_or_stops_and_stale_activation_cannot_overwrite() {
     let root = std::env::temp_dir().join(format!(
-        "pathward-deploy-{}-{}",
+        "omakase-deploy-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -227,7 +227,7 @@ fn managed_proxy_activation_failure_and_rollback_preserve_the_shared_service_bud
         fail_from: usize::MAX,
         fail_once: false,
     };
-    let directory = std::env::temp_dir().join("pathward-control-test-unused");
+    let directory = std::env::temp_dir().join("omakase-control-test-unused");
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
     let stop = AtomicBool::new(false);

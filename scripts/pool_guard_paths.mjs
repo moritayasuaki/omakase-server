@@ -20,6 +20,7 @@ const scratch = mkdtempSync(join(tmpdir(), 'pool-mir-'));
 let mir;
 try {
     const path = join(scratch, 'locks.mir');
+    // The synthetic crate name is part of the pinned compiler fixture.
     rustc('--target', pins.target, '--edition=2024', '--crate-type=lib', '--crate-name', 'pathward_pool_locks',
         '-A', 'dead_code', '-C', 'opt-level=0', '-C', 'panic=unwind', '--emit=mir', '-o', path, 'server/src/pool_locks.rs');
     mir = readFileSync(path, 'utf8');

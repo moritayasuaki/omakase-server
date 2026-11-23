@@ -1,10 +1,10 @@
-import Generated.Pathward
+import Generated.Omakase
 
 open Aeneas Aeneas.Std RustM
 
-namespace PathwardProofs
+namespace OmakaseProofs
 
-open pathward
+open omakase
 
 def nameByte (b : U8) : Bool :=
   decide ((97 ≤ b.val ∧ b.val ≤ 122) ∨ (65 ≤ b.val ∧ b.val ≤ 90) ∨
@@ -258,4 +258,4 @@ theorem directory_suffix_allowed (xs : List U8)
   simp [canonical, run_append, h, next, nameByte, accepts]
   omega
 
-end PathwardProofs
+end OmakaseProofs

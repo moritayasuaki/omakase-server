@@ -125,7 +125,7 @@ admitted connections the three windows represent 32, 64 and 128 MiB of stream
 data respectively. Allocator, retransmission, socket and handshake memory must
 be measured separately.
 
-QUIC migration is enabled. Quinn performs path validation; PathWard keeps the
+QUIC migration is enabled. Quinn performs path validation; Omakase keeps the
 original normalized peer key for the entire connection. Active/rate/byte leases
 and regenerated X-Forwarded-For therefore retain the **initial peer address**
 after an IP/port move. Migration cannot get new admission credit by changing IP.
@@ -146,7 +146,7 @@ Authorization, any query string, proxy routes (including GET), redirects and
 unpublished resources are rejected with 425 before contacting an upstream.
 `Early-Data: 1` received through any transport enforces the same restriction;
 other values are rejected. After completion a client may retry a 425 request;
-PathWard itself never repeats it. Application replay safety does not rely only
+Omakase itself never repeats it. Application replay safety does not rely only
 on the TLS ticket cache or assume that GET proxy endpoints are side-effect free.
 
 An attacker can still replay a permitted anonymous static read; admission/rate
@@ -241,7 +241,7 @@ these new protocols and actual network-switch tests on production-like mobile
 paths are separate deployment gates. Local loopback results do not establish
 those outcomes. Do not switch production solely because unit tests are green.
 
-The local `soak_server` can enable `PATHWARD_TEST_H2_DIAGNOSTICS=1` to distinguish
+The local `soak_server` can enable `OMAKASE_TEST_H2_DIAGNOSTICS=1` to distinguish
 pending-reset and internal-reset limits. Its subscriber accepts only two h2 WARN
 targets, emits at most 16 fixed-category records, and discards all formatted
 messages. It does not subscribe to request/header/frame or span fields. The

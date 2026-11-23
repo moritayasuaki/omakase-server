@@ -86,7 +86,7 @@ fn authority(value: &[u8], authority_port: u16) -> Result<(String, Option<u16>),
     } else {
         None
     };
-    if !pathward::response::authority_port_allowed(explicit, authority_port) {
+    if !omakase::response::authority_port_allowed(explicit, authority_port) {
         return Err(Rejection(400));
     }
     Ok((host.to_ascii_lowercase(), explicit))
