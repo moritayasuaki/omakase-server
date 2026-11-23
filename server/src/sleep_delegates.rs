@@ -2,7 +2,9 @@
 //! Writers and hooks lock the directory inode; replacing the state file never
 //! changes the lock. Nothing in the boot or recovery path creates idle state.
 use crate::{pool_preflight, pool_recovery, sleep_fence::Failure, sleep_ticket::*};
-use omakase::upstream::{delegate_can_retire, delegates_allow_write};
+use omakase::upstream::{delegate_can_retire, delegates_allow_write, reconcile_ticket};
+#[path = "qmp_guard.rs"]
+mod qmp_guard;
 use ring::{
     rand::{SecureRandom, SystemRandom},
     signature::{ED25519, UnparsedPublicKey},
@@ -33,6 +35,7 @@ fn bad(msg: &'static str) -> io::Error {
 struct State {
     installation: String,
     provider: Option<(String, [u8; 32])>,
+    recoverable: bool,
     service: Option<(String, String)>, // ticket, original boot/time namespace
     hypervisor: Option<String>,
 }
@@ -55,8 +58,9 @@ impl State {
             .as_ref()
             .map(|(t, b)| (t.as_str(), b.as_str()))
             .unwrap_or(("-", "-"));
+        let version = if self.recoverable { "PW2" } else { "PW1" };
         format!(
-            "PW1 {} {vm} {key} {service} {boot} {}\n",
+            "{version} {} {vm} {key} {service} {boot} {}\n",
             self.installation,
             self.hypervisor.as_deref().unwrap_or("-")
         )
@@ -64,7 +68,16 @@ impl State {
 
     fn parse(s: &str) -> io::Result<Self> {
         let fields: Vec<_> = s.split_ascii_whitespace().collect();
-        let ["PW1", installation, vm, key, service, boot, hv] = fields.as_slice() else {
+        let [
+            version @ ("PW1" | "PW2"),
+            installation,
+            vm,
+            key,
+            service,
+            boot,
+            hv,
+        ] = fields.as_slice()
+        else {
             return Err(bad("invalid delegation ledger"));
         };
         let provider = match (*vm, *key) {
@@ -93,10 +106,13 @@ impl State {
         let state = Self {
             installation: ticket(installation)?,
             provider,
+            recoverable: *version == "PW2",
             service,
             hypervisor,
         };
-        if state.text() != s || (state.provider.is_none() && state.hypervisor.is_some()) {
+        if state.text() != s
+            || (state.provider.is_none() && (state.recoverable || state.hypervisor.is_some()))
+        {
             return Err(bad("invalid delegation ledger"));
         }
         Ok(state)
@@ -178,7 +194,12 @@ fn save(dir: &File, state: &State) -> io::Result<()> {
     dir.sync_all()
 }
 
-pub(crate) fn reader() -> Result<File, Failure> {
+pub(crate) struct DelegationLease {
+    _local: File,
+    _guard: Option<File>,
+}
+
+pub(crate) fn reader() -> Result<DelegationLease, Failure> {
     let dir = directory()?;
     flock(&dir, FlockOperation::NonBlockingLockShared).map_err(|e| {
         if e == rustix::io::Errno::WOULDBLOCK {
@@ -187,10 +208,15 @@ pub(crate) fn reader() -> Result<File, Failure> {
             Failure::Io
         }
     })?;
-    if !load(&dir)?.idle() {
+    let state = load(&dir)?;
+    if !state.idle() {
         return Err(Failure::Closed);
     }
-    Ok(dir)
+    let guard = qmp_guard::read_lease(&state)?;
+    Ok(DelegationLease {
+        _local: dir,
+        _guard: guard,
+    })
 }
 
 fn administrator() -> io::Result<()> {
@@ -212,7 +238,7 @@ fn exclusive() -> io::Result<File> {
     Ok(dir)
 }
 
-fn provision(provider: Option<(&str, &str)>) -> io::Result<String> {
+fn provision(provider: Option<(&str, &str)>, recoverable: bool) -> io::Result<String> {
     administrator()?;
     if !pool_preflight::host_mount()? {
         return Err(bad("provision delegation in the host mount namespace"));
@@ -259,13 +285,23 @@ fn provision(provider: Option<(&str, &str)>) -> io::Result<String> {
             "remote delegations require local ext4, XFS or Btrfs storage",
         ));
     }
-    if !fresh && binding == state.provider {
+    if state.recoverable && !recoverable {
+        return Err(bad("cannot downgrade the QEMU recovery contract"));
+    }
+    if !fresh && binding == state.provider && recoverable == state.recoverable {
+        if recoverable {
+            qmp_guard::exclusive(&state)?;
+        }
         return Ok("ALREADY_PROVISIONED".into());
     }
     if !state.idle() {
         return Err(bad("unfinished delegation"));
     }
     state.provider = binding;
+    state.recoverable = recoverable;
+    if recoverable {
+        qmp_guard::provision(&state)?;
+    }
     save(&dir, &state)?;
     if fresh {
         let mut f = File::from(open(
@@ -367,12 +403,22 @@ fn service_terminal(id: &str) -> io::Result<bool> {
 
 pub fn command(args: &[&str]) -> io::Result<String> {
     match args {
-        ["init-local"] => return provision(None),
-        ["enroll", vm, key] => return provision(Some((vm, key))),
+        ["init-local"] => return provision(None, false),
+        ["enroll", vm, key] => return provision(Some((vm, key)), false),
+        ["enroll-recoverable", vm, key] => return provision(Some((vm, key)), true),
         ["status"] => {
             let dir = directory()?;
             flock(&dir, FlockOperation::LockShared)?;
             let s = load(&dir)?;
+            if qmp_guard::required(&s)? {
+                let guard = qmp_guard::status(&s)?;
+                return Ok(format!(
+                    "service={} hypervisor={} guard={}",
+                    s.service.as_ref().map_or("-", |s| s.0.as_str()),
+                    s.hypervisor.as_deref().unwrap_or("-"),
+                    guard.as_deref().unwrap_or("-")
+                ));
+            }
             return Ok(format!(
                 "service={} hypervisor={}",
                 s.service.as_ref().map_or("-", |s| s.0.as_str()),
@@ -415,6 +461,14 @@ pub fn command(args: &[&str]) -> io::Result<String> {
         }
         ["hypervisor-begin"] if state.provider.is_some() && state.hypervisor.is_none() => {
             let id = new_ticket()?;
+            let guard = qmp_guard::exclusive(&state)?;
+            if let Some((disk, mut copy)) = guard {
+                if copy.hypervisor.is_some() {
+                    return Err(bad("original QEMU ticket still pending"));
+                }
+                copy.hypervisor = Some(id.clone());
+                save(&disk, &copy)?;
+            }
             state.hypervisor = Some(id.clone());
             save(&dir, &state)?;
             Ok(id)
@@ -425,6 +479,49 @@ pub fn command(args: &[&str]) -> io::Result<String> {
                 .as_ref()
                 .ok_or_else(|| bad("no enrolled hypervisor"))?;
             let sig = decode::<64>(signature).ok_or_else(|| bad("invalid receipt encoding"))?;
+            if state.recoverable {
+                ticket(id)?;
+                let (disk, mut copy) =
+                    qmp_guard::exclusive(&state)?.ok_or_else(|| bad("missing recovery guard"))?;
+                let verified = UnparsedPublicKey::new(&ED25519, key)
+                    .verify(observed_terminal_message(vm, id).as_bytes(), &sig)
+                    .is_ok();
+                if copy
+                    .hypervisor
+                    .as_deref()
+                    .is_some_and(|current| current != *id)
+                    && delegate_can_retire(
+                        state.hypervisor.is_some(),
+                        state.hypervisor.as_deref() == Some(id),
+                        verified,
+                    )
+                {
+                    // The guest restored an older, separately completed operation.
+                    // Repair its copy only; the guard still owns the current ticket.
+                    state.hypervisor = None;
+                    save(&dir, &state)?;
+                    return Ok("LOCAL_HISTORY_CONFIRMED".into());
+                }
+                if !reconcile_ticket(
+                    state.hypervisor.is_some(),
+                    state.hypervisor.as_deref() == Some(id),
+                    copy.hypervisor.is_some(),
+                    copy.hypervisor.as_deref() == Some(id),
+                    verified,
+                ) {
+                    return Err(bad(
+                        "original QEMU completion unconfirmed or conflicting ticket",
+                    ));
+                }
+                // Persist the local clearance first. The independent disk remains
+                // closed on interruption and the same receipt can finish a retry.
+                state.hypervisor = None;
+                save(&dir, &state)?;
+                copy.hypervisor = None;
+                save(&disk, &copy)?;
+                return Ok("HYPERVISOR_CONFIRMED".into());
+            }
+            qmp_guard::exclusive(&state)?;
             let same = state.hypervisor.as_deref() == Some(id);
             let terminal = same
                 && UnparsedPublicKey::new(&ED25519, key)

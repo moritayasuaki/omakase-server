@@ -7,10 +7,12 @@ import {join, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 import {prepareProvider,boots as delegatedBoots} from './pool_delegates_host.mjs';
+import {reconcileBoots} from './pool_reconcile_host.mjs';
+import {witnessBoots} from './pool_witness_host.mjs';
 
-assert([4,5].includes(process.argv.length), 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY [s3|s4|cold|delegates]');
+assert([4,5].includes(process.argv.length), 'usage: node scripts/pool_linux_stage.mjs IMAGE NEW_OUTPUT_DIRECTORY [s3|s4|cold|delegates|reconcile|witness-rollback]');
 const mode = process.argv[4] ?? 's3';
-assert(['s3','s4','cold','delegates'].includes(mode));
+assert(['s3','s4','cold','delegates','reconcile','witness-rollback'].includes(mode));
 const root = fileURLToPath(new URL('../', import.meta.url));
 const pin = JSON.parse(readFileSync(join(root, 'audit/pool-linux-target.json')));
 const image = realpathSync(process.argv[2]);
@@ -47,24 +49,36 @@ copyFileSync(join(root,'scripts/pool_linux_guest.sh'), join(seed,'run'));
 if (mode === 's4') {
     copyFileSync(join(root,'scripts/pool_linux_s4_guest.sh'), join(seed,'run-s4'));
 }
-if (mode === 'cold' || mode === 'delegates') {
+if (['cold','delegates','reconcile'].includes(mode)) {
     copyFileSync(join(root,'scripts/pool_cold_guest.sh'),join(seed,'run-cold'));
 }
 if (mode === 'cold') {
     copyFileSync(join(root,'scripts/pool_online_guest.sh'),join(seed,'run-online'));
 }
 function file(name, contents) { writeFileSync(join(seed, name), contents + '\n'); }
-const provider=mode==='delegates' ? prepareProvider(root,out) : undefined;
+const witnessFiles=[];
+if (mode==='witness-rollback') {
+    copyFileSync(join(root,'scripts/pool_witness_guest.sh'),join(seed,'run-witness'));
+    witnessFiles.push('run-witness');
+    for(const [kind,name,dest] of [['bin','omakase-qmp-sleep','linux-witness'],['example','qmp_lab_relay','linux-relay']]) {
+        const output=execFileSync('cargo',['+'+pin.rust_release,'build','--offline','--locked','--manifest-path','admin/Cargo.toml',
+            '--target',pin.target,'--'+kind,name,'--message-format=json'],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','inherit']});
+        const binary=output.trim().split('\n').map(s=>JSON.parse(s)).find(v=>v.executable && v.target?.name===name);
+        assert(binary);copyFileSync(binary.executable,join(seed,dest));witnessFiles.push(dest);
+    }
+}
+const provider=['delegates','reconcile'].includes(mode) ? prepareProvider(root,out) : undefined;
+const delegateFixture=mode==='reconcile'?'run-reconcile':'run-delegates';
 if(provider) {
-    copyFileSync(join(root,'scripts/pool_delegates_guest.sh'),join(seed,'run-delegates'));
+    copyFileSync(join(root,mode==='reconcile'?'scripts/pool_reconcile_guest.sh':'scripts/pool_delegates_guest.sh'),join(seed,delegateFixture));
     copyFileSync(join(root,'deploy/pathward-delegated-sleep@.service'),join(seed,'delegated.service'));
     file('provider',provider.publicLine);
 }
 file('release', pin.guest.release);
 file('version-signature', pin.guest.version_signature);
 file('kernel.sha256', pin.guest.kernel_sha256 + '  /boot/vmlinuz-' + pin.guest.release);
-file('binary.sha256', (await Promise.all(['pool-tests','omakase-server','sleep.conf','sleep.tmpfiles','sleep-guest','run',
-    ...(mode === 'cold' ? ['run-cold','run-online'] : provider ? ['run-cold','run-delegates','delegated.service','provider'] : mode === 's4' ? ['run-s4'] : [])]
+file('binary.sha256', (await Promise.all(['pool-tests','omakase-server','sleep.conf','sleep.tmpfiles','sleep-guest','run',...witnessFiles,
+    ...(mode === 'cold' ? ['run-cold','run-online'] : provider ? ['run-cold',delegateFixture,'delegated.service','provider'] : mode === 's4' ? ['run-s4'] : [])]
     .map(async name => await digest(join(seed,name)) + '  ' + name))).join('\n'));
 file('meta-data', 'instance-id: pool-linux-refinement\nlocal-hostname: pool-lab');
 file('network-config', 'version: 2\nethernets: {}');
@@ -81,7 +95,11 @@ function boot(serial) {
     run('qemu-system-x86_64',[...machine,'-serial','file:' + serial],{timeout:600000,killSignal:'SIGKILL'});
     return readFileSync(join(out,serial),'utf8').replaceAll('\r','').split('\n');
 }
-if (provider) {
+if (mode==='witness-rollback') {
+    await witnessBoots(machine,out);
+} else if (mode==='reconcile') {
+    await reconcileBoots(machine,out,provider);
+} else if (provider) {
     await delegatedBoots(machine,out,provider);
 } else if (mode === 'cold') {
     machine.push('-drive','file=overlay.qcow2,format=qcow2,if=virtio,cache=none');

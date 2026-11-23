@@ -83,7 +83,18 @@ else
 fi
 
 install -d -o nobody -g nogroup -m0700 "$peer"
-if "$first" || test -f "$seed/run-delegates"; then printf 204 > "$peer/status"; else printf 503 > "$peer/status"; fi
+if test -f "$seed/run-reconcile"; then
+    guard=/var/lib/pathward-qmp-guard
+    device=/dev/disk/by-id/virtio-pathward-qmp-guard
+    test "$(cat /sys/class/block/vdb/serial)" = pathward-qmp-guard
+    if "$first"; then
+        test -z "$(lsblk -nro FSTYPE "$device")"
+        mkfs.ext4 -q "$device"
+        install -d -m0755 "$guard"
+    fi
+    mount "$device" "$guard"
+fi
+if "$first" || test -f "$seed/run-delegates" || test -f "$seed/run-reconcile"; then printf 204 > "$peer/status"; else printf 503 > "$peer/status"; fi
 OMAKASE_POOL_LAB="$peer" run "$bin" cold_boot_http_peer --ignored --test-threads=1 --nocapture &
 worker=$!
 for _ in $(seq 1 400); do test ! -f "$peer/listening" || break; kill -0 "$worker"; sleep 0.02; done
@@ -96,6 +107,10 @@ post() { curl --noproxy '*' -sS --max-time 3 -H 'Host: app.example' -H 'Content-
 diag() { "$server" pool-preflight "$state/control/.config" --control-dir "$state/control"; }
 closed_count() { get metrics | awk '$1=="pathward_pool_fence_rejections_total{reason=\"closed\"}"{print $2}'; }
 application_count() { awk '$1=="APP"{n++} END{print n+0}' "$peer/events"; }
+if test -f "$seed/run-reconcile"; then
+    . "$seed/run-reconcile"
+    exit 0
+fi
 if test -f "$seed/run-delegates"; then
     . "$seed/run-delegates"
     exit 0

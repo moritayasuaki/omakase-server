@@ -1,5 +1,7 @@
 //! QEMU host-side witness for one registered vCPU pause/resume. The guest
 //! receives only the public key and signed terminal receipts.
+#[path = "qmp/authority.rs"]
+mod authority;
 #[path = "../../../shared/sleep_ticket.rs"]
 mod sleep_ticket;
 use ring::{
@@ -44,6 +46,10 @@ fn create(path: &Path, data: &[u8]) -> io::Result<()> {
     f.write_all(data)?;
     f.sync_all()?;
     File::open(parent_directory(path)?)?.sync_all()
+}
+
+fn stop_claim(dir: &Path, id: &str) -> std::path::PathBuf {
+    dir.join(format!("{id}.started"))
 }
 
 fn owned(dir: &Path) -> io::Result<()> {
@@ -119,6 +125,18 @@ impl Qmp {
     fn message(&mut self) -> io::Result<Value> {
         omakase_admin::codec::parse(&line(&mut self.stream, 65536)?).map_err(io::Error::other)
     }
+    fn event(&mut self, event: &str) -> io::Result<()> {
+        match event {
+            "STOP" if !self.stopped && !self.resumed => self.stopped = true,
+            "RESUME" if self.stopped && !self.resumed => self.resumed = true,
+            "RESET" | "SHUTDOWN" | "SUSPEND" | "SUSPEND_DISK" | "WAKEUP" | "STOP" | "RESUME"
+            | "MIGRATION" | "GUEST_PANICKED" => {
+                return Err(bad("unexpected VM lifecycle transition"));
+            }
+            _ => (),
+        }
+        Ok(())
+    }
     fn call(&mut self, command: &str) -> io::Result<Value> {
         self.id += 1;
         writeln!(
@@ -129,13 +147,7 @@ impl Qmp {
         for _ in 0..128 {
             let v = self.message()?;
             if let Some(event) = v["event"].as_str() {
-                match event {
-                    "STOP" if !self.stopped && !self.resumed => self.stopped = true,
-                    "RESUME" if self.stopped && !self.resumed => self.resumed = true,
-                    "RESET" | "SHUTDOWN" | "SUSPEND" | "SUSPEND_DISK" | "WAKEUP" | "STOP"
-                    | "RESUME" => return Err(bad("unexpected VM lifecycle transition")),
-                    _ => (),
-                }
+                self.event(event)?;
                 continue;
             }
             ensure(
@@ -154,10 +166,40 @@ impl Qmp {
             "unexpected VM state",
         )
     }
+
+    fn pause(&mut self, vm: &str) -> io::Result<()> {
+        self.call("stop")?;
+        self.check(vm, "paused", false)?;
+        ensure(self.stopped && !self.resumed, "pause not witnessed")
+    }
+
+    fn resume(&mut self, vm: &str, id: &str) -> io::Result<()> {
+        println!("PAUSED {id}");
+        io::stdout().flush()?;
+        ensure(
+            line(&mut io::stdin().lock(), 96)? == format!("resume {id}\n").as_bytes(),
+            "resume requires the same ticket",
+        )?;
+        self.check(vm, "paused", false)?;
+        ensure(!self.resumed, "VM changed before the requested resume")?;
+        self.call("cont")?;
+        self.check(vm, "running", true)?;
+        ensure(self.resumed, "resume not witnessed")
+    }
 }
 
 fn run(args: &[String]) -> io::Result<()> {
     let words: Vec<_> = args.iter().map(String::as_str).collect();
+    match words.as_slice() {
+        ["observe", dir, socket, id] => {
+            return authority::observe(Path::new(dir), Path::new(socket), id);
+        }
+        ["pause-once", mirror, dir, socket, id] => {
+            return authority::dispatch(Path::new(mirror), Path::new(dir), Path::new(socket), id);
+        }
+        ["reconcile", dir, id] => return authority::receipt(Path::new(dir), id),
+        _ => (),
+    }
     if let ["keygen", dir, vm] = words.as_slice() {
         ensure(uuid(vm), "invalid VM UUID")?;
         let dir = Path::new(dir);
@@ -169,6 +211,7 @@ fn run(args: &[String]) -> io::Result<()> {
         File::open(parent_directory(dir)?)?.sync_all()?;
         let signer =
             Ed25519KeyPair::from_pkcs8(key.as_ref()).map_err(|_| bad("invalid private key"))?;
+        create(&dir.join("provider.pub"), signer.public_key().as_ref())?;
         println!("{}", encode(signer.public_key().as_ref()));
         return Ok(());
     }
@@ -177,7 +220,7 @@ fn run(args: &[String]) -> io::Result<()> {
         ["receipt", dir, id] => (Path::new(dir), *id, None),
         _ => {
             return Err(bad(
-                "expected keygen DIR UUID, pause DIR QMP_SOCKET TICKET, or receipt DIR TICKET",
+                "expected keygen DIR UUID, pause DIR QMP_SOCKET TICKET, receipt DIR TICKET, observe AUTH OBS_QMP TICKET, pause-once MIRROR AUTH CMD_QMP TICKET, or reconcile AUTH TICKET",
             ));
         }
     };
@@ -197,21 +240,15 @@ fn run(args: &[String]) -> io::Result<()> {
             "VM state changed before submission",
         )?;
         // An existing claim, including one left after a crash, never submits again.
-        create(&dir.join(format!("{id}.started")), b"started\n")?;
-        q.call("stop")?;
-        q.check(&vm, "paused", false)?;
-        ensure(q.stopped && !q.resumed, "pause not witnessed")?;
-        println!("PAUSED {id}");
-        io::stdout().flush()?;
-        ensure(
-            line(&mut io::stdin().lock(), 96)? == format!("resume {id}\n").as_bytes(),
-            "resume requires the same ticket",
-        )?;
-        q.check(&vm, "paused", false)?;
-        ensure(!q.resumed, "VM changed before the requested resume")?;
-        q.call("cont")?;
-        q.check(&vm, "running", true)?;
-        ensure(q.resumed, "resume not witnessed")?;
+        create(&stop_claim(dir, id), b"started\n").map_err(|e| {
+            if e.kind() == io::ErrorKind::AlreadyExists {
+                bad("original stop already spent")
+            } else {
+                e
+            }
+        })?;
+        q.pause(&vm)?;
+        q.resume(&vm, id)?;
         create(&done, signer.sign(message.as_bytes()).as_ref())?;
     }
     let sig = read_file(&done)?;

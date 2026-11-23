@@ -121,7 +121,8 @@ fn require_awake(file: &File) -> Result<(), Failure> {
 }
 
 /// Drop releases this independent shared flock. No wait or await under the lease.
-pub(crate) fn first_write_lease() -> Result<(File, File), Failure> {
+pub(crate) fn first_write_lease() -> Result<(File, crate::sleep_delegates::DelegationLease), Failure>
+{
     let file = open_fence(OFlags::RDONLY)?;
     check_reader(&file)?;
     let delegates = crate::sleep_delegates::reader()?;

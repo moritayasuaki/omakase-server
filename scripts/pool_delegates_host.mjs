@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {createInterface} from 'node:readline';
 import {setTimeout as delay} from 'node:timers/promises';
 
-const vmUuid='3acefc01-45b6-4e29-88cb-119ccc6c25c3';
+export const vmUuid='3acefc01-45b6-4e29-88cb-119ccc6c25c3';
 export function prepareProvider(root,out) {
     const args=['+1.98.1','build','--offline','--locked','--manifest-path','admin/Cargo.toml','--bin','omakase-qmp-sleep','--message-format=json'];
     const lines=execFileSync('cargo',args,{cwd:root,encoding:'utf8',maxBuffer:16<<20}).trim().split('\n');
@@ -19,7 +19,7 @@ export function prepareProvider(root,out) {
     return {bin,dir,publicLine:vmUuid+' '+key};
 }
 
-async function connect(path,guest) {
+export async function connect(path,guest) {
     for(let i=0;i<300 && guest.exitCode===null;i++) {
         const sock=createConnection(path);
         try { await once(sock,'connect'); return sock; } catch { sock.destroy(); await delay(50); }
@@ -29,7 +29,7 @@ async function connect(path,guest) {
 
 // Disposable guest console recovery after its witness exits while paused.
 // This monitor has no signing authority and never returns a receipt.
-async function resumeAtConsole(qmp) {
+export async function resumeAtConsole(qmp) {
     const socket=createConnection(qmp);
     socket.setTimeout(10000,()=>socket.destroy(Error('console timeout')));
     const lines=createInterface({input:socket})[Symbol.asyncIterator]();

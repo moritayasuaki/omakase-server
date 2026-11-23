@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "lean_toolchain": "leanprover/lean4:v4.31.0",
-  "theorem_count": 726,
-  "axiom_free_count": 106,
+  "theorem_count": 738,
+  "axiom_free_count": 112,
   "axiom_counts": {
     "Classical.choice": 482,
     "Quot.sound": 497,
-    "propext": 620
+    "propext": 626
   },
   "source_sha256": {
     "audit/pool-linux-target.json": "88647d84f929b1751cd980970b7d7949f5765ff8f1fc4827cb4d0525951681ea",
@@ -19,9 +19,9 @@
     "proofs/CutoverProofs.lean": "121c14a91c902a3d6e6fe1d5fa8e98e37a0ea9192acb5ac30fa2f5f972ec1ada",
     "proofs/DeliveryProofs.lean": "334e7a0be46f2797f91c832fa7f750f1cdac6f6482ce99aa1518288d6d79edbf",
     "proofs/Generated/GuardPaths.lean": "3d9fdb1e9bd9256dacbf55cfc14c0e327ab105d65d00dee1e32c3ec4f6c72bce",
-    "proofs/Generated/Omakase.lean": "53d5e302b52582a55c69742299af5bf7b7df34050f615a8e26f4075e8f81c973",
+    "proofs/Generated/Omakase.lean": "a1875aedca8279ddc7718203be925faa9a78d58e0006fe716b429e723a987b51",
     "proofs/GuardUpgradeProofs.lean": "52f153a7386f05a372ad2491caadeb5e8215722f00e68dff6b630285820b6f88",
-    "proofs/LinuxProofs.lean": "3cb203d6a1ae576e062017a5c2a0ec27a9e69a516af740f3964141e8b0bab172",
+    "proofs/LinuxProofs.lean": "c1501b6140501c22e68952d6ea4f228183e5f10b46a0c390ce4188df1e7badb6",
     "proofs/OmakaseProofs.lean": "c193c311a9c287f1681b4acbadfc87fcf3fddec0a45e616f96ca9f29573cbac7",
     "proofs/PlanMigrationProofs.lean": "a0210d18aba4f3b14763fb846b0435409862f70655f570adb0f9cffd6b5ada67",
     "proofs/PlatformProofs.lean": "b02b23327ec741ed7e60d50bed8df243d9d6582a0492194036b67a469b81152b",
@@ -38,7 +38,7 @@
     "proofs/StreamingProofs.lean": "55dd3ba13c8ccb1103c985a9e416c207cb753282b41ff416535a71671e2e3599",
     "proofs/TlsProofs.lean": "3e8eb26b1f86bedd7ed270c0e2559ad4a6c3b1192a16a3f3082ce205e431665d",
     "proofs/UpstreamProofs.lean": "a473cef9021a7d0ed74dd36089e3878e8c79582fe7f971b4a4eeda42bc47ef3c",
-    "scripts/extract.py": "7a26e01fbfa37812a4634c25b12fe0c1d30243f278f65fc8e6e3398f34af5919",
+    "scripts/extract.py": "75c4eea131d2c77ba2caa1713a32360d557307b836ca794173daa1af6fd9b977",
     "scripts/pool_guard_paths.mjs": "cf3c35336ff41259983941a52f0faff1b50c183e63e8143a6d3003cb28362983",
     "server/src/pool_locks.rs": "dee90bb64996e68a7c663bcb5f7492afc9841cf482a8fd290424204d9a2ebf26",
     "src/bootstrap.rs": "0e2efcce51aed2270e5e52b448afd7a452d212e6362a18d21097bc93d1a6e15a",
@@ -58,7 +58,7 @@
     "src/serving.rs": "019358430607bb367639c6e2c1ccd56795ed85a2cd43152df26ff1986e37ca67",
     "src/streaming.rs": "7ce627b8afbf1fcb4956b1d0b8a40e11c23248839dcf6a774dbfc3459f4e7741",
     "src/tls.rs": "f443f6750448b1734272eea13ba085b6eb6ce420f3a4fd74145470683f35d7ba",
-    "src/upstream.rs": "c5c3f214a057109a58b31351eadbf64966ad2806ec6837154c76ca70b18770ac"
+    "src/upstream.rs": "e4ea732d2417312b4efa87d558881c91aa86cc955a8465056f416fbb448140a5"
   },
   "theorems": [
     {
@@ -3059,6 +3059,114 @@
       "axioms": [
         "propext"
       ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.original_stop_exact",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 654,
+      "statement": "theorem original_stop_exact (armed created : Bool) :\n    upstream.original_stop_permitted armed created = ok (armed && created)",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.original_resume_exact",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 658,
+      "statement": "theorem original_resume_exact (claim ack stop resume : Bool) :\n    upstream.original_resume_proven claim ack stop resume = ok (claim && ack && stop && resume)",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.recovery_ticket_exact",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 662,
+      "statement": "theorem recovery_ticket_exact (guest sameGuest guard sameGuard signed : Bool) :\n    upstream.reconcile_ticket guest sameGuest guard sameGuard signed =\n      ok (signed && (guest || guard) && (!guest || sameGuest) && (!guard || sameGuard))",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.conflicting_independent_ticket_cannot_clear",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 667,
+      "statement": "theorem conflicting_independent_ticket_cannot_clear (guest sameGuest signed : Bool) :\n    upstream.reconcile_ticket guest sameGuest true false signed = ok false",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.uncertain_original_cannot_clear",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 671,
+      "statement": "theorem uncertain_original_cannot_clear (guest sameGuest guard sameGuard : Bool) :\n    upstream.reconcile_ticket guest sameGuest guard sameGuard false = ok false",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.restored_guest_accepts_matching_receipt_only",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 675,
+      "statement": "theorem restored_guest_accepts_matching_receipt_only (sameGuard signed : Bool) :\n    upstream.reconcile_ticket false false true sameGuard signed = ok (signed && sameGuard)",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.stale_guest_repair_keeps_newer_guard",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 679,
+      "statement": "theorem stale_guest_repair_keeps_newer_guard (verified : Bool) :\n    (do let retired ← upstream.delegate_can_retire true true verified\n        upstream.delegates_allow_write (!retired) true) = ok false",
+      "axioms": [],
+      "scope": "rust_contract_or_lemma"
+    },
+    {
+      "name": "LinuxProofs.original_history_counts_submissions",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 720,
+      "statement": "theorem original_history_counts_submissions {t s} (h : OriginalHistory t s) :\n    s.stopCount = (if s.phase = .armed then 0 else 1)",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.rollback_and_reconciliation_never_repeat_stop",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 724,
+      "statement": "theorem rollback_and_reconciliation_never_repeat_stop {t s} (h : OriginalHistory t s) :\n    s.stopCount ≤ 1",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.guarded_write_requires_original_release",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 729,
+      "statement": "theorem guarded_write_requires_original_release {t s} (h : OriginalHistory t s)\n    (write : upstream.delegates_allow_write s.guestPending (decide (s.phase ≠ .released)) = ok true) :\n    s.phase = .released ∧ s.stopCount = 1",
+      "axioms": [
+        "propext"
+      ],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.original_release_has_prior_witness",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 745,
+      "statement": "theorem original_release_has_prior_witness {t s} (h : OriginalHistory t s) (ready : s.phase = .released) :\n    t = [.armed,.submitted,.finished,.witnessed,.released]",
+      "axioms": [],
+      "scope": "transition_model"
+    },
+    {
+      "name": "LinuxProofs.either_rollback_preserves_guard_and_submissions",
+      "source": "proofs/LinuxProofs.lean",
+      "line": 756,
+      "statement": "theorem either_rollback_preserves_guard_and_submissions {t s} (h : OriginalHistory t s) (g m : Bool) :\n    OriginalHistory t ⟨s.phase,g,m,s.stopCount⟩",
+      "axioms": [],
       "scope": "transition_model"
     },
     {

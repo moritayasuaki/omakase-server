@@ -33,6 +33,11 @@
     "LinuxProofs.callback_returns_or_unwinds_through_both_drops"
   ],
   "model_only_theorems": [
+    "LinuxProofs.original_history_counts_submissions",
+    "LinuxProofs.rollback_and_reconciliation_never_repeat_stop",
+    "LinuxProofs.guarded_write_requires_original_release",
+    "LinuxProofs.original_release_has_prior_witness",
+    "LinuxProofs.either_rollback_preserves_guard_and_submissions",
     "LinuxProofs.delegated_step_keeps_work_registered",
     "LinuxProofs.delegated_history_keeps_registrations",
     "LinuxProofs.delegated_history_write_requires_all_work_finished",
@@ -160,6 +165,7 @@
     }
   },
   "trusted_boundaries": [
+    "復旧対応QEMUの独立観測元と専用ガードディスクは、ゲストのルートディスク・元の監視プロセスの復元対象外に置く。同じVMのプライベートなQMP接続、停止要求の排他制御、イベントの順序、仮想ディスクの固有性・起動順、永続書込み、署名鍵を信頼する。",
     "委譲元は全依頼を送信前に登録する。すべての書き手・管理者が同じ永続台帳を参照する。Linuxのflock、rename、ファイルとディレクトリのfsync、消失・巻戻しのない保管、作業IDの一意性を前提とする。systemdの終了状態と再帰的cgroup、QMPのVM識別と停止・再開の応答、Ed25519と署名鍵の管理が完了証拠の正しさを担う。",
     "Leanカーネルと使用する標準公理",
     "Charon/AeneasによるRustからLeanへの抽出、Rust/LLVMコンパイラー",
@@ -888,8 +894,29 @@
       "id": "LOCAL-POOL-DELEGATE-AUTHORITY-LOSS",
       "title": "外部作業の完了記録を失った場合の復旧とスナップショット巻戻し",
       "priority": "P2",
+      "status": "proved",
+      "acceptance": "QEMUの元の停止要求を最大1回に制限し、元の監視役が失われても、同一VM・同一依頼の独立した終了記録でのみガードを開く。ゲストまたは元の監視側のディスクだけを過去に戻した場合を含む。保護対象外の状態は下記の信頼境界に従う。",
+      "theorems": [
+        "LinuxProofs.original_stop_exact",
+        "LinuxProofs.original_resume_exact",
+        "LinuxProofs.recovery_ticket_exact",
+        "LinuxProofs.conflicting_independent_ticket_cannot_clear",
+        "LinuxProofs.uncertain_original_cannot_clear",
+        "LinuxProofs.restored_guest_accepts_matching_receipt_only",
+        "LinuxProofs.stale_guest_repair_keeps_newer_guard",
+        "LinuxProofs.original_history_counts_submissions",
+        "LinuxProofs.rollback_and_reconciliation_never_repeat_stop",
+        "LinuxProofs.guarded_write_requires_original_release",
+        "LinuxProofs.original_release_has_prior_witness",
+        "LinuxProofs.either_rollback_preserves_guard_and_submissions"
+      ]
+    },
+    {
+      "id": "LOCAL-POOL-INDEPENDENT-AUTHORITY-FAILURE",
+      "title": "独立記録自体の喪失・巻戻しと未仲介の電源経路",
+      "priority": "P2",
       "status": "planned",
-      "acceptance": "QMP監視断・完了記録消失・ゲストと監視元の別々の巻戻しについて、同一依頼の再送や誤解除を起こさずに処理を再照合する。未仲介の特権経路と別の仮想化基盤には個別の強制・完了証拠を用意する。",
+      "acceptance": "独立観測も終了を記録できなかった依頼、専用ガードディスクや独立ジャーナル自体の消失・巻戻し、実行中のVMメモリ復元に対する安全な復旧を検証する。未仲介の電源経路と別ハイパーバイザにはそれぞれ完了を立証するアダプターが必要。",
       "theorems": []
     },
     {

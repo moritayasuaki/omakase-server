@@ -651,4 +651,110 @@ theorem reboot_with_unconfirmed_delegate_stays_closed {s} (past : DelegateHistor
   rw [delegates_write_exact]
   rcases pending with h | h <;> simp [h]
 
+theorem original_stop_exact (armed created : Bool) :
+    upstream.original_stop_permitted armed created = ok (armed && created) := by
+  cases armed <;> cases created <;> rfl
+
+theorem original_resume_exact (claim ack stop resume : Bool) :
+    upstream.original_resume_proven claim ack stop resume = ok (claim && ack && stop && resume) := by
+  cases claim <;> cases ack <;> cases stop <;> cases resume <;> rfl
+
+theorem recovery_ticket_exact (guest sameGuest guard sameGuard signed : Bool) :
+    upstream.reconcile_ticket guest sameGuest guard sameGuard signed =
+      ok (signed && (guest || guard) && (!guest || sameGuest) && (!guard || sameGuard)) := by
+  cases guest <;> cases sameGuest <;> cases guard <;> cases sameGuard <;> cases signed <;> rfl
+
+theorem conflicting_independent_ticket_cannot_clear (guest sameGuest signed : Bool) :
+    upstream.reconcile_ticket guest sameGuest true false signed = ok false := by
+  rw [recovery_ticket_exact]; simp
+
+theorem uncertain_original_cannot_clear (guest sameGuest guard sameGuard : Bool) :
+    upstream.reconcile_ticket guest sameGuest guard sameGuard false = ok false := by
+  rw [recovery_ticket_exact]; simp
+
+theorem restored_guest_accepts_matching_receipt_only (sameGuard signed : Bool) :
+    upstream.reconcile_ticket false false true sameGuard signed = ok (signed && sameGuard) := by
+  rw [recovery_ticket_exact]; simp
+
+theorem stale_guest_repair_keeps_newer_guard (verified : Bool) :
+    (do let retired ← upstream.delegate_can_retire true true verified
+        upstream.delegates_allow_write (!retired) true) = ok false := by
+  cases verified <;> rfl
+
+/-- One immutable ticket. The authority journal and separate guest guard disk
+    survive guest/root and submitter-store restores. Actual completion and its
+    positive observation are different transitions. -/
+inductive OriginalPhase where
+  | armed | submitted | finished | witnessed | released
+  deriving DecidableEq
+
+structure OriginalState where
+  phase : OriginalPhase
+  guestPending : Bool
+  mirrorClaim : Bool
+  stopCount : Nat
+
+/-- Protocol milestones of this very ticket, in chronological order. Restoring
+    a guest or submitter and redelivering a receipt add no power event. -/
+inductive OriginalHistory : List OriginalPhase → OriginalState → Prop where
+  | initial : OriginalHistory [.armed] ⟨.armed,true,false,0⟩
+  | submit {t g m n} (previous : OriginalHistory t ⟨.armed,g,m,n⟩)
+      (permit : upstream.original_stop_permitted true true = ok true) :
+      OriginalHistory (t ++ [.submitted]) ⟨.submitted,g,true,n+1⟩
+  | finish {t g m n} (previous : OriginalHistory t ⟨.submitted,g,m,n⟩) :
+      OriginalHistory (t ++ [.finished]) ⟨.finished,g,m,n⟩
+  | witness {t g m n} (previous : OriginalHistory t ⟨.finished,g,m,n⟩) (claim ack stop resume : Bool)
+      (proof : upstream.original_resume_proven claim ack stop resume = ok true) :
+      OriginalHistory (t ++ [.witnessed]) ⟨.witnessed,g,m,n⟩
+  | reconcile {t g m n} (previous : OriginalHistory t ⟨.witnessed,g,m,n⟩)
+      (valid : upstream.reconcile_ticket g true true true true = ok true) :
+      OriginalHistory (t ++ [.released]) ⟨.released,false,m,n⟩
+  | redeliver {t m n} (previous : OriginalHistory t ⟨.released,true,m,n⟩)
+      (valid : upstream.reconcile_ticket true true false false true = ok true) :
+      OriginalHistory t ⟨.released,false,m,n⟩
+  | restoreGuest {t s} (previous : OriginalHistory t s) (copy : Bool) :
+      OriginalHistory t {s with guestPending := copy}
+  | restoreMirror {t s} (previous : OriginalHistory t s) (copy : Bool) :
+      OriginalHistory t {s with mirrorClaim := copy}
+
+theorem original_history_counts_submissions {t s} (h : OriginalHistory t s) :
+    s.stopCount = (if s.phase = .armed then 0 else 1) := by
+  induction h <;> simp_all
+
+theorem rollback_and_reconciliation_never_repeat_stop {t s} (h : OriginalHistory t s) :
+    s.stopCount ≤ 1 := by
+  rw [original_history_counts_submissions h]
+  split <;> decide
+
+theorem guarded_write_requires_original_release {t s} (h : OriginalHistory t s)
+    (write : upstream.delegates_allow_write s.guestPending (decide (s.phase ≠ .released)) = ok true) :
+    s.phase = .released ∧ s.stopCount = 1 := by
+  rw [delegates_write_exact] at write
+  have released : s.phase = .released := by
+    by_contra ne
+    simp [ne] at write
+  exact ⟨released, by simp [original_history_counts_submissions h, released]⟩
+
+private def milestones : OriginalPhase → List OriginalPhase
+  | .armed => [.armed]
+  | .submitted => [.armed,.submitted]
+  | .finished => [.armed,.submitted,.finished]
+  | .witnessed => [.armed,.submitted,.finished,.witnessed]
+  | .released => [.armed,.submitted,.finished,.witnessed,.released]
+
+theorem original_release_has_prior_witness {t s} (h : OriginalHistory t s) (ready : s.phase = .released) :
+    t = [.armed,.submitted,.finished,.witnessed,.released] := by
+  have order : ∀ {trace v}, OriginalHistory trace v → trace = milestones v.phase := by
+    intro trace v history
+    induction history with
+    | initial => rfl
+    | submit _ _ ih | finish _ ih | witness _ _ _ _ _ _ ih | reconcile _ _ ih =>
+      rw [ih]; rfl
+    | redeliver _ _ ih | restoreGuest _ _ ih | restoreMirror _ _ ih => exact ih
+  exact (order h).trans (congrArg milestones ready)
+
+theorem either_rollback_preserves_guard_and_submissions {t s} (h : OriginalHistory t s) (g m : Bool) :
+    OriginalHistory t ⟨s.phase,g,m,s.stopCount⟩ := by
+  exact .restoreMirror (.restoreGuest h g) m
+
 end LinuxProofs
