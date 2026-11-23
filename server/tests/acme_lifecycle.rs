@@ -1,6 +1,6 @@
 #![cfg(target_os = "linux")]
-use pathward_config::ParsedConfig;
-use pathward_server::{Server, acme::Manager, tls::TlsServer};
+use omakase_config::ParsedConfig;
+use omakase_server::{Server, acme::Manager, tls::TlsServer};
 use rustls::{
     ClientConfig, ClientConnection, RootCertStore, StreamOwned,
     pki_types::{CertificateDer, ServerName},
@@ -103,14 +103,11 @@ impl Drop for Temp {
 #[test]
 #[ignore = "requires pinned disposable Pebble; run make acme-integration"]
 fn real_acme_issue_renew_restart_and_fail_closed() {
-    let port: u16 = std::env::var("PATHWARD_TEST_PORT")
-        .unwrap()
-        .parse()
-        .unwrap();
-    let directory = std::env::var("PATHWARD_TEST_DIRECTORY").unwrap();
-    let api = client_config(&std::env::var("PATHWARD_TEST_CA").unwrap());
-    let issued = client_config(&std::env::var("PATHWARD_TEST_ISSUER").unwrap());
-    let temp = Temp(std::env::temp_dir().join(format!("pathward-acme-{}", std::process::id())));
+    let port: u16 = std::env::var("OMAKASE_TEST_PORT").unwrap().parse().unwrap();
+    let directory = std::env::var("OMAKASE_TEST_DIRECTORY").unwrap();
+    let api = client_config(&std::env::var("OMAKASE_TEST_CA").unwrap());
+    let issued = client_config(&std::env::var("OMAKASE_TEST_ISSUER").unwrap());
+    let temp = Temp(std::env::temp_dir().join(format!("omakase-acme-{}", std::process::id())));
     fs::create_dir(&temp.0).unwrap();
     fs::set_permissions(&temp.0, fs::Permissions::from_mode(0o700)).unwrap();
     let root = temp.0.join("public");
@@ -237,17 +234,17 @@ fn real_acme_issue_renew_restart_and_fail_closed() {
 #[test]
 #[ignore = "requires pinned disposable Pebble; run make acme-integration"]
 fn failed_group_does_not_block_another_groups_renewal() {
-    use pathward_server::{acme::Groups, tls::IdentitySet};
-    let port = std::env::var("PATHWARD_TEST_PORT")
+    use omakase_server::{acme::Groups, tls::IdentitySet};
+    let port = std::env::var("OMAKASE_TEST_PORT")
         .unwrap()
         .parse::<u16>()
         .unwrap();
-    let directory = std::env::var("PATHWARD_TEST_DIRECTORY").unwrap();
-    let api = client_config(&std::env::var("PATHWARD_TEST_CA").unwrap());
-    let issued = client_config(&std::env::var("PATHWARD_TEST_ISSUER").unwrap());
+    let directory = std::env::var("OMAKASE_TEST_DIRECTORY").unwrap();
+    let api = client_config(&std::env::var("OMAKASE_TEST_CA").unwrap());
+    let issued = client_config(&std::env::var("OMAKASE_TEST_ISSUER").unwrap());
     let names = ["one.pathward.test", "two.pathward.test"];
     let temp =
-        Temp(std::env::temp_dir().join(format!("pathward-acme-groups-{}", std::process::id())));
+        Temp(std::env::temp_dir().join(format!("omakase-acme-groups-{}", std::process::id())));
     fs::create_dir(&temp.0).unwrap();
     let root = temp.0.join("public");
     fs::create_dir(&root).unwrap();
@@ -319,7 +316,7 @@ fn failed_group_does_not_block_another_groups_renewal() {
         let (_, leaf) = x509_parser::parse_x509_certificate(&first).unwrap();
         let expiry = u64::try_from(leaf.validity().not_after.timestamp()).unwrap();
         let deadline = Instant::now() + Duration::from_secs(45);
-        while pathward_server::tls::unix_now().unwrap() < expiry {
+        while omakase_server::tls::unix_now().unwrap() < expiry {
             assert!(Instant::now() < deadline, "test certificate did not expire");
             thread::sleep(Duration::from_millis(100));
         }

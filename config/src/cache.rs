@@ -24,7 +24,7 @@ impl CachePolicy {
             return None;
         }
         let seconds = digits.parse().ok()?;
-        if !pathward::content::shared_cache_allowed(200, true, false, seconds)
+        if !omakase::content::shared_cache_allowed(200, true, false, seconds)
             || (immutable && seconds == 0)
         {
             return None;

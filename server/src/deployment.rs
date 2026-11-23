@@ -1,6 +1,6 @@
 //! Explicit manifests and checked, durable local release transactions.
 use crate::{Server, control};
-use pathward_config::{CompiledConfig, ParsedConfig};
+use omakase_config::{CompiledConfig, ParsedConfig};
 use std::{io, path::Path};
 
 pub fn revision(bytes: &[u8]) -> String {
@@ -28,17 +28,17 @@ pub fn generate(
     index: Option<&str>,
 ) -> io::Result<String> {
     if base.site(host).is_none_or(|site| site.root().is_none())
-        || !pathward::valid_path(root.as_bytes())
+        || !omakase::valid_path(root.as_bytes())
         || manifest.len() > 1_048_576
     {
         return Err(error());
     }
     let files: Vec<_> = manifest.lines().collect();
     if files.is_empty()
-        || files.len() + usize::from(index.is_some()) > pathward_config::MAX_PUBLICATIONS
+        || files.len() + usize::from(index.is_some()) > omakase_config::MAX_PUBLICATIONS
         || files
             .iter()
-            .any(|f| !pathward::rules::valid_target(f.as_bytes()))
+            .any(|f| !omakase::rules::valid_target(f.as_bytes()))
     {
         return Err(error());
     }
@@ -195,7 +195,7 @@ pub fn generate(
             let mut mappings = Vec::new();
             for file in &files {
                 let url = format!("/{file}");
-                if !pathward::release::generated_rule(
+                if !omakase::release::generated_rule(
                     url.as_bytes(),
                     file.as_bytes(),
                     file.as_bytes(),
@@ -206,12 +206,8 @@ pub fn generate(
                 mappings.push((url, (*file).to_owned()));
             }
             if let Some(index) = index {
-                if !pathward::release::generated_rule(
-                    b"/",
-                    index.as_bytes(),
-                    index.as_bytes(),
-                    true,
-                ) {
+                if !omakase::release::generated_rule(b"/", index.as_bytes(), index.as_bytes(), true)
+                {
                     return Err(error());
                 }
                 mappings.push(("/".into(), index.into()));
@@ -342,7 +338,7 @@ impl Server {
             };
             if generation != expected_generation
                 || generation == u64::MAX
-                || !pathward::release::commit_allowed(
+                || !omakase::release::commit_allowed(
                     revision(old.source.as_bytes()).as_bytes(),
                     expected.as_bytes(),
                     true,
@@ -360,7 +356,7 @@ impl Server {
             let parsed = ParsedConfig::parse(text).map_err(|_| error())?;
             let config = parsed.compile().map_err(|_| error())?;
             if !old.same_hosts(&config)
-                || !pathward::release::capacity_reload_allowed(self.shared_nat, config.shared_nat())
+                || !omakase::release::capacity_reload_allowed(self.shared_nat, config.shared_nat())
                 || !self.isolated(&config)
                 || !Snapshot::isolated(&config, Some(directory))
             {
@@ -377,7 +373,7 @@ impl Server {
                 saved?;
                 let mut state = self.state.write().map_err(|_| error())?;
                 let draining = state.draining || shutdown.load(Ordering::Acquire);
-                if !pathward::release::commit_allowed(
+                if !omakase::release::commit_allowed(
                     revision(state.snapshot.source.as_bytes()).as_bytes(),
                     expected.as_bytes(),
                     true,
@@ -386,7 +382,7 @@ impl Server {
                 ) {
                     return Err(error());
                 }
-                let next = pathward::runtime::commit_generation(
+                let next = omakase::runtime::commit_generation(
                     state.generation,
                     expected_generation,
                     true,

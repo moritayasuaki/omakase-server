@@ -1,5 +1,5 @@
 use crate::{Server, http};
-use pathward_config::ParsedConfig;
+use omakase_config::ParsedConfig;
 use std::{
     fs,
     io::{self, Read, Write},
@@ -61,7 +61,7 @@ fn raw_exchange(server: &Server, request: &str) -> String {
 fn static_ranges_preconditions_cache_and_large_files_use_one_authorized_descriptor() {
     use std::io::{Seek, SeekFrom};
     let root = std::env::temp_dir().join(format!(
-        "pathward-content-{}-{}",
+        "omakase-content-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -215,7 +215,7 @@ fn exchange_mode(
 #[test]
 fn configured_locations_headers_and_reload_use_one_checked_policy() {
     let root = std::env::temp_dir().join(format!(
-        "pathward-response-{}-{}",
+        "omakase-response-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -314,7 +314,7 @@ fn configured_locations_headers_and_reload_use_one_checked_policy() {
 #[test]
 fn fallback_preserves_local_denials_publications_and_explicit_redirects() {
     let root = std::env::temp_dir().join(format!(
-        "pathward-fallback-{}-{}",
+        "omakase-fallback-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)

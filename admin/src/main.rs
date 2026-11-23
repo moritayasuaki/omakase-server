@@ -1,4 +1,4 @@
-use pathward_admin::{
+use omakase_admin::{
     Result, codec,
     engine::{Engine, Environment},
     require, storage,
@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("PathWard administrator: {e}");
+        eprintln!("Omakase administrator: {e}");
         std::process::exit(1);
     }
 }
@@ -16,7 +16,7 @@ fn run() -> Result<()> {
     let a: Vec<String> = std::env::args().skip(1).collect();
     require(
         a.len() >= 3 && a[0] == "--root",
-        "usage: pathward-admin --root /absolute/private/store prepare INPUT SHA256 | apply REQUEST | boot | recover | fallback | gate UNIT | status",
+        "usage: omakase-admin --root /absolute/private/store prepare INPUT SHA256 | apply REQUEST | boot | recover | fallback | gate UNIT | status",
     )?;
     require(
         cfg!(target_os = "linux") && rustix::process::geteuid().is_root(),
@@ -31,8 +31,8 @@ fn run() -> Result<()> {
     };
     if a[2] == "bridge-health" {
         require(a.len() == 5, "bridge-health CONFIG native|legacy")?;
-        let config = pathward_admin::confined::metadata(Path::new(&a[3]), 0)?;
-        return pathward_admin::bridge_rollout::health(&config, &a[4], &mut e.sys, &e.root);
+        let config = omakase_admin::confined::metadata(Path::new(&a[3]), 0)?;
+        return omakase_admin::bridge_rollout::health(&config, &a[4], &mut e.sys, &e.root);
     }
     if a[2] == "gate" {
         require(a.len() == 4, "gate arguments")?;
@@ -58,7 +58,7 @@ fn run() -> Result<()> {
         {
             // OnFailure may race a live administrator. Retry only contention;
             // invalid records/held recovery must still stop without a loop.
-            eprintln!("PathWard fallback waits for the active administrator");
+            eprintln!("Omakase fallback waits for the active administrator");
             std::process::exit(75);
         }
         Err(error) => return Err(error),
@@ -69,8 +69,8 @@ fn run() -> Result<()> {
                 a.len() == 9,
                 "manual-publish CONFIG PROFILE EXPECT NEXT MANIFEST SHA256",
             )?;
-            let config = pathward_admin::confined::metadata(Path::new(&a[3]), 0)?;
-            let active = pathward_admin::bridge_rollout::manual_publish(
+            let config = omakase_admin::confined::metadata(Path::new(&a[3]), 0)?;
+            let active = omakase_admin::bridge_rollout::manual_publish(
                 &mut e,
                 &config,
                 &a[4],
@@ -92,9 +92,9 @@ fn run() -> Result<()> {
             let input = codec::parse(&raw)?;
             let exe = std::env::current_exe()?;
             let id = if a[2] == "bridge-prepare" {
-                pathward_admin::bridge_rollout::prepare(&mut e, &input, &exe, &mut |_| Ok(()))?
+                omakase_admin::bridge_rollout::prepare(&mut e, &input, &exe, &mut |_| Ok(()))?
             } else {
-                pathward_admin::bridge_rollout::switch(
+                omakase_admin::bridge_rollout::switch(
                     &mut e,
                     &input,
                     if a[2] == "bridge-native" {
@@ -115,7 +115,7 @@ fn run() -> Result<()> {
                 codec::hash(&raw) == a[4],
                 "reviewed provisioning input hash mismatch",
             )?;
-            let id = pathward_admin::provision::prepare(
+            let id = omakase_admin::provision::prepare(
                 &mut e,
                 &codec::parse(&raw)?,
                 &std::env::current_exe()?,

@@ -1,5 +1,5 @@
 import PlanMigrationProofs
-open Aeneas Aeneas.Std RustM pathward
+open Aeneas Aeneas.Std RustM omakase
 namespace ContractMigrationProofs
 open recovery
 

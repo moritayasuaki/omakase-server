@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('upgrade', ROOT/'deploy/pathward_guard_upgrade.py')
 u = importlib.util.module_from_spec(spec); spec.loader.exec_module(u)
 r = u.r
-KERNEL = Path(os.environ.get('PATHWARD_RECOVERY_BINARY', Path(os.environ.get('CARGO_TARGET_DIR', ROOT/'target'))/'release/pathward-recovery')).resolve()
-LEGACY_KERNEL = Path(os.environ.get('PATHWARD_LEGACY_RECOVERY_BINARY', KERNEL)).resolve()
+KERNEL = Path(os.environ.get('OMAKASE_RECOVERY_BINARY', Path(os.environ.get('CARGO_TARGET_DIR', ROOT/'target'))/'release/omakase-recovery')).resolve()
+LEGACY_KERNEL = Path(os.environ.get('OMAKASE_LEGACY_RECOVERY_BINARY', KERNEL)).resolve()
 
 
 class Fixture:

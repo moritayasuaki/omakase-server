@@ -1,7 +1,7 @@
-use pathward::content::*;
+use omakase::content::*;
 #[test]
 fn ranges_and_shared_freshness_fail_closed_at_all_boundaries() {
-    let max = pathward::serving::MAX_FILE_BYTES;
+    let max = omakase::serving::MAX_FILE_BYTES;
     assert!(span_allowed(max, max, 0));
     assert!(span_allowed(max, 0, max));
     for args in [

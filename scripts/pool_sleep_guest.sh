@@ -2,7 +2,7 @@
 fence=/run/pathward-sleep.gate
 coordinator=/usr/local/libexec/pathward-server
 prefix=backend_pool::io_tests::platform::linux::
-install -Dm0755 "$seed/pathward-server" "$coordinator"
+install -Dm0755 "$seed/omakase-server" "$coordinator"
 "$coordinator" sleep-delegate init-local
 for mode in suspend hibernate hybrid-sleep suspend-then-hibernate; do
     install -Dm0644 "$seed/sleep.conf" "/etc/systemd/system/systemd-$mode.service.d/50-pathward.conf"
@@ -76,9 +76,9 @@ sleep_workers() {
     pre=$(mktemp -d)
     post=$(mktemp -d)
     chown nobody:nogroup "$pre" "$post"
-    PATHWARD_POOL_LAB="$pre" run "$bin" "${prefix}suspended_pool_samples_expire_and_require_a_successful_recheck" --ignored --exact --test-threads=1 --nocapture &
+    OMAKASE_POOL_LAB="$pre" run "$bin" "${prefix}suspended_pool_samples_expire_and_require_a_successful_recheck" --ignored --exact --test-threads=1 --nocapture &
     pre_pid=$!
-    PATHWARD_POOL_LAB="$post" run "$bin" "${prefix}sleep_contends_with_the_sampled_first_write" --ignored --exact --test-threads=1 --nocapture &
+    OMAKASE_POOL_LAB="$post" run "$bin" "${prefix}sleep_contends_with_the_sampled_first_write" --ignored --exact --test-threads=1 --nocapture &
     post_pid=$!
     for dir in "$pre" "$post"; do
         for _ in $(seq 1 650); do
@@ -109,11 +109,11 @@ contended_sleep() {
                 journalctl -b "_SYSTEMD_INVOCATION_ID=$invocation" -o cat --no-pager > "$evidence"
             fi
         fi
-        if test -s "$evidence" && grep -Fq 'Waiting for the PathWard sleep fence' "$evidence"; then break; fi
+        if test -s "$evidence" && grep -Fq 'Waiting for the Omakase sleep fence' "$evidence"; then break; fi
         kill -0 "$power_pid" || { cat "$log"; return 1; }
         sleep 0.02
     done
-    grep -Fq 'Waiting for the PathWard sleep fence' "$evidence"
+    grep -Fq 'Waiting for the Omakase sleep fence' "$evidence"
     touch "$post/contended"
     wait "$power_pid" || { cat "$log"; journalctl -b -u "$entry.service" -n 20 --no-pager; return 1; }
     test "$(cat "$fence")" = A

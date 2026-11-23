@@ -1,5 +1,5 @@
 import DeliveryProofs
-open Aeneas Aeneas.Std RustM pathward
+open Aeneas Aeneas.Std RustM omakase
 namespace ConnectionProofs
 
 theorem candidate_slot_eq (n : U64) :

@@ -1,5 +1,5 @@
 #![cfg(target_os = "linux")]
-use pathward_server::secrets::SecretStore;
+use omakase_server::secrets::SecretStore;
 use std::{
     fs,
     os::unix::fs::{PermissionsExt, symlink},
@@ -12,7 +12,7 @@ struct Temp(PathBuf);
 impl Temp {
     fn new() -> Self {
         let p = std::env::temp_dir().join(format!(
-            "pathward-secrets-{}-{}",
+            "omakase-secrets-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
@@ -26,6 +26,39 @@ impl Drop for Temp {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
+#[test]
+fn reopens_pathward_group_and_reuses_the_existing_acme_account() {
+    let temp = Temp::new();
+    let cache = temp.0.join("cache");
+    let group = cache.join("3927b6c32d968528930549bba04db07c26450cfe28184bc36ac34a57f4286af5");
+    let account = rustls_acme::acme::Account::generate_key_pair().unwrap();
+    let parent = SecretStore::open(&cache, &[]).unwrap();
+    parent
+        .bind(b"pathward-acme-groups-v1\nhttps://ca.example/directory\nmailto:ops@example.net\n")
+        .unwrap();
+    let child = SecretStore::open(&group, &[]).unwrap();
+    child
+        .bind(b"pathward-acme-v1\nhttps://ca.example/directory\nsite.example\nmailto:ops@example.net\n")
+        .unwrap();
+    child.store_account(&account).unwrap();
+    drop(child);
+    drop(parent);
+
+    let domains = vec!["site.example".to_owned()];
+    let groups = omakase_server::acme::Groups::new(
+        domains.clone(),
+        vec![domains],
+        &[],
+        &cache,
+        "https://ca.example/directory",
+        vec!["mailto:ops@example.net".into()],
+        omakase_server::acme::public_client_config().unwrap(),
+    )
+    .unwrap();
+    assert_eq!(groups.workers().len(), 1);
+    assert_eq!(fs::read(group.join(".account")).unwrap(), account);
+}
+
 #[test]
 fn private_atomic_store_lock_and_restart() {
     let temp = Temp::new();
@@ -136,7 +169,7 @@ fn refuse_public_symlink_hardlink_special_and_oversized_cache() {
 
 #[test]
 fn nondumpable_process_can_reopen_its_private_descriptors() {
-    if std::env::var_os("PATHWARD_TEST_NONDUMP_CHILD").is_some() {
+    if std::env::var_os("OMAKASE_TEST_NONDUMP_CHILD").is_some() {
         rustix::process::set_dumpable_behavior(rustix::process::DumpableBehavior::NotDumpable)
             .unwrap();
         rustix::process::setrlimit(
@@ -158,7 +191,7 @@ fn nondumpable_process_can_reopen_its_private_descriptors() {
             "--exact",
             "nondumpable_process_can_reopen_its_private_descriptors",
         ])
-        .env("PATHWARD_TEST_NONDUMP_CHILD", "1")
+        .env("OMAKASE_TEST_NONDUMP_CHILD", "1")
         .status()
         .unwrap();
     assert!(status.success());

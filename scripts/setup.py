@@ -35,7 +35,7 @@ def main():
     target, digest = ARCHIVES[key]
     HAX.parent.mkdir(parents=True, exist_ok=True)
     if not HAX.exists():
-        with tempfile.TemporaryDirectory(prefix="pathward-setup-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="omakase-setup-") as temporary:
             archive = Path(temporary) / "hax.tar.zst"
             run("curl", "--fail", "--location", "--retry", "3", "--max-time", "600",
                 f"https://github.com/cryspen/hax/releases/download/cargo-hax-v0.4.2/cargo-hax-{target}.tar.zst",

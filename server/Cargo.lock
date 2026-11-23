@@ -701,31 +701,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "once_cell"
-version = "1.21.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
-
-[[package]]
-name = "parking"
-version = "2.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f38d5652c16fde515bb1ecef450ab0f6a219d619a7274976324d5e377f7dceba"
-
-[[package]]
-name = "pathward"
+name = "omakase"
 version = "0.1.0"
 
 [[package]]
-name = "pathward-config"
+name = "omakase-config"
 version = "0.1.0"
 dependencies = [
  "kdl",
- "pathward",
+ "omakase",
 ]
 
 [[package]]
-name = "pathward-server"
+name = "omakase-server"
 version = "0.1.0"
 dependencies = [
  "async-io",
@@ -738,8 +726,8 @@ dependencies = [
  "http",
  "httparse",
  "httpdate",
- "pathward",
- "pathward-config",
+ "omakase",
+ "omakase-config",
  "pem",
  "quinn",
  "rcgen",
@@ -754,6 +742,18 @@ dependencies = [
  "x509-parser",
  "zstd",
 ]
+
+[[package]]
+name = "once_cell"
+version = "1.21.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+
+[[package]]
+name = "parking"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f38d5652c16fde515bb1ecef450ab0f6a219d619a7274976324d5e377f7dceba"
 
 [[package]]
 name = "pem"
@@ -995,7 +995,7 @@ dependencies = [
  "futures-rustls",
  "http",
  "httparse",
- "pathward",
+ "omakase",
  "rcgen",
  "ring",
  "serde",

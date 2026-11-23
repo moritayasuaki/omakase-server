@@ -47,7 +47,7 @@ pub fn verify_sealed_file(path: &Path, expected: &str) -> Result<()> {
     let canonical = crate::storage::absolute(path);
     let pinned = codec::digest(expected);
     require(
-        pathward::bootstrap::sealed_resource_allowed(canonical, pinned, true),
+        omakase::bootstrap::sealed_resource_allowed(canonical, pinned, true),
         "invalid sealed resource path or digest",
     )?;
     let text = path.to_str().ok_or("nontext sealed resource")?;
@@ -64,7 +64,7 @@ pub fn verify_sealed_file(path: &Path, expected: &str) -> Result<()> {
     )?;
     let hash = stream(file, None, 256 << 20)?;
     require(
-        pathward::bootstrap::sealed_resource_allowed(canonical, pinned, hash["sha256"] == expected),
+        omakase::bootstrap::sealed_resource_allowed(canonical, pinned, hash["sha256"] == expected),
         "backend sealed file changed",
     )
 }

@@ -1,5 +1,5 @@
-import Generated.Pathward
-open Aeneas Aeneas.Std RustM pathward
+import Generated.Omakase
+open Aeneas Aeneas.Std RustM omakase
 namespace AuthorityProofs
 
 theorem sealed_resource_iff (c p e : Bool) :

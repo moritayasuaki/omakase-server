@@ -40,8 +40,8 @@ pub mod tls;
 mod work;
 
 use crate::http::Transport;
-use pathward::serving::authorize;
-use pathward_config::CompiledConfig;
+use omakase::serving::authorize;
+use omakase_config::CompiledConfig;
 use runtime::Snapshot;
 use std::path::{Path, PathBuf};
 use std::{
@@ -161,7 +161,7 @@ impl Server {
             .state
             .read()
             .map_err(|_| io::Error::other("state lock"))?;
-        let parsed = pathward_config::ParsedConfig::parse(&state.snapshot.source)
+        let parsed = omakase_config::ParsedConfig::parse(&state.snapshot.source)
             .map_err(|_| io::Error::other("config"))?;
         let config = parsed.compile().map_err(|_| io::Error::other("config"))?;
         if !Snapshot::isolated(&config, Some(path)) {
@@ -231,7 +231,7 @@ impl Server {
         };
         let isolated = self.isolated(config);
         if !identity_matches
-            || !pathward::release::capacity_reload_allowed(self.shared_nat, config.shared_nat())
+            || !omakase::release::capacity_reload_allowed(self.shared_nat, config.shared_nat())
             || !isolated
             || shutdown.load(Ordering::Acquire)
             || self.is_draining()
@@ -251,7 +251,7 @@ impl Server {
             .state
             .write()
             .map_err(|_| io::Error::other("state lock"))?;
-        let next = pathward::runtime::commit_generation(
+        let next = omakase::runtime::commit_generation(
             state.generation,
             expected,
             true,
@@ -310,7 +310,7 @@ impl Server {
                 .await;
             }
         };
-        let authority_port = pathward::response::authority_port(
+        let authority_port = omakase::response::authority_port(
             stream.local_port()?,
             sni.is_some(),
             automatic_redirect,
@@ -329,13 +329,13 @@ impl Server {
             let close = req.headers.iter().any(|h| {
                 h.name.eq_ignore_ascii_case("connection") && h.value.eq_ignore_ascii_case(b"close")
             });
-            out.reuse = pathward::delivery::http1_persistent(req.upgrade, close);
+            out.reuse = omakase::delivery::http1_persistent(req.upgrade, close);
         }
         let Some(site) = snapshot.sites.iter().find(|s| s.host == req.host) else {
             return Self::reject(stream, 421).await;
         };
         if let Some(sni) = sni
-            && !pathward::tls::identity_allowed(
+            && !omakase::tls::identity_allowed(
                 sni.as_bytes(),
                 req.host.as_bytes(),
                 site.host.as_bytes(),
@@ -346,10 +346,10 @@ impl Server {
         if let Err(e) = encoding::validate(&req, site.encoding) {
             return Self::reject(stream, encoding::rejection(&e)).await;
         }
-        let path = if site.has_proxy() && pathward::proxy::target_allowed(req.target) {
-            &req.target[..pathward::serving::path_length(req.target)]
+        let path = if site.has_proxy() && omakase::proxy::target_allowed(req.target) {
+            &req.target[..omakase::serving::path_length(req.target)]
         } else {
-            pathward::serving::request_path(req.target).unwrap_or(b"")
+            omakase::serving::request_path(req.target).unwrap_or(b"")
         };
         let reject = async |stream: &mut _, status| -> io::Result<(u16, u64)> {
             async_http::write_all(
@@ -373,7 +373,7 @@ impl Server {
         }
         if early {
             let publications = site.publications();
-            let published = route == pathward::routing::Route::Static
+            let published = route == omakase::routing::Route::Static
                 && authorize(
                     req.method,
                     req.host.as_bytes(),
@@ -387,7 +387,7 @@ impl Server {
                     h.name.eq_ignore_ascii_case("cookie")
                         || h.name.eq_ignore_ascii_case("authorization")
                 });
-            if !pathward::delivery::early_allowed(
+            if !omakase::delivery::early_allowed(
                 false,
                 req.method == b"GET" || req.method == b"HEAD",
                 published,
@@ -398,12 +398,12 @@ impl Server {
             }
         }
 
-        if route == pathward::routing::Route::Denied {
+        if route == omakase::routing::Route::Denied {
             // Preserve the whole-host proxy's malformed-target status; policy
             // denials and ambiguous spellings in routing sites remain generic 404.
             return reject(
                 stream,
-                if !pathward::proxy::target_allowed(req.target) && site.has_proxy() {
+                if !omakase::proxy::target_allowed(req.target) && site.has_proxy() {
                     400
                 } else {
                     404
@@ -411,17 +411,17 @@ impl Server {
             )
             .await;
         }
-        if route == pathward::routing::Route::Missing {
+        if route == omakase::routing::Route::Missing {
             return reject(stream, 404).await;
         }
-        if route == pathward::routing::Route::Proxy {
-            if !pathward::proxy::method_allowed(req.method) {
+        if route == omakase::routing::Route::Proxy {
+            if !omakase::proxy::method_allowed(req.method) {
                 return reject(stream, 405).await;
             }
-            if !pathward::proxy::target_allowed(req.target) {
+            if !omakase::proxy::target_allowed(req.target) {
                 return reject(stream, 400).await;
             }
-            if !pathward::routing::request_framing(
+            if !omakase::routing::request_framing(
                 req.content_length,
                 site.limits.request_bytes,
                 false,
@@ -608,7 +608,7 @@ impl Server {
             req.target,
             &snapshot.sites,
             automatic_redirect,
-            route == pathward::routing::Route::Redirect,
+            route == omakase::routing::Route::Redirect,
         ) {
             let mut head = site.head(status, 0, "text/plain", req.target, sni.is_some());
             head.truncate(head.len() - 2);
@@ -623,7 +623,7 @@ impl Server {
             .await?;
             return Ok((status, 0));
         }
-        if automatic_redirect || route == pathward::routing::Route::Redirect {
+        if automatic_redirect || route == omakase::routing::Route::Redirect {
             return reject(stream, 404).await;
         }
         let publications = site.publications();
@@ -858,7 +858,7 @@ impl Server {
             http3_port: self.http3_port.load(Ordering::Acquire),
         };
         let queued_ms = queued.elapsed().as_millis().min(u64::MAX as u128) as u64;
-        let result = if !pathward::delivery::phase_live(
+        let result = if !omakase::delivery::phase_live(
             queued_ms,
             delivery::QUEUE_BUDGET.as_millis() as u64,
             shutdown.load(Ordering::Acquire),
@@ -901,7 +901,7 @@ impl Server {
                 }
             }
             Some(Handoff::Output(mut prepared)) => {
-                prepared.reuse(pathward::delivery::reuse_allowed(
+                prepared.reuse(omakase::delivery::reuse_allowed(
                     input.completed.saturating_add(1),
                     input.born.elapsed().as_millis().min(u64::MAX as u128) as u64,
                     handoff.reuse,
@@ -1014,7 +1014,7 @@ impl Server {
             let _scope_stop = StopOnExit(shutdown);
             let receive = work::Queue::<delivery::Work>::new(self.shared_nat);
             let (sink, mut reactor) =
-                delivery::channel(pathward::release::capacity_global(self.shared_nat) as usize);
+                delivery::channel(omakase::release::capacity_global(self.shared_nat) as usize);
             let budget = delivery::Budget::default();
             let quic = if let Some(udp) = udp {
                 let admission = admission.clone();
@@ -1022,7 +1022,7 @@ impl Server {
                 let tls = tls.ok_or_else(|| io::Error::other("HTTP/3 requires TLS"))?;
                 Some(
                     thread::Builder::new()
-                        .name("pathward-quic".into())
+                        .name("omakase-quic".into())
                         .spawn_scoped(scope, move || {
                             let _stop = StopOnExit(shutdown);
                             tokio::runtime::Builder::new_current_thread()
@@ -1040,7 +1040,7 @@ impl Server {
             let io_done = workers_done.clone();
             let io_queue = receive.clone();
             let io_worker = thread::Builder::new()
-                .name("pathward-io".into())
+                .name("omakase-io".into())
                 .spawn_scoped(scope, move || {
                     let _stop = StopOnExit(shutdown);
                     reactor.run(&io_queue, &self.observe, shutdown, &io_done, &|| {
@@ -1052,7 +1052,7 @@ impl Server {
             for i in 0..stream_pool::WORKERS {
                 let pool = streams.clone();
                 if let Err(e) = thread::Builder::new()
-                    .name(format!("pathward-stream-{i}"))
+                    .name(format!("omakase-stream-{i}"))
                     .spawn_scoped(scope, move || {
                         let _stop = StopOnExit(shutdown);
                         while let Some(mut job) = pool.take(shutdown) {
@@ -1084,7 +1084,7 @@ impl Server {
                 let sink = sink.clone();
                 let budget = budget.clone();
                 match thread::Builder::new()
-                    .name(format!("pathward-{i}"))
+                    .name(format!("omakase-{i}"))
                     .spawn_scoped(scope, move || {
                         let _stop = StopOnExit(shutdown);
                         let mut tasks: Vec<
@@ -1100,7 +1100,7 @@ impl Server {
                                 break;
                             }
                             if !stopping
-                                && pathward::delivery::task_slot(tasks.len() as u64)
+                                && omakase::delivery::task_slot(tasks.len() as u64)
                                 && let Some(job) = worker_queue.try_take()
                             {
                                 tasks.push(Box::pin(async {

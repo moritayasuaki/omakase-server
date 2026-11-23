@@ -5,7 +5,7 @@ use crate::{
     streaming::{Live, Permit},
     tls::TlsTransport,
 };
-use pathward_config::ProxyLimits;
+use omakase_config::ProxyLimits;
 use std::{
     collections::VecDeque,
     io::{self, Read, Write},

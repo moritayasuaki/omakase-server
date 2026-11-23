@@ -155,7 +155,7 @@ fn accept_receipt(
         "bridge policy generations must differ",
     )?;
     require(
-        pathward::bootstrap::bridge_receipt_allowed(
+        omakase::bootstrap::bridge_receipt_allowed(
             receipt["policy_sha256"] == if native { new_hash } else { old_hash },
             if native {
                 receipt["schema"] == 2 && receipt["boot"] == now["boot"]
@@ -216,7 +216,7 @@ mod tests {
     fn shared_publications_exclude_switch_and_lock_substitution_is_rejected() -> Result<()> {
         let dir = std::env::temp_dir()
             .canonicalize()?
-            .join(format!("pathward-fence-{}", crate::publisher::nonce()?));
+            .join(format!("omakase-fence-{}", crate::publisher::nonce()?));
         storage::directory(&dir)?;
         let path = dir.join(".legacy-lease");
         storage::replace(&path, b"", 0o600, "lock", &mut |_| Ok(()))?;

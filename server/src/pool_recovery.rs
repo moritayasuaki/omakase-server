@@ -4,7 +4,7 @@ use crate::{
     pool_preflight::{self, units},
     sleep_fence,
 };
-use pathward::upstream::sleep_recovery_allowed;
+use omakase::upstream::sleep_recovery_allowed;
 use rustix::fs::{
     FlockOperation, Mode, OFlags, XattrFlags, fgetxattr, flock, fsetxattr, fstatfs, openat,
 };

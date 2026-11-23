@@ -1,5 +1,5 @@
 import DeliveryProofs
-open Aeneas Aeneas.Std RustM pathward
+open Aeneas Aeneas.Std RustM omakase
 namespace CancellationProofs
 
 theorem head_slot_eq (active : U64) (held : Bool) :

@@ -2,8 +2,8 @@
 //! Pool failover is confined to establishing one socket before the application write.
 use crate::http::{self, Rejection, Request, Transport};
 use crate::streaming::{self, Live, Mode};
-use pathward::proxy as policy;
-use pathward_config::ProxyLimits;
+use omakase::proxy as policy;
+use omakase_config::ProxyLimits;
 use std::{
     collections::BTreeSet,
     io,
@@ -27,7 +27,7 @@ pub(crate) struct ResponseBudget<'a> {
 }
 
 fn forwarded_authority(req: &Request<'_>, external_port: u16, encrypted: bool) -> String {
-    let port = pathward::response::forwarded_port(req.port, external_port, encrypted);
+    let port = omakase::response::forwarded_port(req.port, external_port, encrypted);
     if port == 0 {
         req.host.clone()
     } else {
@@ -57,7 +57,7 @@ fn token(name: &str) -> bool {
             .all(|b| b.is_ascii_alphanumeric() || b"!#$%&'*+-.^_`|~".contains(&b))
 }
 fn field_value(value: &[u8]) -> bool {
-    value.len() <= 4096 && pathward::response::visible(value)
+    value.len() <= 4096 && omakase::response::visible(value)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -99,7 +99,7 @@ pub(crate) async fn forward_async(
     if upstream.is_some_and(|addr| !allowed_endpoint(addr, local_port)) {
         return Err(Rejection(502));
     }
-    if !pathward::routing::request_framing(req.content_length, limits.request_bytes, false, false) {
+    if !omakase::routing::request_framing(req.content_length, limits.request_bytes, false, false) {
         return Err(Rejection(413));
     }
     if prefetched.len() as u64 > req.content_length {
@@ -119,7 +119,7 @@ pub(crate) async fn forward_async(
             // Bounded loop defense, in addition to refusing our own listening port.
             if value
                 .split(|c: char| c.is_ascii_whitespace() || c == ',')
-                .any(|s| s.eq_ignore_ascii_case("pathward"))
+                .any(|s| s.eq_ignore_ascii_case("omakase") || s.eq_ignore_ascii_case("pathward"))
             {
                 return Err(Rejection(508));
             }
@@ -212,7 +212,7 @@ pub(crate) async fn forward_async(
     for (name, value) in forwarded {
         head.push_str(&format!("{name}: {value}\r\n"));
     }
-    via.push_str("1.1 pathward");
+    via.push_str("1.1 omakase");
     head.push_str(&format!("Via: {via}\r\nX-Forwarded-Host: {authority}\r\nX-Forwarded-Proto: {}\r\nX-Forwarded-Port: {external_port}\r\n", if encrypted {"https"} else {"http"}));
     if let Some(peer) = client.peer_ip() {
         head.push_str(&format!("X-Forwarded-For: {peer}\r\n"));
@@ -439,20 +439,19 @@ async fn receive_async(
             chunked,
         )?)
     } else if upgrade.is_none()
-        && pathward::streaming::sse_response(limits.sse, head_only, status, event_type, encoded)
+        && omakase::streaming::sse_response(limits.sse, head_only, status, event_type, encoded)
     {
         if encoded
             || nominated.contains("content-type")
             || (length.is_some() && chunked)
-            || length.is_some_and(|n| {
-                !pathward::streaming::bytes_fit(0, n, limits.stream_download_bytes)
-            })
+            || length
+                .is_some_and(|n| !omakase::streaming::bytes_fit(0, n, limits.stream_download_bytes))
         {
             return Err(invalid());
         }
         Some(Mode::Sse { length, chunked })
     } else {
-        if !pathward::routing::response_framing(length, limit, chunked, false)
+        if !omakase::routing::response_framing(length, limit, chunked, false)
             || (status == 204 && (length.is_some() || chunked))
         {
             return Err(invalid());
@@ -477,9 +476,9 @@ async fn receive_async(
         }
     }
     via.push_str(if version == 1 {
-        "1.1 pathward"
+        "1.1 omakase"
     } else {
-        "1.0 pathward"
+        "1.0 omakase"
     });
     outgoing.push(("via".to_owned(), via));
     if let Some(mode) = mode {
@@ -498,7 +497,7 @@ async fn receive_async(
         offset: 0,
         deadline,
     };
-    let mode = pathward::proxy::upstream_body_mode(head_only, status, wire.unused());
+    let mode = omakase::proxy::upstream_body_mode(head_only, status, wire.unused());
     if mode == 2 {
         return Err(invalid());
     }
@@ -511,7 +510,7 @@ async fn receive_async(
         .checked_mul(2)
         .and_then(|n| n.checked_add(crate::delivery::HEAD_BYTES as u64))
         .ok_or_else(invalid)?;
-    if !pathward::delivery::response_storage(body_capacity, credit) {
+    if !omakase::delivery::response_storage(body_capacity, credit) {
         return Err(invalid());
     }
     let delivery_lease = if let Some(out) = response_budget {
@@ -550,7 +549,7 @@ async fn receive_async(
                 }
                 break;
             }
-            if !pathward::routing::chunk_fits(body.len() as u64, count, limit) {
+            if !omakase::routing::chunk_fits(body.len() as u64, count, limit) {
                 return Err(invalid());
             }
             let old = body.len();
@@ -580,7 +579,7 @@ async fn receive_async(
             if n == 0 {
                 break;
             }
-            if !pathward::routing::chunk_fits(body.len() as u64, n as u64, limit) {
+            if !omakase::routing::chunk_fits(body.len() as u64, n as u64, limit) {
                 return Err(invalid());
             }
             body.extend_from_slice(&buffer[..n]);
@@ -631,10 +630,10 @@ async fn start_upstream(
     head: &[u8],
     dispatched: &mut bool,
 ) -> Result<(TcpStream, usize), Rejection> {
-    let path = &req.target[..pathward::serving::path_length(req.target)];
+    let path = &req.target[..omakase::serving::path_length(req.target)];
     let route = routes
         .iter()
-        .filter(|r| pathward::routing::subtree(path, r.prefix.as_bytes()))
+        .filter(|r| omakase::routing::subtree(path, r.prefix.as_bytes()))
         .max_by_key(|r| r.prefix.len());
     let endpoint = |addr: SocketAddr| {
         if allowed_endpoint(addr, local_port) {
@@ -684,7 +683,7 @@ async fn start_upstream(
         && key
             .iter()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b));
-    if !pathward::upstream::probe_allowed(true, 0, false, resource, route.candidates.len() as u64) {
+    if !omakase::upstream::probe_allowed(true, 0, false, resource, route.candidates.len() as u64) {
         return Err(Rejection(404));
     }
     let key = std::str::from_utf8(key).map_err(|_| Rejection(404))?;
@@ -692,7 +691,7 @@ async fn start_upstream(
     // body, cookies, authorization and the original method are never copied.
     let authority = forwarded_authority(req, external_port, encrypted);
     let probe = format!(
-        "GET {}/{key} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\nContent-Length: 0\r\nVia: 1.1 pathward\r\nX-Forwarded-Host: {}\r\nX-Forwarded-Proto: {}\r\nX-Forwarded-Port: {external_port}\r\n\r\n",
+        "GET {}/{key} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\nContent-Length: 0\r\nVia: 1.1 omakase\r\nX-Forwarded-Host: {}\r\nX-Forwarded-Proto: {}\r\nX-Forwarded-Port: {external_port}\r\n\r\n",
         route.prefix,
         authority,
         authority,
@@ -713,11 +712,11 @@ async fn start_upstream(
         let status = probe_status(&mut socket, head_deadline)
             .await
             .map_err(failure)?;
-        if pathward::upstream::probe_owned(status) {
+        if omakase::upstream::probe_owned(status) {
             return connect(candidate).await;
         }
         let remaining = (route.candidates.len() - index - 1) as u64;
-        if pathward::upstream::probe_next(status, remaining) {
+        if omakase::upstream::probe_next(status, remaining) {
             continue;
         }
         return Err(Rejection(if status == 404 { 404 } else { 502 }));

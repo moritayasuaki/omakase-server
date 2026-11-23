@@ -49,7 +49,7 @@ impl Retirement {
         let elapsed = |at: Option<Instant>| {
             at.map_or(0, |t| t.elapsed().as_millis().min(u64::MAX as u128) as u64)
         };
-        pathward::delivery::retirement_close(
+        omakase::delivery::retirement_close(
             self.retiring(),
             elapsed(Some(idle_since)),
             elapsed(self.began),
@@ -317,7 +317,7 @@ pub fn pending(server: &Server) -> Option<Pending<'_>> {
     server
         .pending_requests
         .try_update(Ordering::AcqRel, Ordering::Acquire, |n| {
-            pathward::delivery::task_slot(n).then(|| n + 1)
+            omakase::delivery::task_slot(n).then(|| n + 1)
         })
         .ok()?;
     Some(Pending(&server.pending_requests))
@@ -421,7 +421,7 @@ pub fn request_head(
             // Firefox sends this response capability on ordinary requests.
             // Do not forward it into the HTTP/1 parser or to the upstream.
             if value.len() != 8
-                || !pathward::delivery::multiplex_te_allowed(value.to_ascii_lowercase().as_bytes())
+                || !omakase::delivery::multiplex_te_allowed(value.to_ascii_lowercase().as_bytes())
             {
                 return Err(400);
             }
@@ -445,7 +445,7 @@ pub fn request_head(
             length = Some(http::decimal(value.as_bytes()).ok_or(400u16)?);
             continue;
         }
-        if !pathward::response::visible(value.as_bytes()) {
+        if !omakase::response::visible(value.as_bytes()) {
             return Err(400);
         }
         raw.push_str(&format!("{name}: {value}\r\n"));
@@ -456,7 +456,7 @@ pub fn request_head(
     }
     let req = http::parse_framed(
         raw.as_bytes(),
-        pathward::response::authority_port(port, true, false),
+        omakase::response::authority_port(port, true, false),
     )
     .map_err(|e| e.0)?;
     let (generation, snapshot) = {
@@ -468,10 +468,10 @@ pub fn request_head(
         .iter()
         .find(|s| s.host == req.host)
         .ok_or(421u16)?;
-    if !pathward::tls::identity_allowed(sni.as_bytes(), req.host.as_bytes(), site.host.as_bytes()) {
+    if !omakase::tls::identity_allowed(sni.as_bytes(), req.host.as_bytes(), site.host.as_bytes()) {
         return Err(421);
     }
-    let limit = if site.route(req.target) == pathward::routing::Route::Proxy {
+    let limit = if site.route(req.target) == omakase::routing::Route::Proxy {
         site.limits.request_bytes
     } else {
         0
@@ -570,7 +570,7 @@ fn response_head(raw: &[u8]) -> io::Result<http_types::Response<()>> {
         .body(())
         .map_err(|_| failure())?;
     for h in parsed.headers {
-        if pathward::proxy::hop_header(h.name.to_ascii_lowercase().as_bytes()) {
+        if omakase::proxy::hop_header(h.name.to_ascii_lowercase().as_bytes()) {
             continue;
         }
         response.headers_mut().append(
@@ -721,7 +721,7 @@ async fn exchange(
             let next = bounded(deadline, data.data()).await?;
             let Some(chunk) = next else { break };
             let chunk = chunk.map_err(h2_error)?;
-            if !pathward::routing::chunk_fits(
+            if !omakase::routing::chunk_fits(
                 body.len() as u64,
                 chunk.len() as u64,
                 request.length.unwrap_or(request.limit),
@@ -737,8 +737,7 @@ async fn exchange(
             .await?
             .map_err(h2_error)?
             .is_some();
-        if !pathward::delivery::multiplex_body_allowed(body.len() as u64, request.length, trailers)
-        {
+        if !omakase::delivery::multiplex_body_allowed(body.len() as u64, request.length, trailers) {
             return send_h2(rejection(400), &mut sender).await;
         }
         h2_reset(&mut sender).await?;
@@ -949,7 +948,7 @@ async fn serve_h2_io<T: Read + Write + Unpin>(
             retirement.begin();
         }
         let wire_pending = connection.has_streams() || !flushed.load(Ordering::Relaxed);
-        if pathward::delivery::h2_drain_expired(
+        if omakase::delivery::h2_drain_expired(
             wire_pending,
             retirement.retiring(),
             idle.elapsed().as_millis().min(u64::MAX as u128) as u64,
@@ -961,7 +960,7 @@ async fn serve_h2_io<T: Read + Write + Unpin>(
                 "HTTP/2 final flush deadline",
             ));
         }
-        if pathward::delivery::h2_close_ready(
+        if omakase::delivery::h2_close_ready(
             retirement.close(tasks.len(), held.is_some(), idle),
             stopping,
             wire_pending,
@@ -972,7 +971,7 @@ async fn serve_h2_io<T: Read + Write + Unpin>(
         // task. It lets us consume cancelled heads even when the global queue
         // is full. No body, response credit or service permit is allocated here.
         let mut progressed = false;
-        let incoming = if pathward::delivery::head_slot(tasks.len() as u64, held.is_some()) {
+        let incoming = if omakase::delivery::head_slot(tasks.len() as u64, held.is_some()) {
             futures_lite::future::poll_once(connection.accept()).await
         } else {
             match futures_lite::future::poll_once(futures_lite::future::poll_fn(|cx| {
@@ -1011,12 +1010,12 @@ async fn serve_h2_io<T: Read + Write + Unpin>(
         }
         if let Some((req, mut response, began)) = held.take() {
             let cancelled = h2_reset(&mut response).await.err();
-            match pathward::delivery::held_action(
+            match omakase::delivery::held_action(
                 cancelled.is_some(),
                 began.elapsed().as_millis().min(u64::MAX as u128) as u64,
             ) {
-                pathward::delivery::HeldAction::Discard => {
-                    if !pathward::delivery::cancel_slot(
+                omakase::delivery::HeldAction::Discard => {
+                    if !omakase::delivery::cancel_slot(
                         cancelled_heads,
                         accepted.elapsed().as_millis().min(u64::MAX as u128) as u64,
                     ) {
@@ -1037,7 +1036,7 @@ async fn serve_h2_io<T: Read + Write + Unpin>(
                         .observe
                         .request(server.generation(), began.elapsed(), &result);
                 }
-                pathward::delivery::HeldAction::Expire => {
+                omakase::delivery::HeldAction::Expire => {
                     progressed = true;
                     server
                         .observe
@@ -1049,8 +1048,8 @@ async fn serve_h2_io<T: Read + Write + Unpin>(
                     connection.graceful_shutdown();
                     retirement.begin();
                 }
-                pathward::delivery::HeldAction::TryAdmission => {
-                    if !pathward::delivery::multiplex_slot(
+                omakase::delivery::HeldAction::TryAdmission => {
+                    if !omakase::delivery::multiplex_slot(
                         tasks.len() as u64,
                         count,
                         accepted.elapsed().as_millis().min(u64::MAX as u128) as u64,
@@ -1110,7 +1109,7 @@ mod tests {
 
     #[test]
     fn firefox_te_hint_is_discarded_without_weakening_framing() {
-        let config = pathward_config::ParsedConfig::parse(
+        let config = omakase_config::ParsedConfig::parse(
             "site \"app.example\" {\ntls \"auto\"\nreverse-proxy \"127.0.0.1:18089\"\n}",
         )
         .unwrap();
@@ -1221,7 +1220,7 @@ mod tests {
             )
         }
         let backend = TcpListener::bind("127.0.0.1:0").unwrap();
-        let config = pathward_config::ParsedConfig::parse(&format!(
+        let config = omakase_config::ParsedConfig::parse(&format!(
             "site \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\n}}",
             backend.local_addr().unwrap()
         ))
@@ -1382,7 +1381,7 @@ mod tests {
                 self.socket.flush()
             }
         }
-        let config = pathward_config::ParsedConfig::parse(
+        let config = omakase_config::ParsedConfig::parse(
             "site \"app.example\" {\ntls \"auto\"\nreverse-proxy \"127.0.0.1:9\"\n}",
         )
         .unwrap();
@@ -1498,7 +1497,7 @@ mod tests {
     }
     #[test]
     fn h2_idle_prefaces_are_counted_but_partial_prefaces_remain_errors() {
-        let config = pathward_config::ParsedConfig::parse(
+        let config = omakase_config::ParsedConfig::parse(
             "site \"app.example\" {\ntls \"auto\"\nreverse-proxy \"127.0.0.1:9\"\n}",
         )
         .unwrap();
@@ -1569,7 +1568,7 @@ mod tests {
     }
     #[test]
     fn admission_and_input_waits_release_capacity_without_reserving_the_queue() {
-        let p = pathward_config::ParsedConfig::parse(
+        let p = omakase_config::ParsedConfig::parse(
             "site \"app.example\" {\ntls \"auto\"\nreverse-proxy \"127.0.0.1:9000\"\n}",
         )
         .unwrap();
@@ -1638,7 +1637,7 @@ mod tests {
     }
     #[test]
     fn cancelled_admission_releases_queue_before_capacity_or_timeout() {
-        let config = pathward_config::ParsedConfig::parse(
+        let config = omakase_config::ParsedConfig::parse(
             "site \"app.example\" {\ntls \"auto\"\nreverse-proxy \"127.0.0.1:9\"\n}",
         )
         .unwrap();
@@ -1694,7 +1693,7 @@ mod tests {
         let excess = raw_resets > 100;
         let backend = TcpListener::bind("127.0.0.1:0").unwrap();
         backend.set_nonblocking(true).unwrap();
-        let config = pathward_config::ParsedConfig::parse(&format!("capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\n}}", backend.local_addr().unwrap())).unwrap();
+        let config = omakase_config::ParsedConfig::parse(&format!("capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\n}}", backend.local_addr().unwrap())).unwrap();
         let server = Server::new(&config.compile().unwrap()).unwrap();
         let (identity, client) = identity();
         let tls = crate::tls::TlsServer::new(identity).unwrap();
@@ -1884,7 +1883,7 @@ mod tests {
     }
     #[test]
     fn h2_idle_retirement_announces_goaway_before_close() {
-        let config = pathward_config::ParsedConfig::parse(
+        let config = omakase_config::ParsedConfig::parse(
             "site \"app.example\" {\n tls \"auto\"\n reverse-proxy \"127.0.0.1:1\"\n}",
         )
         .unwrap();
@@ -1964,7 +1963,7 @@ mod tests {
     fn h2_retirement_refusal_never_dispatches_a_mutation() {
         let backend = TcpListener::bind("127.0.0.1:0").unwrap();
         backend.set_nonblocking(true).unwrap();
-        let config = pathward_config::ParsedConfig::parse(&format!(
+        let config = omakase_config::ParsedConfig::parse(&format!(
             "capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\n}}",backend.local_addr().unwrap()
         )).unwrap();
         let server = Server::new(&config.compile().unwrap()).unwrap();
@@ -2076,7 +2075,7 @@ mod tests {
     fn h2_retirement_finishes_in_flight_window_without_refusal_storm() {
         let backend = TcpListener::bind("127.0.0.1:0").unwrap();
         let (retired, retiring) = std::sync::mpsc::channel();
-        let config = pathward_config::ParsedConfig::parse(&format!(
+        let config = omakase_config::ParsedConfig::parse(&format!(
             "site \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nproxy-timeout \"response-head\" \"30s\"\nproxy-timeout \"total\" \"45s\"\n}}", backend.local_addr().unwrap()
         ))
         .unwrap();
@@ -2276,7 +2275,7 @@ mod tests {
     #[test]
     fn real_tls_h2_multiplexes_24_waits_compression_and_streams_sse() {
         let backend = TcpListener::bind("127.0.0.1:0").unwrap();
-        let config=pathward_config::ParsedConfig::parse(&format!("capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nproxy-limit \"connections\" \"32\"\nproxy-limit \"request-body\" \"3MiB\"\nproxy-limit \"response-body\" \"32MiB\"\nproxy-stream \"sse\"\nencode \"gzip,zstd\"\n}}",backend.local_addr().unwrap())).unwrap();
+        let config=omakase_config::ParsedConfig::parse(&format!("capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"{}\"\nproxy-limit \"connections\" \"32\"\nproxy-limit \"request-body\" \"3MiB\"\nproxy-limit \"response-body\" \"32MiB\"\nproxy-stream \"sse\"\nencode \"gzip,zstd\"\n}}",backend.local_addr().unwrap())).unwrap();
         let server = Server::new(&config.compile().unwrap()).unwrap();
         let (identity, client) = identity();
         let tls = crate::tls::TlsServer::new(identity).unwrap();

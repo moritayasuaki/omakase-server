@@ -19,7 +19,7 @@ The original ACME/JOSE signing and protocol structures are retained. Changes:
   cancel losing sockets on success or request cancellation. A blackholed first
   family cannot consume the entire request budget before another family is tried.
   This is bounded staggered dialing, not a complete RFC 8305 DNS engine.
-- Call the dependency-free local PathWard core for candidate/attempt limits and
+- Call the dependency-free local Omakase core for candidate/attempt limits and
   request deadlines. One clock covers DNS through response; launch spacing cannot
   reset it. Recheck the clock after a ready connection and before returning the
   HTTPS response, so a poll that overruns its deadline cannot return late success.
@@ -31,7 +31,7 @@ The original ACME/JOSE signing and protocol structures are retained. Changes:
 - Supply only ring cryptography. The smaller manifest omits upstream high-level
   caches, acceptors, runtime adapters, renewal state and their dependencies.
 
-PathWard owns the descriptor-based private cache, certificate validation and
+Omakase owns the descriptor-based private cache, certificate validation and
 persist-before-activation renewal state in its server crate. Neither this fork
 nor cryptography/TLS/parsers are formally verified as a whole. The extracted
 core gates have Lean contracts; connection ownership has a separate transition

@@ -1,6 +1,6 @@
 //! Read-only inventory and point-in-time observations for Linux pooled routes.
 use crate::{control, deployment, sleep_fence};
-use pathward::upstream::{pool_preflight_ready, pool_witness_current};
+use omakase::upstream::{pool_preflight_ready, pool_witness_current};
 use rustix::time::{DynamicClockId, clock_gettime_dynamic};
 use std::{
     fs,

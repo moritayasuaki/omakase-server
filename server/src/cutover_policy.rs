@@ -22,7 +22,7 @@ pub fn evaluate(args: &[OsString]) -> Result<bool, &'static str> {
         }
         s.parse::<u64>().map_err(|_| ERROR)
     };
-    use pathward::cutover as policy;
+    use omakase::cutover as policy;
     match words.as_slice() {
         ["window", boot, started, now] => Ok(policy::window_allowed(
             boolean(boot)?,

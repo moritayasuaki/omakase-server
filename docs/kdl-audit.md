@@ -6,9 +6,9 @@ remains unchanged.
 
 ## Scope and result
 
-This revision adds `pathward-config` as a separate crate, with `kdl = "=6.7.1"`,
+This revision adds `omakase-config` as a separate crate, with `kdl = "=6.7.1"`,
 `default-features = false`, and only `span` explicitly enabled. The proved
-`pathward` core still has **zero external dependencies**. The configuration crate
+`omakase` core still has **zero external dependencies**. The configuration crate
 has **8 external package versions**, including transitive/build dependencies.
 There are no procedural macros in this resolved configuration graph.
 
@@ -62,7 +62,7 @@ block comment. `document` can call itself after error recovery on unexpected
 trailing input. Thus a byte limit or a brace/nesting count alone is an inadequate
 stack bound for adversarial KDL.
 
-PathWard's [surface preflight](../config/src/surface.rs) is iterative and admits
+Omakase's [surface preflight](../config/src/surface.rs) is iterative and admits
 only the documented small grammar, before any upstream parse. It validates
 quoted strings and escapes, directive arities, delimiters, newline/comment
 boundaries, a single site-child level, and count limits. It excludes block
@@ -82,7 +82,7 @@ Sources: [document recovery and node parser](https://github.com/kdl-org/kdl-rs/b
 ### PW-K02 — Reject ambiguity and do not publish partial results
 
 The public upstream parse reports errors rather than returning its recovery AST
-as success. PathWard additionally rejects unknown nodes, properties, type tags,
+as success. Omakase additionally rejects unknown nodes, properties, type tags,
 non-string arguments, duplicate host/root/TLS declarations, and duplicate decoded
 URLs. There is no last-wins merge, environment expansion or include mechanism.
 The typed rule compiler accepts only 1–256 canonical URL/relative-target pairs
