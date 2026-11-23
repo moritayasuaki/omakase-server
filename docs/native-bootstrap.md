@@ -20,6 +20,8 @@ retained SHA-256. Its schema is demonstrated by
   checked against available filesystem space before mutation.
 - `members`: exactly `omakase-server`, `omakase-hosting`, `omakase-publish`
   and `hosting.json`, each with an absolute root-owned `source` and SHA-256.
+  An existing schema-1 contract may use the three original `pathward-*` names
+  together. A mixture of the two inventories fails validation.
 - `contract`: the reviewed old/new unit templates, sealed resources, check and
   health commands described in `contract-migration.md`, selecting `new` as the
   eventual target. All installed members must occur in the new resource map.

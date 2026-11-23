@@ -63,7 +63,7 @@ The launcher builds the test executable with the pinned rustc, hashes the guest 
 
 ## Installing the Linux sleep coordinator
 
-On an administrator-managed systemd host, install the coordinator from the same server build. Complete the unit changes before creating the awake file or starting the new pooled server. The example uses the existing service group `omakase` and systemd's Ubuntu path `/usr/lib/systemd/systemd-sleep`. Use a root-owned executable and directories. Run the following as administrator during the initial installation with all four sleep services idle.
+On an administrator-managed systemd host, install the coordinator from the same server build. Complete the unit changes before creating the awake file or starting the new pooled server. The example uses the existing service group `pathward` and systemd's Ubuntu path `/usr/lib/systemd/systemd-sleep`. Use a root-owned executable and directories. Run the following as administrator during the initial installation with all four sleep services idle.
 
 ```sh
 install -Dm0755 server/target/release/omakase-server /usr/local/libexec/pathward-server
