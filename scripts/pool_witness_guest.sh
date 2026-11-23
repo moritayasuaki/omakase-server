@@ -3,7 +3,7 @@
 set -eu
 seed=/mnt/pool-lab
 base=/var/lib/pathward-witness-lab
-mountpoint=/mnt/omakase-witness-authority
+mountpoint=/mnt/pathward-witness-authority
 disk=/dev/disk/by-id/virtio-pw-witness-journal
 test "$(cat /sys/class/block/vdb/serial)" = pw-witness-journal
 exec 8<>/dev/virtio-ports/org.pathward.witness.lab
@@ -41,7 +41,7 @@ ExecStart=/bin/sh $base/next
 WantedBy=multi-user.target
 UNIT
     systemctl daemon-reload
-    systemctl enable omakase-witness-lab
+    systemctl enable pathward-witness-lab
     systemctl mask systemd-networkd-wait-online.service serial-getty@ttyS0.service
     echo WITNESS_BASELINE
 elif test "$phase" = submit; then

@@ -1,6 +1,6 @@
 import ProxyProofs
 open Aeneas Aeneas.Std RustM
-open omakase OmakaseProofs RulesProofs ServingProofs ResponseProofs
+open pathward PathwardProofs RulesProofs ServingProofs ResponseProofs
 namespace RoutingProofs
 
 def choice (v d s r p : Bool) : routing.Route :=

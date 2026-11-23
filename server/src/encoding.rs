@@ -177,7 +177,7 @@ pub fn candidate(mode: u8, req: &Request<'_>, head: &str, size: u64) -> io::Resu
     if status != 200 && status != 206 {
         return Ok(0);
     }
-    let eligible = omakase::delivery::encode_allowed(
+    let eligible = pathward::delivery::encode_allowed(
         mode != 0,
         size,
         status,

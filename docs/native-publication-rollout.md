@@ -9,9 +9,9 @@ certificates, restarts application backends, or changes listening ports.
 The administrator reviews a private input and SHA-256, then uses:
 
 ```
-omakase-admin --root /opt/private-publication-recovery bridge-prepare INPUT SHA256
-omakase-admin --root /opt/private-publication-recovery bridge-native INPUT SHA256
-omakase-admin --root /opt/private-publication-recovery bridge-legacy INPUT SHA256
+pathward-admin --root /opt/private-publication-recovery bridge-prepare INPUT SHA256
+pathward-admin --root /opt/private-publication-recovery bridge-native INPUT SHA256
+pathward-admin --root /opt/private-publication-recovery bridge-legacy INPUT SHA256
 ```
 
 `bridge-prepare` requires already installed root-owned binaries, profiles, old
@@ -87,7 +87,7 @@ policy digest makes the existing legacy reader reject native receipts.
 **Receipt schema 2 alone does not fence an old reader that ignores its schema.**
 The old bridge and old local entry points remain available for rollback.
 
-`omakase-publish mode --config CONFIG --profile PROFILE` returns either native
+`pathward-publish mode --config CONFIG --profile PROFILE` returns either native
 or legacy only when exactly one bridge is active and its receipt is recent,
 belongs to that policy and was observed after the bridge's process start.
 Legacy receipts must live under volatile `/run`; native receipts also carry the
@@ -122,7 +122,7 @@ recovery root. The administrator first installs a reviewed ready release and
 public SHA-256 manifest, then runs:
 
 ```
-omakase-admin --root STORE manual-publish CONFIG PROFILE EXPECT NEXT MANIFEST SHA256
+pathward-admin --root STORE manual-publish CONFIG PROFILE EXPECT NEXT MANIFEST SHA256
 ```
 
 The command takes the same exclusive administrator lease, verifies the native

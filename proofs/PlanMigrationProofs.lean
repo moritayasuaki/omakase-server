@@ -1,5 +1,5 @@
 import GuardUpgradeProofs
-open Aeneas Aeneas.Std RustM omakase
+open Aeneas Aeneas.Std RustM pathward
 namespace PlanMigrationProofs
 
 theorem migration_iff (a b c d e f : Bool) :

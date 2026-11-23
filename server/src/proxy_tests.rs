@@ -1,7 +1,7 @@
 use crate::Server;
 #[path = "backend_pool_tests.rs"]
 mod backend_pool;
-use omakase_config::ParsedConfig;
+use pathward_config::ParsedConfig;
 use std::{
     io::{Read, Write},
     net::{SocketAddr, TcpListener, TcpStream},
@@ -136,7 +136,7 @@ fn post_preserves_raw_target_and_binary_body_and_rebuilds_authority_and_forwardi
     assert!(h.contains("x-forwarded-for: 127.0.0.1\r\n"));
     assert!(h.contains("x-forwarded-proto: http\r\n"));
     assert!(h.contains("x-forwarded-host: app.example\r\n"));
-    assert!(h.contains("via: 1.1 omakase\r\n"));
+    assert!(h.contains("via: 1.1 pathward\r\n"));
     assert!(h.contains("connection: close\r\n"));
     for forbidden in [
         "evil",
@@ -279,12 +279,12 @@ fn rejected_requests_do_not_contact_an_upstream() {
             ("GET", "/a\\b", "app.example", "", 400),
             ("GET", "/a#b", "app.example", "", 400),
             ("GET", "/", "unknown.example", "", 421),
-            ("GET", "/", "app.example", "Via: 1.1 omakase\r\n", 508),
+            ("GET", "/", "app.example", "Via: 1.1 pathward\r\n", 508),
             (
                 "GET",
                 "/",
                 "app.example",
-                "Via: 1.0 edge, 1.1 PaThWaRd\r\n",
+                "Via: 1.0 edge, 1.1 OmAkAsE\r\n",
                 508,
             ),
             ("GET", "/", "app.example", "X-A: 1\r\nx-a: 2\r\n", 400),
@@ -517,7 +517,7 @@ fn a_slow_upstream_body_cannot_reset_the_total_deadline() {
             false,
             start + Duration::from_millis(150),
             start + Duration::from_millis(150),
-            omakase_config::ProxyLimits::default(),
+            pathward_config::ProxyLimits::default(),
             None,
         )
         .err()

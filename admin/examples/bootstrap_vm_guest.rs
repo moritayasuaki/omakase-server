@@ -1,5 +1,5 @@
 //! NIC-free first installation and publication test, without a Python fixture.
-use omakase_admin::{
+use pathward_admin::{
     Result,
     codec::{self, string},
     confined,
@@ -71,7 +71,7 @@ fn native(mode: &str, id: &str, extra: &[&str]) -> Result<String> {
     let publisher = path(if path("use-candidate-publisher").exists() {
         "candidate-publisher"
     } else {
-        "omakase-publish"
+        "pathward-publish"
     });
     let mut a = words(&[
         "/usr/sbin/runuser",
@@ -164,15 +164,15 @@ fn initialize() -> Result<()> {
     put(&path("hosting.json"), &codec::canonical(&policy), 0o644)?;
     let mut members = json!({});
     for name in [
-        "omakase-server",
-        "omakase-hosting",
-        "omakase-publish",
+        "pathward-server",
+        "pathward-hosting",
+        "pathward-publish",
         "hosting.json",
     ] {
         members[name] = json!({"source":path(name),"sha256":hash(&path(name))?});
     }
-    let server = format!("{INSTALL}/omakase-server");
-    let hosting = format!("{INSTALL}/omakase-hosting");
+    let server = format!("{INSTALL}/pathward-server");
+    let hosting = format!("{INSTALL}/pathward-hosting");
     let policy_path = format!("{INSTALL}/hosting.json");
     let restrictions = format!(
         "NoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nReadWritePaths={INSTALL}/state {INSTALL}/receipts\nTimeoutStopSec=15\n"
@@ -186,9 +186,9 @@ fn initialize() -> Result<()> {
     let old = json!({"units":{"test-old.service":template("old.service",&oldtext)?},"files":filemap(&[&fixture])?,"check":[fixture,"check"],"health":[fixture,"probe","SOURCE","18080"]});
     let mut files = json!({});
     for name in [
-        "omakase-server",
-        "omakase-hosting",
-        "omakase-publish",
+        "pathward-server",
+        "pathward-hosting",
+        "pathward-publish",
         "hosting.json",
     ] {
         files[format!("{INSTALL}/{name}")] = members[name]["sha256"].clone();
@@ -304,7 +304,7 @@ fn cases() -> Result<()> {
     let input = f::record(&path("input.json"))?;
     if n == 0 {
         put(&path("case"), b"1", 0o600)?;
-        provision::prepare(&mut e, &input, &path("omakase-admin"), &mut |label| {
+        provision::prepare(&mut e, &input, &path("pathward-admin"), &mut |label| {
             if label == "initial-gate:durable" {
                 emit("PW_CUT_POWER initial-gate:durable")?;
                 loop {
@@ -323,14 +323,14 @@ fn cases() -> Result<()> {
             "18080",
         ])?;
         let before = Real.property("test-old.service", "MainPID")?;
-        let id = provision::prepare(&mut e, &input, &path("omakase-admin"), &mut |_| Ok(()))?;
+        let id = provision::prepare(&mut e, &input, &path("pathward-admin"), &mut |_| Ok(()))?;
         require(
             before == Real.property("test-old.service", "MainPID")?,
             "prepare restarted source",
         )?;
         require(!e.gate("pathward.service")?, "prepare authorized candidate")?;
         require(
-            id == provision::prepare(&mut e, &input, &path("omakase-admin"), &mut |_| Ok(()))?,
+            id == provision::prepare(&mut e, &input, &path("pathward-admin"), &mut |_| Ok(()))?,
             "prepare retry changed identity",
         )?;
         e.apply(&id, &mut |_| Ok(()))?;

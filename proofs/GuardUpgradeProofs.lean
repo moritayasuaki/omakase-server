@@ -1,5 +1,5 @@
 import RecoveryProofs
-open Aeneas Aeneas.Std RustM omakase recovery
+open Aeneas Aeneas.Std RustM pathward recovery
 namespace GuardUpgradeProofs
 
 def decision (base target : U64) (a b ready compatible stable : Bool) : UpgradeAction :=

@@ -1,5 +1,5 @@
 import RoutingProofs
-open Aeneas Aeneas.Std RustM omakase
+open Aeneas Aeneas.Std RustM pathward
 namespace StreamingProofs
 
 theorem request_eq (e g u v k o : Bool) (l p : U64) :

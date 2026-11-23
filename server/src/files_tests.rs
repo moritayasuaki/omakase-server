@@ -12,7 +12,7 @@ struct Tree(PathBuf);
 impl Tree {
     fn new() -> Self {
         let path = std::env::temp_dir().join(format!(
-            "omakase-files-{}-{}",
+            "pathward-files-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -73,7 +73,7 @@ fn denies_links_traversal_special_files_and_oversized_files() {
     let _socket = UnixListener::bind(public.join("socket")).unwrap();
     File::create(public.join("large"))
         .unwrap()
-        .set_len(omakase::serving::MAX_FILE_BYTES + 1)
+        .set_len(pathward::serving::MAX_FILE_BYTES + 1)
         .unwrap();
     let root = tree.root();
     let start = Instant::now();

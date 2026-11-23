@@ -137,8 +137,8 @@ and joined three guests to each. These are diagnostic workload comparisons, not
 identical transport-latency benchmarks. No POST was retried.
 
 Candidate runtime source `b2ade498c707d0871b6acff5cdbcf781d144938c` passed
-[Linux integration, Lean and dependency CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41380338321).
-The [exact-source artifact](https://github.com/moritayasuaki/omakase-server/actions/runs/41380338214)
+[Linux integration, Lean and dependency CI](https://github.com/moritayasuaki/pathward/actions/runs/41380338321).
+The [exact-source artifact](https://github.com/moritayasuaki/pathward/actions/runs/41380338214)
 and every binary were SHA-256 checked before use. Its 628.623-second report
 contains 20,712 successful phase requests, 306 acknowledged configuration
 switches, 15 observed certificates (initial issuance plus 14 renewals), and 40
@@ -160,10 +160,10 @@ was 1,619.824 ms. Each cold client fetched the root, JS, CSS and twelve sprite
 sheets with no browser cache before its create/join request. Asset hashes and
 four members per room were verified before starting games.
 
-The entire isolated process group (clients, both backends, CA and Omakase) shared
+The entire isolated process group (clients, both backends, CA and PathWard) shared
 one CPU core's quota, 512 MiB memory and 256 tasks. Sampled cgroup peak memory was
 91.13 MiB; this is the last observed lifetime peak before unit cleanup. Across
-627 one-second Omakase samples, peak RSS was 16,856 KiB, FDs 112 and threads 28.
+627 one-second PathWard samples, peak RSS was 16,856 KiB, FDs 112 and threads 28.
 Median RSS grew by 52 KiB between the 100–160 s and 550–610 s windows; median FDs
 remained 13. All child processes exited zero, both temporary units became inactive,
 and the owned private directory, including test keys, was removed. Production

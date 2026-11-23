@@ -1,4 +1,4 @@
-use omakase_config::ParsedConfig;
+use pathward_config::ParsedConfig;
 fn accepts(extra: &str) -> bool {
     ParsedConfig::parse(&format!(
         "site \"app.example\" {{\ntls \"auto\"\nreverse-proxy \"127.0.0.1:3000\"\n{extra}\n}}"

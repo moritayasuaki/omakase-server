@@ -1,5 +1,5 @@
 [package]
-name = "omakase-server"
+name = "pathward-server"
 version = "0.1.0"
 edition = "2024"
 publish = false
@@ -10,8 +10,8 @@ description = "Bounded HTTP/1.1 static serving with Linux descriptor-based file 
 resolver = "3"
 
 [dependencies]
-omakase = { path = ".." }
-omakase-config = { path = "../config" }
+pathward = { path = ".." }
+pathward-config = { path = "../config" }
 httparse = { version = "=1.10.1", default-features = false }
 httpdate = "=1.0.3"
 h2 = { version = "=0.4.20", default-features = false }

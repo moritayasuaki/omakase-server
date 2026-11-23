@@ -1,6 +1,6 @@
 //! KDL 2 parsing and a strict schema around the verified publication compiler.
 //! Parsing, schema adaptation, hostname selection, and allocation are audited
-//! and tested Rust, outside the Lean proof of `omakase::rules`.
+//! and tested Rust, outside the Lean proof of `pathward::rules`.
 #![forbid(unsafe_code)]
 
 mod cache;
@@ -10,7 +10,7 @@ mod surface;
 pub use cache::{CachePolicy, CacheRule};
 
 use kdl::{KdlDocument, KdlNode};
-use omakase::rules::{self, Publication};
+use pathward::rules::{self, Publication};
 use std::fmt;
 use std::io::Read;
 use std::net::SocketAddr;
@@ -203,7 +203,7 @@ impl ParsedConfig {
                         } else {
                             &mut proxy_paths
                         };
-                        if !omakase::valid_path(value.as_bytes())
+                        if !pathward::valid_path(value.as_bytes())
                             || (value.len() > 1 && value.ends_with('/'))
                             || list.len() == MAX_ROUTE_RULES
                             || list.contains(&value)
@@ -283,7 +283,7 @@ impl ParsedConfig {
                         })?;
                         if upstream.is_some()
                             || address.to_string() != values[0]
-                            || !omakase::proxy::endpoint_allowed(
+                            || !pathward::proxy::endpoint_allowed(
                                 address.ip().to_string().as_bytes(),
                                 address.port(),
                             )
@@ -297,7 +297,7 @@ impl ParsedConfig {
                         if root.is_some() {
                             return Err(self.at(child, "duplicate root directive"));
                         }
-                        if !omakase::valid_path(values[0].as_bytes())
+                        if !pathward::valid_path(values[0].as_bytes())
                             || (values[0].len() > 1 && values[0].ends_with('/'))
                         {
                             return Err(
@@ -345,7 +345,7 @@ impl ParsedConfig {
                         };
                         // Give a precise location; the verified compiler repeats
                         // these checks over the complete table below.
-                        if !omakase::valid_path(publication.path) {
+                        if !pathward::valid_path(publication.path) {
                             return Err(
                                 self.at(child, "publish URL is not a canonical absolute URL path")
                             );
@@ -379,9 +379,9 @@ impl ParsedConfig {
                         };
                         let prefix = child.name().value() == "redirect-prefix";
                         if redirects.len() == MAX_REDIRECTS
-                            || !omakase::valid_path(v[0].as_bytes())
+                            || !pathward::valid_path(v[0].as_bytes())
                             || !valid_host(v[1])
-                            || !omakase::valid_path(v[2].as_bytes())
+                            || !pathward::valid_path(v[2].as_bytes())
                             || (prefix
                                 && (v[0] == "/"
                                     || v[0].ends_with('/')
@@ -407,7 +407,7 @@ impl ParsedConfig {
                         let v = self.arguments(child, 2)?;
                         let prefix = child.name().value() == "cache-prefix";
                         if cache.len() == MAX_ROUTE_RULES
-                            || (v[0] != "*" && !omakase::valid_path(v[0].as_bytes()))
+                            || (v[0] != "*" && !pathward::valid_path(v[0].as_bytes()))
                             || (prefix && (v[0] == "*" || (v[0] != "/" && v[0].ends_with('/'))))
                             || cache
                                 .iter()
@@ -434,7 +434,7 @@ impl ParsedConfig {
                         };
                         let scope_valid = match kind {
                             HeaderScope::Exact => {
-                                v[0] == "*" || omakase::valid_path(v[0].as_bytes())
+                                v[0] == "*" || pathward::valid_path(v[0].as_bytes())
                             }
                             HeaderScope::Prefix => upstream::prefix(v[0]),
                             HeaderScope::Query => {
@@ -447,7 +447,7 @@ impl ParsedConfig {
                         };
                         if headers.len() == MAX_HEADERS
                             || !scope_valid
-                            || !omakase::response::header_allowed(v[1].as_bytes(), v[2].as_bytes())
+                            || !pathward::response::header_allowed(v[1].as_bytes(), v[2].as_bytes())
                             || headers.iter().any(|h: &Header<'_>| {
                                 h.scope == v[0] && h.name == v[1] && h.kind == kind
                             })
@@ -488,7 +488,7 @@ impl ParsedConfig {
             if has_proxy && redirects.iter().any(|r| r.fallback) {
                 return Err(self.at(node, "redirect fallback cannot coexist with a proxy"));
             }
-            if !omakase::proxy::site_mode_allowed(
+            if !pathward::proxy::site_mode_allowed(
                 root.is_some(),
                 !publications.is_empty(),
                 !redirects.is_empty(),
@@ -525,7 +525,7 @@ impl ParsedConfig {
             if publications.iter().any(|p| {
                 redirects.iter().any(|r| {
                     !r.fallback
-                        && omakase::response::route_matches(p.path, r.from.as_bytes(), r.prefix)
+                        && pathward::response::route_matches(p.path, r.from.as_bytes(), r.prefix)
                 })
             }) {
                 return Err(self.at(node, "redirect overlaps a publication"));
@@ -783,19 +783,19 @@ fn number(s: &str) -> Option<u64> {
 }
 impl ProxyLimits {
     pub fn valid(self) -> bool {
-        omakase::routing::body_limit(self.request_bytes, false)
-            && omakase::routing::body_limit(self.response_bytes, true)
-            && omakase::routing::time_limits(
+        pathward::routing::body_limit(self.request_bytes, false)
+            && pathward::routing::body_limit(self.response_bytes, true)
+            && pathward::routing::time_limits(
                 self.body_ms,
                 self.connect_ms,
                 self.head_ms,
                 self.total_ms,
             )
-            && omakase::routing::connection_limit(self.connections)
-            && omakase::streaming::service_limit(self.streams)
-            && omakase::streaming::byte_limit(self.stream_upload_bytes)
-            && omakase::streaming::byte_limit(self.stream_download_bytes)
-            && omakase::streaming::time_limits(self.stream_idle_ms, self.stream_total_ms)
+            && pathward::routing::connection_limit(self.connections)
+            && pathward::streaming::service_limit(self.streams)
+            && pathward::streaming::byte_limit(self.stream_upload_bytes)
+            && pathward::streaming::byte_limit(self.stream_download_bytes)
+            && pathward::streaming::time_limits(self.stream_idle_ms, self.stream_total_ms)
     }
     fn set(&mut self, kind: &str, key: &str, value: &str) -> bool {
         let (destination, parsed) = match (kind, key) {

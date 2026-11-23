@@ -1,6 +1,6 @@
 import TlsProofs
 open Aeneas Aeneas.Std RustM
-open omakase
+open pathward
 namespace RuntimeProofs
 
 abbrev commitPolicy (c e : U64) (p i s d : Bool) : Prop :=

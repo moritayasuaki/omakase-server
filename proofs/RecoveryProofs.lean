@@ -1,5 +1,5 @@
 import CutoverProofs
-open Aeneas Aeneas.Std RustM omakase
+open Aeneas Aeneas.Std RustM pathward
 namespace RecoveryProofs
 open recovery
 

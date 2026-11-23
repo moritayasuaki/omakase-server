@@ -1,4 +1,4 @@
-use omakase::rules::{Publication, compile, lookup, valid_target};
+use pathward::rules::{Publication, compile, lookup, valid_target};
 
 #[test]
 fn compilation_preserves_mapping_and_order() {

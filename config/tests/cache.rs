@@ -1,4 +1,4 @@
-use omakase_config::{CachePolicy, ParsedConfig};
+use pathward_config::{CachePolicy, ParsedConfig};
 #[test]
 fn cache_policies_have_typed_bounded_output() {
     for good in [

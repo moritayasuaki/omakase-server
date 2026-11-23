@@ -1,16 +1,16 @@
 [package]
-name = "omakase-admin"
+name = "pathward-admin"
 version = "0.1.0"
 edition = "2024"
 publish = false
 license = "MIT"
-description = "Native, bounded recovery-contract migration for Omakase"
+description = "Native, bounded recovery-contract migration for PathWard"
 
 [workspace]
 resolver = "3"
 
 [dependencies]
-omakase = { path = ".." }
+pathward = { path = ".." }
 serde = { version = "=1.0.229", default-features = false, features = ["std"] }
 serde_json = { version = "=1.0.154", default-features = false, features = ["std"] }
 ring = { version = "=0.17.14", default-features = false, features = ["std"] }

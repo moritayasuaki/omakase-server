@@ -1,5 +1,5 @@
 import PlanMigrationProofs
-open Aeneas Aeneas.Std RustM omakase
+open Aeneas Aeneas.Std RustM pathward
 namespace PublicationProofs
 
 theorem mapping_iff (c s y : Bool) :

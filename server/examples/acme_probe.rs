@@ -1,6 +1,6 @@
 //! Read-only public-CA transport probe: GET directory and HEAD nonce only.
 //! No account, order, validation request, certificate, or cache is created.
-use omakase_server::acme;
+use pathward_server::acme;
 use rustls_acme::{acme::Directory, https_helper::HttpsClient};
 use std::{sync::Arc, time::Instant};
 

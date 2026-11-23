@@ -193,7 +193,7 @@ impl Observability {
         }
         let (send, receive) = mpsc::sync_channel::<String>(256);
         thread::Builder::new()
-            .name("omakase-log".into())
+            .name("pathward-log".into())
             .spawn(move || {
                 for line in receive {
                     // Do not hold stderr's lock while waiting for another record.
@@ -439,37 +439,37 @@ impl Observability {
             (
                 "admission_global_limit",
                 "gauge",
-                omakase::release::capacity_global(self.shared_nat),
+                pathward::release::capacity_global(self.shared_nat),
             ),
             (
                 "admission_peer_limit",
                 "gauge",
-                omakase::release::capacity_peer(self.shared_nat),
+                pathward::release::capacity_peer(self.shared_nat),
             ),
             (
                 "admission_queue_limit",
                 "gauge",
-                omakase::release::capacity_queue(self.shared_nat),
+                pathward::release::capacity_queue(self.shared_nat),
             ),
             (
                 "admission_global_rate",
                 "gauge",
-                omakase::release::capacity_rate(self.shared_nat, false),
+                pathward::release::capacity_rate(self.shared_nat, false),
             ),
             (
                 "admission_peer_rate",
                 "gauge",
-                omakase::release::capacity_rate(self.shared_nat, true),
+                pathward::release::capacity_rate(self.shared_nat, true),
             ),
             (
                 "admission_global_burst",
                 "gauge",
-                omakase::release::capacity_burst(self.shared_nat, false),
+                pathward::release::capacity_burst(self.shared_nat, false),
             ),
             (
                 "admission_peer_burst",
                 "gauge",
-                omakase::release::capacity_burst(self.shared_nat, true),
+                pathward::release::capacity_burst(self.shared_nat, true),
             ),
             (
                 "connections_total",

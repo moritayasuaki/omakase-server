@@ -1,4 +1,4 @@
-use omakase::{rules::Publication, serving::*};
+use pathward::{rules::Publication, serving::*};
 
 #[test]
 fn raw_path_is_an_unchanged_prefix_and_queries_do_not_grant_more() {
@@ -123,7 +123,7 @@ fn arbitrary_target_samples_match_an_independent_specification() {
             let split = bytes.iter().position(|b| *b == b'?').unwrap_or(bytes.len());
             let path = &bytes[..split];
             let query = &bytes[split..];
-            let expected = if omakase::valid_path(path)
+            let expected = if pathward::valid_path(path)
                 && query.iter().all(|b| b.is_ascii_graphic() && *b != b'#')
             {
                 Some(path)

@@ -12,7 +12,7 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-BIN = ROOT / 'server/target/release/omakase-server'
+BIN = ROOT / 'server/target/release/pathward-server'
 
 def receive(stream):
     data = b''
@@ -26,7 +26,7 @@ def get(port, peer='127.0.0.20', target='/'):
         stream.sendall(f'GET {target} HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n'.encode())
         return receive(stream)
 
-with tempfile.TemporaryDirectory(prefix='omakase-capacity-') as tmp:
+with tempfile.TemporaryDirectory(prefix='pathward-capacity-') as tmp:
     root = Path(tmp)
     (root/'public').mkdir()
     (root/'public'/'a').write_bytes(b'HEALTHY')

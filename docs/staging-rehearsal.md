@@ -2,7 +2,7 @@
 
 The rehearsal exercises a **reviewed static subset**, not a replacement of a
 shared Caddy deployment. `scripts/staging_rehearsal.py` runs installed Caddy and
-Omakase in turn on the **same loopback TLS and HTTP ports**, verifies the actual
+PathWard in turn on the **same loopback TLS and HTTP ports**, verifies the actual
 copied public files and security headers, and restores Caddy after startup failure
 and forced candidate termination. It is a test controller, not a production
 failover daemon. The public CA, DNS, public 80/443 and system Caddy service are
@@ -22,14 +22,14 @@ The final run passed 1,048 background TLS requests and 192 explicit GET/HEAD fil
 checks, 473 configuration changes, 48 stale-CAS rejections and 48 monitoring
 checks. There were eight certificate activations (initial issuance plus seven
 renewals), with 66 config commits while an ACME order was active. Steady-state
-errors were **zero**. Peak Omakase RSS was 6,600 KiB, with 15 FDs and 12 threads.
+errors were **zero**. Peak PathWard RSS was 6,600 KiB, with 15 FDs and 12 threads.
 
 | Final handoff | Stop-to-ready time |
 | --- | ---: |
-| Caddy → Omakase | 0.274 s |
-| Omakase → Caddy | 0.383 s |
+| Caddy → PathWard | 0.274 s |
+| PathWard → Caddy | 0.383 s |
 | Candidate startup failure → verified Caddy | 0.414 s |
-| Caddy → Omakase again | 0.225 s |
+| Caddy → PathWard again | 0.225 s |
 | Candidate SIGKILL → verified Caddy | 0.181 s |
 
 Four background probes failed **during transitions** in the final run. The
@@ -47,9 +47,9 @@ difference. The migration decision and monitored handoff were also added to
 prevent unchecked cutover. Runtime dependencies were not added.
 
 The binaries came from commit `82121686d9064d5cebf032aeaa19d70b48ec7d1f`
-([Linux build](https://github.com/moritayasuaki/omakase-server/actions/runs/41296522340));
+([Linux build](https://github.com/moritayasuaki/pathward/actions/runs/41296522340));
 the final harness is `af57cc0dfa53dac86ea6c1abc858c9a630d9ccdc`
-([Linux integration and Lean CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41297521102)).
+([Linux integration and Lean CI](https://github.com/moritayasuaki/pathward/actions/runs/41297521102)).
 The Rust source, extracted model and proofs are identical between those commits.
 The report pins the ZIP, executable and harness digests. Local `make check` and
 the refreshed dependency audit passed; RustSec DB
@@ -76,7 +76,7 @@ The script also verifies `nosniff` and absence of the Server banner.
 
 Both servers listen on 127.0.0.1 only. The Caddy instance has `admin off`,
 `auto_https off`, explicit ephemeral test certificates, private XDG/storage paths
-and HTTP/1.1 only. It never loads the system Caddyfile. The Omakase local-CA driver
+and HTTP/1.1 only. It never loads the system Caddyfile. The PathWard local-CA driver
 uses the real serving, managed-release, TLS, ACME, monitoring and shutdown code;
 the production CLI retains its fixed public CA origins. Neither public trust nor
 real DNS/443 reachability is established by this test. Test keys are disposable.
@@ -119,7 +119,7 @@ this is a digest-checked artifact transfer, not a reproducible-build attestation
 1. Generate publications with the production manifest generator and preflight
    each release through the production safe opener. Initialize private managed
    state. Validate a separate Caddy configuration with the installed Caddy binary.
-2. Prewarm Omakase with real local TLS-ALPN-01 validation by pinned Pebble. Then
+2. Prewarm PathWard with real local TLS-ALPN-01 validation by pinned Pebble. Then
    run Caddy on the same listeners. Verify both against explicit body/length,
    GET/HEAD, root-alias, redirect/query and security-header expectations. XML MIME
    types `application/xml` and `text/xml` are treated as equivalent; all other
@@ -190,7 +190,7 @@ Primary references: [Caddy command validation](https://caddyserver.com/docs/comm
 
 The shared configuration inspected for this rehearsal contains reverse proxies,
 rewrites, request-body policies, compression and several static roots/hosts.
-Omakase cannot replace that entire configuration. Also review legacy directory
+PathWard cannot replace that entire configuration. Also review legacy directory
 URLs, encoded/Unicode paths, implicit indexes, cross-host redirect destinations,
 caching and ranges individually; manifest coverage alone is insufficient.
 

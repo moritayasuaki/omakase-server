@@ -31,8 +31,8 @@ jobs:
       - name: Verify Rust core, configuration, and server
         run: |
           sed "s/ root pathward / root $(id -gn) /" deploy/pathward-sleep.tmpfiles | sudo systemd-tmpfiles --create -
-          cargo +1.99.1 build --offline --locked --manifest-path server/Cargo.toml --bin omakase-server
-          sudo server/target/debug/omakase-server sleep-delegate init-local
+          cargo +1.99.1 build --offline --locked --manifest-path server/Cargo.toml --bin pathward-server
+          sudo server/target/debug/pathward-server sleep-delegate init-local
           make rust-check config-check server-check admin-check recovery-check
       - name: Check mount confinement in a private Linux namespace
         run: python3 scripts/linux_mount_check.py
@@ -54,7 +54,7 @@ jobs:
       - name: Test real TLS-ALPN-01 issuance, renewal, restart and persistence failure
         run: make acme-integration
       - name: Check concurrent ACME renewal and managed release churn
-        run: OMAKASE_TEST_HTTP3=1 make soak SOAK_SECONDS=120 SOAK_REPORT=.tools/soak-ci.json
+        run: PATHWARD_TEST_HTTP3=1 make soak SOAK_SECONDS=120 SOAK_REPORT=.tools/soak-ci.json
       - name: Verify extraction, Lean proofs, and axioms
         run: make proof-check
 

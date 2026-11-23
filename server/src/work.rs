@@ -15,7 +15,7 @@ pub(crate) struct Queue<T> {
 impl<T> Queue<T> {
     pub fn new(shared_nat: bool) -> Arc<Self> {
         Arc::new(Self {
-            capacity: omakase::release::capacity_queue(shared_nat) as usize,
+            capacity: pathward::release::capacity_queue(shared_nat) as usize,
             state: Mutex::new(State {
                 pending: VecDeque::new(),
                 closed: false,

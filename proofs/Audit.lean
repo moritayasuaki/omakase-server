@@ -9,7 +9,7 @@ import CutoverProofs
 import DeliveryProofs
 import GuardUpgradeProofs
 import LinuxProofs
-import OmakaseProofs
+import PathwardProofs
 import PlanMigrationProofs
 import PlatformProofs
 import ProxyProofs
@@ -318,42 +318,42 @@ import UpstreamProofs
 #print axioms LinuxProofs.guarded_write_requires_original_release
 #print axioms LinuxProofs.original_release_has_prior_witness
 #print axioms LinuxProofs.either_rollback_preserves_guard_and_submissions
-#print axioms OmakaseProofs.name_byte_eq
-#print axioms OmakaseProofs.step_eq
-#print axioms OmakaseProofs.accepting_eq
-#print axioms OmakaseProofs.index_eq
-#print axioms OmakaseProofs.succ_exists
-#print axioms OmakaseProofs.drop_head
-#print axioms OmakaseProofs.valid_loop_eq
-#print axioms OmakaseProofs.valid_path_eq
-#print axioms OmakaseProofs.same_loop_eq
-#print axioms OmakaseProofs.same_path_eq
-#print axioms OmakaseProofs.listed_eq
-#print axioms OmakaseProofs.is_public_eq
-#print axioms OmakaseProofs.authorization_iff
-#print axioms OmakaseProofs.authorization_total
-#print axioms OmakaseProofs.deny_unlisted
-#print axioms OmakaseProofs.deny_invalid
-#print axioms OmakaseProofs.run_nil
-#print axioms OmakaseProofs.run_cons
-#print axioms OmakaseProofs.run_append
-#print axioms OmakaseProofs.run_reject
-#print axioms OmakaseProofs.disallowed_rejects
-#print axioms OmakaseProofs.run_all_allowed
-#print axioms OmakaseProofs.canonical_all_allowed
-#print axioms OmakaseProofs.canonical_rooted
-#print axioms OmakaseProofs.slash_dot_rejects
-#print axioms OmakaseProofs.double_slash_rejects
-#print axioms OmakaseProofs.no_hidden_or_traversal
-#print axioms OmakaseProofs.no_empty_component
-#print axioms OmakaseProofs.no_trailing_dot
-#print axioms OmakaseProofs.allowed_ascii
-#print axioms OmakaseProofs.published_bytes_safe
-#print axioms OmakaseProofs.published_rooted
-#print axioms OmakaseProofs.published_no_traversal
-#print axioms OmakaseProofs.next_not_start
-#print axioms OmakaseProofs.run_not_start
-#print axioms OmakaseProofs.directory_suffix_allowed
+#print axioms PathwardProofs.name_byte_eq
+#print axioms PathwardProofs.step_eq
+#print axioms PathwardProofs.accepting_eq
+#print axioms PathwardProofs.index_eq
+#print axioms PathwardProofs.succ_exists
+#print axioms PathwardProofs.drop_head
+#print axioms PathwardProofs.valid_loop_eq
+#print axioms PathwardProofs.valid_path_eq
+#print axioms PathwardProofs.same_loop_eq
+#print axioms PathwardProofs.same_path_eq
+#print axioms PathwardProofs.listed_eq
+#print axioms PathwardProofs.is_public_eq
+#print axioms PathwardProofs.authorization_iff
+#print axioms PathwardProofs.authorization_total
+#print axioms PathwardProofs.deny_unlisted
+#print axioms PathwardProofs.deny_invalid
+#print axioms PathwardProofs.run_nil
+#print axioms PathwardProofs.run_cons
+#print axioms PathwardProofs.run_append
+#print axioms PathwardProofs.run_reject
+#print axioms PathwardProofs.disallowed_rejects
+#print axioms PathwardProofs.run_all_allowed
+#print axioms PathwardProofs.canonical_all_allowed
+#print axioms PathwardProofs.canonical_rooted
+#print axioms PathwardProofs.slash_dot_rejects
+#print axioms PathwardProofs.double_slash_rejects
+#print axioms PathwardProofs.no_hidden_or_traversal
+#print axioms PathwardProofs.no_empty_component
+#print axioms PathwardProofs.no_trailing_dot
+#print axioms PathwardProofs.allowed_ascii
+#print axioms PathwardProofs.published_bytes_safe
+#print axioms PathwardProofs.published_rooted
+#print axioms PathwardProofs.published_no_traversal
+#print axioms PathwardProofs.next_not_start
+#print axioms PathwardProofs.run_not_start
+#print axioms PathwardProofs.directory_suffix_allowed
 #print axioms PlanMigrationProofs.migration_iff
 #print axioms PlanMigrationProofs.shared_records_denied
 #print axioms PlanMigrationProofs.changed_roles_denied

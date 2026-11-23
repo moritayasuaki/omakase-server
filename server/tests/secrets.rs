@@ -1,5 +1,5 @@
 #![cfg(target_os = "linux")]
-use omakase_server::secrets::SecretStore;
+use pathward_server::secrets::SecretStore;
 use std::{
     fs,
     os::unix::fs::{PermissionsExt, symlink},
@@ -12,7 +12,7 @@ struct Temp(PathBuf);
 impl Temp {
     fn new() -> Self {
         let p = std::env::temp_dir().join(format!(
-            "omakase-secrets-{}-{}",
+            "pathward-secrets-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
@@ -45,14 +45,14 @@ fn reopens_pathward_group_and_reuses_the_existing_acme_account() {
     drop(parent);
 
     let domains = vec!["site.example".to_owned()];
-    let groups = omakase_server::acme::Groups::new(
+    let groups = pathward_server::acme::Groups::new(
         domains.clone(),
         vec![domains],
         &[],
         &cache,
         "https://ca.example/directory",
         vec!["mailto:ops@example.net".into()],
-        omakase_server::acme::public_client_config().unwrap(),
+        pathward_server::acme::public_client_config().unwrap(),
     )
     .unwrap();
     assert_eq!(groups.workers().len(), 1);
@@ -169,7 +169,7 @@ fn refuse_public_symlink_hardlink_special_and_oversized_cache() {
 
 #[test]
 fn nondumpable_process_can_reopen_its_private_descriptors() {
-    if std::env::var_os("OMAKASE_TEST_NONDUMP_CHILD").is_some() {
+    if std::env::var_os("PATHWARD_TEST_NONDUMP_CHILD").is_some() {
         rustix::process::set_dumpable_behavior(rustix::process::DumpableBehavior::NotDumpable)
             .unwrap();
         rustix::process::setrlimit(
@@ -191,7 +191,7 @@ fn nondumpable_process_can_reopen_its_private_descriptors() {
             "--exact",
             "nondumpable_process_can_reopen_its_private_descriptors",
         ])
-        .env("OMAKASE_TEST_NONDUMP_CHILD", "1")
+        .env("PATHWARD_TEST_NONDUMP_CHILD", "1")
         .status()
         .unwrap();
     assert!(status.success());

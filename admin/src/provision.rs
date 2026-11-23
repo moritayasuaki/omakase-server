@@ -169,8 +169,8 @@ fn package_programs(members: &serde_json::Map<String, Value>) -> Result<[&'stati
         "exact native package inventory",
     )?;
     [
-        ["omakase-server", "omakase-hosting", "omakase-publish"],
         ["pathward-server", "pathward-hosting", "pathward-publish"],
+        ["omakase-server", "omakase-hosting", "omakase-publish"],
     ]
     .into_iter()
     .find(|family| family.iter().all(|name| members.contains_key(*name)))

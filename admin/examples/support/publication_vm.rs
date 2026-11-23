@@ -1,13 +1,13 @@
 //! Publication and collection assertions under real, disposable PID 1.
 use super::*;
-use omakase_admin::publication;
+use pathward_admin::publication;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::os::unix::fs::{PermissionsExt, symlink};
 
 const BASE: &str = "/var/lib/pathward-publication-test";
-const HOSTING: &str = "/usr/local/bin/omakase-hosting-fixture";
-const SERVER: &str = "/usr/local/bin/omakase-server-fixture";
+const HOSTING: &str = "/usr/local/bin/pathward-hosting-fixture";
+const SERVER: &str = "/usr/local/bin/pathward-server-fixture";
 const POLICY: &str = "/etc/pathward-publication-test.json";
 const RECEIPT: &str = "/run/pathward-publication-test/receipt.json";
 fn b(s: &str) -> PathBuf {
@@ -83,7 +83,7 @@ fn native(mode: &str, extra: &[&str]) -> Result<String> {
 }
 fn setup_publication() -> Result<()> {
     emit("PW_PUBLICATION_STAGE preparing")?;
-    for (name, source) in [(HOSTING, "omakase-hosting"), (SERVER, "omakase-server")] {
+    for (name, source) in [(HOSTING, "pathward-hosting"), (SERVER, "pathward-server")] {
         f::replace(
             Path::new(name),
             &f::bytes(&p(source), false)?,
@@ -153,7 +153,7 @@ fn setup_publication() -> Result<()> {
     file(
         &Path::new(UNITS).join("pathward-hosting.service"),
         &format!(
-            "[Unit]\nDescription=Isolated native publication bridge\nAfter=pathward.service\nRequires=pathward.service\n[Service]\nType=simple\nUser=nobody\nGroup=nogroup\nExecStart={HOSTING} reconcile --policy {POLICY} --state {BASE}/state --binary {SERVER} --control {BASE}/control --receipt {RECEIPT} --watch\nRuntimeDirectory=omakase-publication-test\nRuntimeDirectoryMode=0755\nUMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nReadWritePaths={BASE} /run/pathward-publication-test\n[Install]\nWantedBy=multi-user.target\n"
+            "[Unit]\nDescription=Isolated native publication bridge\nAfter=pathward.service\nRequires=pathward.service\n[Service]\nType=simple\nUser=nobody\nGroup=nogroup\nExecStart={HOSTING} reconcile --policy {POLICY} --state {BASE}/state --binary {SERVER} --control {BASE}/control --receipt {RECEIPT} --watch\nRuntimeDirectory=pathward-publication-test\nRuntimeDirectoryMode=0755\nUMask=0077\nNoNewPrivileges=yes\nPrivateTmp=yes\nProtectSystem=strict\nReadWritePaths={BASE} /run/pathward-publication-test\n[Install]\nWantedBy=multi-user.target\n"
         ),
         0o644,
     )?;
@@ -205,7 +205,7 @@ fn setup_publication() -> Result<()> {
         http("/docs/index.html")?.ends_with("documentation"),
         "explicit nested URL failed",
     )?;
-    let r = omakase_admin::confined::metadata(Path::new(RECEIPT), 65534)?;
+    let r = pathward_admin::confined::metadata(Path::new(RECEIPT), 65534)?;
     let files = publication::selected_files(
         &value,
         "portal",
@@ -267,8 +267,8 @@ fn setup_publication() -> Result<()> {
         b("source/releases/one/public").to_str().unwrap(),
         mounted.to_str().unwrap(),
     ])?;
-    let root = omakase_admin::confined::absolute(&b("source/releases/three/public"))?;
-    let denied = omakase_admin::confined::child(&root, "mounted").is_err();
+    let root = pathward_admin::confined::absolute(&b("source/releases/three/public"))?;
+    let denied = pathward_admin::confined::child(&root, "mounted").is_err();
     command(&["/usr/bin/umount", mounted.to_str().unwrap()])?;
     require(denied, "same-device bind mount accepted")?;
     Ok(())
@@ -319,12 +319,12 @@ pub fn run() -> Result<()> {
         let mut input = f::record(&p("input.json"))?;
         let mut ids = Vec::new();
         for _ in 0..3 {
-            let id = e.prepare(&input, &p("omakase-admin"), &mut |_| Ok(()))?;
+            let id = e.prepare(&input, &p("pathward-admin"), &mut |_| Ok(()))?;
             e.apply(&id, &mut |_| Ok(()))?;
             input["source_current"] = id.clone().into();
             ids.push(id);
         }
-        let prepared = e.prepare(&input, &p("omakase-admin"), &mut |_| Ok(()))?;
+        let prepared = e.prepare(&input, &p("pathward-admin"), &mut |_| Ok(()))?;
         save(
             "retention-ids.json",
             &json!({"applied":ids,"prepared":prepared}),
@@ -398,8 +398,8 @@ pub fn run() -> Result<()> {
     report["native_and_legacy_collection_after_reboot"] = true.into();
     report["three_hard_cuts_retry_preserves_current_parent_prepared"] = true.into();
     report["native_runtime_no_python"] = true.into();
-    report["admin_sha256"] = digest(&p("omakase-admin"))?.into();
-    report["hosting_sha256"] = digest(&p("omakase-hosting"))?.into();
+    report["admin_sha256"] = digest(&p("pathward-admin"))?.into();
+    report["hosting_sha256"] = digest(&p("pathward-hosting"))?.into();
     report["versions"] = json!({"systemd":command(&["/usr/bin/systemd","--version"])?.lines().next(),"kernel":command(&["/usr/bin/uname","-r"])?.trim()});
     save("report.json", &report)?;
     drop(_lock);

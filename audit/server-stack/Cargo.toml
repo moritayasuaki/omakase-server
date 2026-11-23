@@ -1,5 +1,5 @@
 [package]
-name = "omakase-server-dependency-review"
+name = "pathward-server-dependency-review"
 version = "0.0.0"
 edition = "2024"
 publish = false

@@ -11,7 +11,7 @@ if test ! -f "$state/first-boot"; then
     first=true
     install -d -m0755 "$state"
     install -d -o nobody -g nogroup -m0700 "$state/control"
-    install -Dm0755 "$seed/omakase-server" "$server"
+    install -Dm0755 "$seed/pathward-server" "$server"
     "$server" sleep-delegate init-local
     cat > "$state/pool.kdl" <<'KDL'
 site "app.example" {
@@ -95,7 +95,7 @@ if test -f "$seed/run-reconcile"; then
     mount "$device" "$guard"
 fi
 if "$first" || test -f "$seed/run-delegates" || test -f "$seed/run-reconcile"; then printf 204 > "$peer/status"; else printf 503 > "$peer/status"; fi
-OMAKASE_POOL_LAB="$peer" run "$bin" cold_boot_http_peer --ignored --test-threads=1 --nocapture &
+PATHWARD_POOL_LAB="$peer" run "$bin" cold_boot_http_peer --ignored --test-threads=1 --nocapture &
 worker=$!
 for _ in $(seq 1 400); do test ! -f "$peer/listening" || break; kill -0 "$worker"; sleep 0.02; done
 test -f "$peer/listening"

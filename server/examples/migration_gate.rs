@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("invalid digest".into());
         }
     }
-    if !omakase::release::migration_allowed(
+    if !pathward::release::migration_allowed(
         args[0].as_bytes(),
         args[1].as_bytes(),
         args[2].parse()?,

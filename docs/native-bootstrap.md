@@ -1,7 +1,7 @@
 # Native initial preparation and publication wrappers
 
-The `omakase-admin provision` command replaces first-install Python execution.
-`omakase-publish` replaces local upload and remote publication wrappers. Their
+The `pathward-admin provision` command replaces first-install Python execution.
+`pathward-publish` replaces local upload and remote publication wrappers. Their
 runtime uses Rust, with the existing reviewed administrator crate dependencies.
 The HTTP server still consumes KDL; these JSON files are root-owned administrative
 inventories, not a replacement for the server configuration language.
@@ -18,10 +18,10 @@ retained SHA-256. Its schema is demonstrated by
   The test-only `network: "isolated"` scope requires the host to have only `lo`.
 - `minimum_free_bytes`: an explicit installation reserve of at least 128 MiB,
   checked against available filesystem space before mutation.
-- `members`: exactly `omakase-server`, `omakase-hosting`, `omakase-publish`
+- `members`: exactly `pathward-server`, `pathward-hosting`, `pathward-publish`
   and `hosting.json`, each with an absolute root-owned `source` and SHA-256.
-  An existing schema-1 contract may use the three original `pathward-*` names
-  together. A mixture of the two inventories fails validation.
+  Existing contracts may use the three `omakase-*` executable names together.
+  A mixture of the two inventories fails validation.
 - `contract`: the reviewed old/new unit templates, sealed resources, check and
   health commands described in `contract-migration.md`, selecting `new` as the
   eventual target. All installed members must occur in the new resource map.
@@ -32,7 +32,7 @@ service-owned 0755. The account has a non-login shell and that exact state home.
 Existing accounts, files or state with different identities are refused.
 
 ```
-sudo omakase-admin --root /opt/pathward-native provision /private/input.json SHA256
+sudo pathward-admin --root /opt/pathward-native provision /private/input.json SHA256
 ```
 
 The source must be enabled, active and have exactly the reviewed unit definitions
@@ -104,8 +104,8 @@ with the root HTML last. Private backups and a durable pending transaction prece
 every live mutation. Public checks run before a completion record is issued.
 
 ```
-omakase-publish upload --remote deploy@example.test \
-  --binary /opt/pathward/release/omakase-publish \
+pathward-publish upload --remote deploy@example.test \
+  --binary /opt/pathward/release/pathward-publish \
   --config /etc/pathward/publisher.json --profile portal \
   --source public --files public-files.txt
 ```

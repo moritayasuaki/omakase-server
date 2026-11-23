@@ -1,5 +1,5 @@
 import PublicationProofs
-open Aeneas Aeneas.Std RustM omakase
+open Aeneas Aeneas.Std RustM pathward
 namespace BootstrapProofs
 
 theorem preparation_iff (r c s j : Bool) :

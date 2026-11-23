@@ -5,7 +5,7 @@
 mod h2_limits;
 #[cfg(target_os = "linux")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use omakase_server::{Server, acme, control, deployment, tls};
+    use pathward_server::{Server, acme, control, deployment, tls};
     use std::{
         fs,
         net::TcpListener,
@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         thread,
     };
     let args: Vec<_> = std::env::args().skip(1).collect();
-    if std::env::var("OMAKASE_TEST_H2_DIAGNOSTICS").as_deref() == Ok("1") {
+    if std::env::var("PATHWARD_TEST_H2_DIAGNOSTICS").as_deref() == Ok("1") {
         h2_limits::install();
     }
     if args.len() != 5 && args.len() != 7 {
@@ -117,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let monitoring = scope.spawn(|| {
             control::monitor(monitor, &server, Some(&identity), &signals.shutdown, &done)
         });
-        let result = if std::env::var("OMAKASE_TEST_HTTP3").as_deref() == Ok("1") {
+        let result = if std::env::var("PATHWARD_TEST_HTTP3").as_deref() == Ok("1") {
             let udp = std::net::UdpSocket::bind(listener.local_addr()?)?;
             server.serve_tls_http3(listener, Some(redirect), udp, &signals.shutdown, &tls)
         } else {

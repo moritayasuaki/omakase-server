@@ -3,7 +3,7 @@
 `deploy/pathward_guard_upgrade.py` updates an existing schema-1 recovery guard
 without stopping listeners, changing enablement, or writing the application
 journal, plan or boot permit. It uses Python's standard library and the
-dependency-free `omakase-recovery upgrade` decision CLI.
+dependency-free `pathward-recovery upgrade` decision CLI.
 
 The administrator supplies reviewed, root-owned helper files and independently
 retained SHA-256 digests. A hash pins reviewed code; it does not prove arbitrary

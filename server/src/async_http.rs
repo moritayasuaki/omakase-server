@@ -76,7 +76,7 @@ pub async fn write_all_from(
     accepted: usize,
     d: Instant,
 ) -> io::Result<()> {
-    use omakase::upstream::{remaining_after_write, write_suffix};
+    use pathward::upstream::{remaining_after_write, write_suffix};
     let mut bytes = write_suffix(original, accepted).ok_or(io::ErrorKind::InvalidData)?;
     s.deadline(d)?;
     while !bytes.is_empty() {

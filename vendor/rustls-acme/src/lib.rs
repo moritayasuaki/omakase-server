@@ -1,4 +1,4 @@
-//! Omakase's narrowly maintained, attributed low-level rustls-acme fork.
+//! PathWard's narrowly maintained, attributed low-level rustls-acme fork.
 //! See PROVENANCE.md. No upstream cache, resolver, acceptor or renewal state.
 #![forbid(unsafe_code)]
 pub mod acme;

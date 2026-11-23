@@ -38,7 +38,7 @@ impl Fixture {
     fn new() -> Result<Self> {
         let base = std::env::temp_dir()
             .canonicalize()?
-            .join(format!("omakase-wrapper-{}", nonce()?));
+            .join(format!("pathward-wrapper-{}", nonce()?));
         private(&base)?;
         for name in ["release", "release/public", "source"] {
             private(&base.join(name))?;
@@ -338,7 +338,9 @@ fn asset_rules_and_paths() -> Result<()> {
     assert!(immutable(&v, "app.0123456789ab.js"));
     assert!(immutable(&v, "avatars/v6/a.webp"));
     assert!(additive(&v, "avatars/v6/a.webp"));
-    assert!(!omakase::bootstrap::asset_allowed(true, false, true, false));
+    assert!(!pathward::bootstrap::asset_allowed(
+        true, false, true, false
+    ));
     let mut x = Fixture::new()?;
     put(&x.base.join("source/new.html"), b"unsupported")?;
     x.stage()?;

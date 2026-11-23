@@ -3,7 +3,7 @@
 Current transport/concurrency additions are described in [Modern HTTP](modern-http.md).
 The dated results and earlier limits below describe their recorded revisions.
 
-Omakase can delegate an entire configured hostname to one explicitly selected
+PathWard can delegate an entire configured hostname to one explicitly selected
 local HTTP application. It can also coexist with explicit local and denied routes
 using [mixed routing and per-service limits](routing-and-limits.md). This is not a claim of Caddy
 feature parity. Existing static sites still require exact publication grants.
@@ -22,7 +22,7 @@ its private ACME cache and explicit CA terms acceptance for TLS. For example,
 with your application already listening on 127.0.0.1:3000:
 
 ```sh
-server/target/release/omakase-server serve-http examples/Proxy.kdl 127.0.0.1:8080
+server/target/release/pathward-server serve-http examples/Proxy.kdl 127.0.0.1:8080
 curl -H 'Host: app.example' http://127.0.0.1:8080/api/
 ```
 
@@ -53,7 +53,7 @@ returns 404. A configured default or shorter route cannot take over a matched
 pool's failed request. Existing `proxy-resource` routes keep their explicit
 ownership probes and single-owner dispatch.
 
-Omakase checks each enabled member with an anonymous, bodyless HTTP/1 GET of
+PathWard checks each enabled member with an anonymous, bodyless HTTP/1 GET of
 the configured health path. Implement that path as a cheap read-only operation.
 The probe uses the configured hostname, validates the bounded response head
 and accepts a 2xx status. Each probe has a 500 ms deadline. The accept loop
@@ -122,7 +122,7 @@ and [the OS contract and isolated Linux observations](pool-platform-contract.md)
   **every admitted URL and method** on that hostname to the app,
   including encoded, hidden or dot-component paths. The raw origin-form target
   and body bytes are preserved. The application owns authentication, authorization,
-  normalization and routing. Omakase's static-file allowlist is not an application
+  normalization and routing. PathWard's static-file allowlist is not an application
   authorization policy. Only delegate a service intended for public exposure;
   loopback restriction does not make an administrative service safe to publish.
 - Targets must start with one slash, contain at most 8192 printable ASCII bytes,
@@ -139,22 +139,22 @@ and [the OS contract and isolated Linux observations](pool-platform-contract.md)
   can only be the validated explicit frontend port, and prove omission, mismatch
   rejection, default-port normalization and totality. String formatting remains
   a tested adapter. Incoming `Forwarded`, all `X-Forwarded-*`,
-  `X-Real-IP`, `X-Original-URL`, `X-Rewrite-URL` and `Proxy` are removed. Omakase
+  `X-Real-IP`, `X-Original-URL`, `X-Rewrite-URL` and `Proxy` are removed. PathWard
   generates X-Forwarded-Host/Proto/Port from the validated frontend authority and
   transport, and X-Forwarded-For from the actual socket peer. There is no trusted
   proxy-chain setting. Configure the app to trust only these regenerated fields
   from this service; other application-defined identity headers are not trusted
-  or interpreted by Omakase.
+  or interpreted by PathWard.
 - End-to-end Authorization, Cookie, Origin and application headers are preserved.
   Hop-by-hop fields are stripped. Requests with Connection tokens other than
   `close`/`keep-alive` are rejected; response Connection-nominated fields are
-  removed. Via is appended in both directions; a request naming `omakase` in
-  its Via chain receives 508. Nested Omakase proxy chains are not supported.
+  removed. Via is appended in both directions; a request naming `pathward` in
+  its Via chain receives 508. Nested PathWard proxy chains are not supported.
 - Configured security response headers override matching upstream values.
   `nosniff` is forced, Server/Alt-Svc are stripped, and HSTS is never emitted on
   plaintext. Separate Set-Cookie fields are preserved. Application response
   status, redirects, content type, validators and cache policy otherwise belong
-  to the application; Omakase does not rewrite cookies/Location or cache content.
+  to the application; PathWard does not rewrite cookies/Location or cache content.
 
 ## Protocol and resource limits
 

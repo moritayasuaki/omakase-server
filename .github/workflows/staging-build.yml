@@ -20,13 +20,13 @@ jobs:
       - run: |
           make server-setup admin-setup acme-test-setup admin-build
           cargo +1.99.1 build --offline --locked --release --manifest-path server/Cargo.toml --bins --examples
-          cargo +1.99.1 build --offline --locked --release --bin omakase-recovery
+          cargo +1.99.1 build --offline --locked --release --bin pathward-recovery
           mkdir bundle
-          cp server/target/release/omakase-server bundle/
-          cp target/release/omakase-recovery bundle/
-          cp admin/target/release/omakase-admin bundle/
-          cp admin/target/release/omakase-hosting bundle/
-          cp admin/target/release/omakase-publish bundle/
+          cp server/target/release/pathward-server bundle/
+          cp target/release/pathward-recovery bundle/
+          cp admin/target/release/pathward-admin bundle/
+          cp admin/target/release/pathward-hosting bundle/
+          cp admin/target/release/pathward-publish bundle/
           cp admin/target/release/examples/bootstrap_vm_guest bundle/
           cp admin/target/release/examples/role_vm_guest bundle/
           cp admin/target/release/examples/role_fixture bundle/
@@ -39,12 +39,12 @@ jobs:
           import json, shutil, sys
           for line in open(sys.argv[1]):
               item = json.loads(line)
-              if item.get("reason") == "compiler-artifact" and item.get("executable") and item.get("target", {}).get("name") == "omakase_server":
-                  shutil.copy2(item["executable"], "bundle/omakase-server-tests")
+              if item.get("reason") == "compiler-artifact" and item.get("executable") and item.get("target", {}).get("name") == "pathward_server":
+                  shutil.copy2(item["executable"], "bundle/pathward-server-tests")
           PY
           git rev-parse HEAD > bundle/SOURCE_COMMIT
           cd bundle
-          sha256sum omakase-server omakase-recovery omakase-admin omakase-hosting omakase-publish bootstrap_vm_guest role_vm_guest role_fixture soak_server migration_gate acme_probe pebble omakase-server-tests SOURCE_COMMIT > SHA256SUMS
+          sha256sum pathward-server pathward-recovery pathward-admin pathward-hosting pathward-publish bootstrap_vm_guest role_vm_guest role_fixture soak_server migration_gate acme_probe pebble pathward-server-tests SOURCE_COMMIT > SHA256SUMS
           cat SHA256SUMS
       # Build-only, exact upload directory, no deployment keys or host access.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

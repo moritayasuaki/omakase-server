@@ -1,7 +1,7 @@
 //! Immutable owned configurations, prepared before the short commit lock.
 use crate::files::DocumentRoot;
-use omakase::rules::Publication;
-use omakase_config::{CompiledConfig, ProxyLimits};
+use pathward::rules::Publication;
+use pathward_config::{CompiledConfig, ProxyLimits};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::{io, path::Path};
@@ -20,7 +20,7 @@ pub(crate) struct Site {
     rules: Vec<(Vec<u8>, Vec<u8>)>,
     redirects: Vec<Redirect>,
     headers: Vec<Header>,
-    cache: Vec<(String, bool, omakase_config::CachePolicy)>,
+    cache: Vec<(String, bool, pathward_config::CachePolicy)>,
 }
 struct Redirect {
     from: String,
@@ -31,7 +31,7 @@ struct Redirect {
     fallback: bool,
 }
 struct Header {
-    kind: omakase_config::HeaderScope,
+    kind: pathward_config::HeaderScope,
     scope: String,
     name: String,
     value: String,
@@ -58,24 +58,24 @@ impl Site {
     pub fn has_proxy(&self) -> bool {
         self.upstream.is_some() || !self.proxy_routes.is_empty()
     }
-    pub fn cache_policy(&self, path: &[u8]) -> omakase_config::CachePolicy {
+    pub fn cache_policy(&self, path: &[u8]) -> pathward_config::CachePolicy {
         self.cache
             .iter()
             .filter(|(scope, prefix, _)| {
                 scope == "*"
                     || if *prefix {
-                        omakase::routing::subtree(path, scope.as_bytes())
+                        pathward::routing::subtree(path, scope.as_bytes())
                     } else {
                         path == scope.as_bytes()
                     }
             })
             .max_by_key(|(s, p, _)| (s != "*", s.len(), !p))
-            .map_or(omakase_config::CachePolicy::NoStore, |(_, _, c)| *c)
+            .map_or(pathward_config::CachePolicy::NoStore, |(_, _, c)| *c)
     }
 
     pub fn acquire(&self) -> Option<ServicePermit> {
         let mut state = self.budget.0.lock().ok()?;
-        if !omakase::routing::service_admit(state.0, self.limits.connections, state.1) {
+        if !pathward::routing::service_admit(state.0, self.limits.connections, state.1) {
             return None;
         }
         state.0 += 1;
@@ -86,7 +86,7 @@ impl Site {
     }
     pub fn acquire_stream(&self) -> Option<ServicePermit> {
         let mut state = self.budget.0.lock().ok()?;
-        if !omakase::streaming::service_admission(state.2, self.limits.streams, state.3) {
+        if !pathward::streaming::service_admission(state.2, self.limits.streams, state.3) {
             return None;
         }
         state.2 += 1;
@@ -95,25 +95,25 @@ impl Site {
             stream: true,
         })
     }
-    pub fn route(&self, target: &[u8]) -> omakase::routing::Route {
-        let raw = &target[..omakase::serving::path_length(target)];
+    pub fn route(&self, target: &[u8]) -> pathward::routing::Route {
+        let raw = &target[..pathward::serving::path_length(target)];
         let strict = !self.rules.is_empty()
             || !self.redirects.is_empty()
             || !self.denies.is_empty()
             || !self.proxy_paths.is_empty()
             || !self.proxy_routes.is_empty();
-        let stem = omakase::routing::stem(raw);
+        let stem = pathward::routing::stem(raw);
         let path = stem.unwrap_or(b"");
         let transport_valid = if self.has_proxy() {
-            omakase::proxy::target_allowed(target)
+            pathward::proxy::target_allowed(target)
         } else {
-            omakase::serving::request_path(target).is_some()
+            pathward::serving::request_path(target).is_some()
         };
         let valid = transport_valid && (!strict || stem.is_some());
         let denied = self
             .denies
             .iter()
-            .any(|d| omakase::routing::subtree(path, d.as_bytes()));
+            .any(|d| pathward::routing::subtree(path, d.as_bytes()));
         // Reserve slash variants for the local route, but authorize only exact URLs.
         // An unconfigured alias must never fall through to another backend.
         let trim = |p: &[u8]| {
@@ -128,19 +128,19 @@ impl Site {
             .iter()
             .any(|(p, _)| p[..trim(p)] == path[..trim(path)]);
         let redirect = self.redirects.iter().any(|r| {
-            r.fallback || omakase::response::route_matches(path, r.from.as_bytes(), r.prefix)
+            r.fallback || pathward::response::route_matches(path, r.from.as_bytes(), r.prefix)
         });
         let pool_matches = self
             .proxy_routes
             .iter()
-            .any(|r| r.pool.is_some() && omakase::routing::subtree(path, r.prefix.as_bytes()));
+            .any(|r| r.pool.is_some() && pathward::routing::subtree(path, r.prefix.as_bytes()));
         let proxy = (self.upstream.is_some() || pool_matches)
             && (self.proxy_paths.is_empty()
                 || self
                     .proxy_paths
                     .iter()
-                    .any(|p| omakase::routing::subtree(path, p.as_bytes())));
-        omakase::routing::select(valid, denied, published, redirect, proxy)
+                    .any(|p| pathward::routing::subtree(path, p.as_bytes())));
+        pathward::routing::select(valid, denied, published, redirect, proxy)
     }
     pub fn head(
         &self,
@@ -163,20 +163,20 @@ impl Site {
         out
     }
     fn header_rank(&self, h: &Header, target: &[u8]) -> Option<(u8, usize)> {
-        use omakase_config::HeaderScope;
-        let n = omakase::serving::path_length(target);
+        use pathward_config::HeaderScope;
+        let n = pathward::serving::path_length(target);
         let path = &target[..n];
         match h.kind {
             HeaderScope::Exact if h.scope.as_bytes() == path => Some((2, h.scope.len())),
             HeaderScope::Exact if h.scope == "*" => Some((0, 0)),
-            HeaderScope::Prefix if omakase::routing::subtree(path, h.scope.as_bytes()) => {
+            HeaderScope::Prefix if pathward::routing::subtree(path, h.scope.as_bytes()) => {
                 Some((1, h.scope.len()))
             }
             HeaderScope::Query
                 if n < target.len()
                     && target[n + 1..].split(|b| *b == b'&').any(|part| {
                         let key = part.split(|b| *b == b'=').next().unwrap_or(b"");
-                        omakase::upstream::query_match(
+                        pathward::upstream::query_match(
                             key == h.scope.as_bytes(),
                             key.contains(&b'%') || key.contains(&b'+'),
                         )
@@ -200,7 +200,7 @@ impl Site {
             });
             if !overridden
                 && (encrypted || h.name != "strict-transport-security")
-                && omakase::response::header_allowed(h.name.as_bytes(), h.value.as_bytes())
+                && pathward::response::header_allowed(h.name.as_bytes(), h.value.as_bytes())
             {
                 out.push_str(&h.name);
                 out.push_str(": ");
@@ -254,7 +254,7 @@ impl Site {
                 .any(|h| h.name == *name && self.header_rank(h, path).is_some());
             if name != "x-content-type-options"
                 && !overridden
-                && omakase::proxy::response_header(name.as_bytes(), value.as_bytes(), encrypted)
+                && pathward::proxy::response_header(name.as_bytes(), value.as_bytes(), encrypted)
             {
                 out.push_str(name);
                 out.push_str(": ");
@@ -276,7 +276,7 @@ impl Site {
         automatic: bool,
         fallback_allowed: bool,
     ) -> Option<(u16, String)> {
-        let path = omakase::serving::request_path(target)?;
+        let path = pathward::serving::request_path(target)?;
         let query = std::str::from_utf8(&target[path.len()..]).ok()?;
         let (host, destination, status) = if automatic {
             (&self.host, std::str::from_utf8(path).ok()?.to_owned(), 308)
@@ -288,7 +288,7 @@ impl Site {
                     if r.fallback {
                         fallback_allowed
                     } else {
-                        omakase::response::route_matches(path, r.from.as_bytes(), r.prefix)
+                        pathward::response::route_matches(path, r.from.as_bytes(), r.prefix)
                     }
                 })
                 .max_by_key(|r| (!r.fallback, r.from.len()))?;
@@ -319,7 +319,7 @@ impl Site {
         hosts: &[Site],
     ) -> Option<(u16, String)> {
         let configured = hosts.iter().find(|s| s.host == host)?;
-        if !omakase::response::redirect_allowed(
+        if !pathward::response::redirect_allowed(
             host.as_bytes(),
             configured.host.as_bytes(),
             target.as_bytes(),
@@ -510,7 +510,7 @@ impl Snapshot {
 mod tests {
     use super::*;
     use crate::{Server, http};
-    use omakase_config::ParsedConfig;
+    use pathward_config::ParsedConfig;
     use std::{
         fs,
         io::{Read, Write},
@@ -525,7 +525,7 @@ mod tests {
     }
     fn tree() -> Tree {
         let path = std::env::temp_dir().join(format!(
-            "omakase-runtime-{}-{}",
+            "pathward-runtime-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)

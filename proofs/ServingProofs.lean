@@ -1,7 +1,7 @@
 import RulesProofs
 
 open Aeneas Aeneas.Std RustM
-open omakase OmakaseProofs RulesProofs
+open pathward PathwardProofs RulesProofs
 
 namespace ServingProofs
 

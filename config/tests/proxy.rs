@@ -1,4 +1,4 @@
-use omakase_config::ParsedConfig;
+use pathward_config::ParsedConfig;
 
 fn valid(text: &str) -> bool {
     ParsedConfig::parse(text).is_ok_and(|p| p.compile().is_ok())

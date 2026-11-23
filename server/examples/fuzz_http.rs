@@ -1,5 +1,5 @@
 //! Reproducible bounded mutation corpus. No network or additional dependencies.
-use omakase_server::http;
+use pathward_server::http;
 fn main() {
     let rounds = std::env::args()
         .nth(1)
@@ -41,7 +41,7 @@ fn main() {
         }
         if let Ok(req) = http::parse(&input, 80) {
             assert!(!req.host.bytes().any(|b| b == b'\r' || b == b'\n'));
-            if omakase::response::redirect_allowed(
+            if pathward::response::redirect_allowed(
                 req.host.as_bytes(),
                 b"example.com",
                 req.target,
@@ -49,11 +49,11 @@ fn main() {
             ) {
                 assert!(req.target.iter().all(|b| (0x20..=0x7e).contains(b)));
             }
-            let publications = [omakase::rules::Publication {
+            let publications = [pathward::rules::Publication {
                 path: b"/",
                 target: b"index.html",
             }];
-            if let Some(grant) = omakase::serving::authorize(
+            if let Some(grant) = pathward::serving::authorize(
                 req.method,
                 req.host.as_bytes(),
                 b"example.com",
@@ -61,7 +61,7 @@ fn main() {
                 &publications,
             ) {
                 assert_eq!(grant.target, b"index.html");
-                assert!(omakase::rules::valid_target(grant.target));
+                assert!(pathward::rules::valid_target(grant.target));
             }
         }
     }

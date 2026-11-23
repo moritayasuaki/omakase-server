@@ -1,7 +1,7 @@
 import PlatformProofs
 import Generated.GuardPaths
 
-open Aeneas Aeneas.Std RustM omakase
+open Aeneas Aeneas.Std RustM pathward
 namespace LinuxProofs
 
 /- The emitted paths include normal returns and unwinds. A guard in an

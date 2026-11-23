@@ -9,11 +9,11 @@ starting worker threads. Existing KDL files continue to work. The later
 optional private managed activation/rollback workflow.
 
 ```sh
-omakase-server serve-http /etc/pathward/Pathward.kdl 127.0.0.1:8080 \
+pathward-server serve-http /etc/pathward/Pathward.kdl 127.0.0.1:8080 \
   --monitor 127.0.0.1:9090
 # Or append --monitor 127.0.0.1:9090 to the existing serve-tls command.
-kill -HUP "$OMAKASE_PID"
-kill -TERM "$OMAKASE_PID"
+kill -HUP "$PATHWARD_PID"
+kill -TERM "$PATHWARD_PID"
 ```
 
 ## Transactional reload

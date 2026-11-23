@@ -101,7 +101,7 @@ def main():
     core = json.loads(output("cargo", "metadata", "--locked", "--offline", "--format-version=1"))
     if len(core["packages"]) != 1 or core["packages"][0]["dependencies"]:
         raise SystemExit("The proved core must stay dependency-free; review server dependencies separately.")
-    with tempfile.TemporaryDirectory(prefix="omakase-rustsec-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="pathward-rustsec-") as temporary:
         database = args.db.resolve() if args.db else Path(temporary) / "advisory-db"
         if args.db is None:
             subprocess.run(["git", "clone", "--depth=1", "https://github.com/RustSec/advisory-db.git",

@@ -122,7 +122,7 @@ else
     baseline=$(application_count)
     race=$(mktemp -d)
     chown nobody:nogroup "$race"
-    OMAKASE_POOL_LAB="$race" run "$bin" delegated_registration_waits_for_first_write --ignored --nocapture > "$race/report" 2>&1 & writer=$!
+    PATHWARD_POOL_LAB="$race" run "$bin" delegated_registration_waits_for_first_write --ignored --nocapture > "$race/report" 2>&1 & writer=$!
     for _ in $(seq 1 500); do test ! -e "$race/sampled" || break; kill -0 "$writer"; sleep 0.02; done
     test -e "$race/sampled"
     "$server" sleep-delegate hypervisor-begin > "$race/ticket" & registrar=$!
