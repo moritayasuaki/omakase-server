@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 mod cutover_policy;
-use omakase_server::{Server, acme, control, deployment, tls};
+use pathward_server::{Server, acme, control, deployment, tls};
 use std::{
     env,
     net::{SocketAddr, TcpListener},
@@ -9,7 +9,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     thread,
 };
-const HELP: &str = "omakase-server serve-http CONFIG [127.0.0.1:8080] [--monitor 127.0.0.1:9090]\nomakase-server serve-tls CONFIG CACHE_DIRECTORY --accept-terms [--http-listen 0.0.0.0:80] [--experimental-http3] [--http3-send-window 128KiB|256KiB|512KiB] [--acme staging|production] [--listen 0.0.0.0:443] [--contact mailto:admin@example.com] [--acme-group HOST[,HOST...] ...] [--monitor 127.0.0.1:9090]\nomakase-server check CONFIG [--cache DIR]\nomakase-server generate BASE SITE ROOT MANIFEST [--index FILE]\nomakase-server init CONTROL_DIR CONFIG\nomakase-server status --control-dir DIR\nomakase-server activate --control-dir DIR --expect GENERATION:SHA256 CONFIG\nomakase-server rollback --control-dir DIR --expect GENERATION:SHA256\nomakase-server cutover-policy OP ARGS... (read-only; see docs/cutover-policy.md)\nServing modes accept --control-dir DIR with CONFIG=DIR/.config.\nSIGHUP reloads roots/publications; SIGTERM/SIGINT drain active connections. Monitor is opt-in and loopback-only.\nLinux 5.6+ and trusted procfs required. TLS-ALPN-01 requires public TCP/443 forwarding.\nACME defaults to staging. --accept-terms accepts the selected CA's subscriber terms.";
+const HELP: &str = "pathward-server serve-http CONFIG [127.0.0.1:8080] [--monitor 127.0.0.1:9090]\npathward-server serve-tls CONFIG CACHE_DIRECTORY --accept-terms [--http-listen 0.0.0.0:80] [--experimental-http3] [--http3-send-window 128KiB|256KiB|512KiB] [--acme staging|production] [--listen 0.0.0.0:443] [--contact mailto:admin@example.com] [--acme-group HOST[,HOST...] ...] [--monitor 127.0.0.1:9090]\npathward-server check CONFIG [--cache DIR]\npathward-server generate BASE SITE ROOT MANIFEST [--index FILE]\npathward-server init CONTROL_DIR CONFIG\npathward-server status --control-dir DIR\npathward-server activate --control-dir DIR --expect GENERATION:SHA256 CONFIG\npathward-server rollback --control-dir DIR --expect GENERATION:SHA256\npathward-server cutover-policy OP ARGS... (read-only; see docs/cutover-policy.md)\nServing modes accept --control-dir DIR with CONFIG=DIR/.config.\nSIGHUP reloads roots/publications; SIGTERM/SIGINT drain active connections. Monitor is opt-in and loopback-only.\nLinux 5.6+ and trusted procfs required. TLS-ALPN-01 requires public TCP/443 forwarding.\nACME defaults to staging. --accept-terms accepts the selected CA's subscriber terms.";
 #[derive(Default)]
 struct ServiceOptions {
     monitor: Option<SocketAddr>,
@@ -24,7 +24,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         println!("{HELP}");
         #[cfg(target_os = "linux")]
         println!(
-            "omakase-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\nomakase-server pool-fence-witness\nomakase-server recover-pool-fence --control-dir DIR\nomakase-server sleep-delegate init-local|enroll|enroll-recoverable|status|service-start|service-check|hypervisor-begin|hypervisor-confirm ..."
+            "pathward-server pool-preflight CONFIG [--control-dir DIR | --service-stdin]\npathward-server pool-fence-witness\npathward-server recover-pool-fence --control-dir DIR\npathward-server sleep-delegate init-local|enroll|enroll-recoverable|status|service-start|service-check|hypervisor-begin|hypervisor-confirm ..."
         );
         return Ok(());
     }
@@ -35,16 +35,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             let words: Option<Vec<_>> = args[1..].iter().map(|v| v.to_str()).collect();
             println!(
                 "{}",
-                omakase_server::sleep_delegates::command(&words.ok_or(HELP)?)?
+                pathward_server::sleep_delegates::command(&words.ok_or(HELP)?)?
             );
         }
         #[cfg(target_os = "linux")]
         "pool-fence-witness" if args.len() == 1 => {
-            println!("{}", omakase_server::pool_preflight::witness()?)
+            println!("{}", pathward_server::pool_preflight::witness()?)
         }
         #[cfg(target_os = "linux")]
         "pool-preflight" => {
-            use omakase_server::pool_preflight::{self, ServiceView};
+            use pathward_server::pool_preflight::{self, ServiceView};
             let view = match &args[1..] {
                 [_] => ServiceView::Unobserved,
                 [_, flag] if flag == "--service-stdin" => ServiceView::Stdin,
@@ -55,13 +55,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         #[cfg(target_os = "linux")]
         "coordinated-sleep" if args.len() == 2 => {
-            omakase_server::sleep_fence::coordinated_sleep(args[1].to_str().ok_or(HELP)?)?;
+            pathward_server::sleep_fence::coordinated_sleep(args[1].to_str().ok_or(HELP)?)?;
         }
         #[cfg(target_os = "linux")]
         "recover-pool-fence" if args.len() == 3 && args[1] == "--control-dir" => {
             println!(
                 "{}",
-                omakase_server::pool_recovery::recover(Path::new(&args[2]))?
+                pathward_server::pool_recovery::recover(Path::new(&args[2]))?
             );
         }
         "cutover-policy" => {
@@ -396,7 +396,7 @@ fn run_service(
         }
         let _stop = Stop(&signals.shutdown, &done);
         let reload = thread::Builder::new()
-            .name("omakase-reload".into())
+            .name("pathward-reload".into())
             .spawn_scoped(scope, || {
                 let _stop = StopWorker(&signals.shutdown);
                 control::reload_loop(server, path, signals)
@@ -405,7 +405,7 @@ fn run_service(
             .as_ref()
             .map(|managed| {
                 thread::Builder::new()
-                    .name("omakase-deploy".into())
+                    .name("pathward-deploy".into())
                     .spawn_scoped(scope, || {
                         let _stop = StopWorker(&signals.shutdown);
                         managed.run(server, &signals.shutdown)
@@ -415,7 +415,7 @@ fn run_service(
         let monitor_worker = monitor
             .map(|listener| {
                 thread::Builder::new()
-                    .name("omakase-monitor".into())
+                    .name("pathward-monitor".into())
                     .spawn_scoped(scope, || {
                         let _stop = StopWorker(&signals.shutdown);
                         let result = control::monitor_groups(
@@ -436,7 +436,7 @@ fn run_service(
         for manager in manager.into_iter().flat_map(acme::Groups::workers) {
             acme_workers.push(
                 thread::Builder::new()
-                    .name("omakase-acme".into())
+                    .name("pathward-acme".into())
                     .spawn_scoped(scope, || {
                         struct Stop<'a>(&'a AtomicBool);
                         impl Drop for Stop<'_> {

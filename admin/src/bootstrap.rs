@@ -116,7 +116,7 @@ impl<S: System> Engine<S> {
         self.activate(&id, &p, cp)?;
         self.bootstrap(&p, cp)?;
         require(
-            omakase::bootstrap::preparation_allowed(
+            pathward::bootstrap::preparation_allowed(
                 self.rescue_durable(&p)?,
                 self.current()?.as_deref() == Some(&id),
                 c::stable(

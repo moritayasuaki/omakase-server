@@ -3,7 +3,7 @@
 Current transport/concurrency additions are described in [Modern HTTP](modern-http.md).
 The dated results and earlier limits below describe their recorded revisions.
 
-The `omakase-server` crate implements a deliberately small **HTTP/1.1, loopback-only**
+The `pathward-server` crate implements a deliberately small **HTTP/1.1, loopback-only**
 static server, with a separate [bounded reverse-proxy mode](reverse-proxy.md).
 The behavior below describes static sites. It uses the existing KDL configuration and verified publication
 rules. GET and HEAD work; TLS/ACME does not run. This milestone is suitable for
@@ -20,7 +20,7 @@ is exercised by CI; local macOS runs portable tests and cross-checks Linux code.
 ```sh
 make server-setup  # Explicit Rust 1.99.1/tool dependency setup.
 make server-build
-server/target/release/omakase-server serve-http examples/Omakase.kdl 127.0.0.1:8080
+server/target/release/pathward-server serve-http examples/Pathward.kdl 127.0.0.1:8080
 ```
 
 The example root is `/srv/www`: create that directory and its declared files,
@@ -96,7 +96,7 @@ response serialization, socket implementation or connection scheduler.
    most the admitted size; growth is not appended, and truncation closes the
    response. HEAD opens and checks the same resource but sends no file data.
 
-All Omakase crates forbid their own unsafe code. Rustix, std and the Linux
+All PathWard crates forbid their own unsafe code. Rustix, std and the Linux
 kernel implement the descriptor operations and remain trusted. Procfs and the
 mount namespace must be controlled by the service administrator; this is not a
 boundary against a privileged process that can replace procfs or inspect/change

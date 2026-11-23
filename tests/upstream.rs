@@ -1,4 +1,4 @@
-use omakase::upstream::{PoolHealth, fresh_health, publish_probe};
+use pathward::upstream::{PoolHealth, fresh_health, publish_probe};
 
 #[test]
 fn probe_age_starts_at_launch_and_expires_at_five_seconds() {

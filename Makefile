@@ -46,7 +46,7 @@ admin-build:
 
 .PHONY: recovery-check
 recovery-check:
-	cargo build --offline --locked --release --bin omakase-recovery
+	cargo build --offline --locked --release --bin pathward-recovery
 	python3 -m unittest discover -s scripts -p 'test_recovery.py'
 	python3 -m unittest discover -s scripts -p 'test_guard_upgrade.py'
 	python3 -m unittest discover -s scripts -p 'test_plan_migration.py'

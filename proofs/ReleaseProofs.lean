@@ -1,6 +1,6 @@
 import ResponseProofs
 open Aeneas Aeneas.Std RustM
-open omakase OmakaseProofs RulesProofs ResponseProofs
+open pathward PathwardProofs RulesProofs ResponseProofs
 namespace ReleaseProofs
 
 abbrev generationPolicy (u t e : Slice U8) (rootAlias : Bool) : Prop :=

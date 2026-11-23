@@ -1,5 +1,5 @@
-use omakase_config::ParsedConfig;
-use omakase_server::deployment::generate;
+use pathward_config::ParsedConfig;
+use pathward_server::deployment::generate;
 #[test]
 fn generation_preserves_explicit_startup_capacity() {
     let text = "capacity \"shared-nat\"\nsite \"app.example\" {\n tls \"auto\"\n encode \"gzip,zstd\"\n root \"/srv/old\"\n publish \"/\" \"index.html\"\n}\n";
@@ -221,6 +221,6 @@ fn generation_retains_upstream_ownership_routes_and_header_scopes() {
     assert_eq!(s.proxy_routes()[0].width, 0);
     assert_eq!(s.proxy_routes()[1].width, 12);
     assert_eq!(s.proxy_routes()[1].candidates.len(), 2);
-    assert_eq!(s.headers()[0].kind, omakase_config::HeaderScope::Prefix);
-    assert_eq!(s.headers()[1].kind, omakase_config::HeaderScope::Query);
+    assert_eq!(s.headers()[0].kind, pathward_config::HeaderScope::Prefix);
+    assert_eq!(s.headers()[1].kind, pathward_config::HeaderScope::Query);
 }

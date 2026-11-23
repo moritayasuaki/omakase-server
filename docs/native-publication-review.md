@@ -34,7 +34,7 @@ from the new runtime dependency graph.
   the boot ID and require strict `switch_started < observed <= now` ordering.
   Expected file maps are compared exactly after policy selection and synthetic
   file expansion. Duplicate keys/manifest paths fail closed.
-- A Caddy-active result does not establish a Omakase revision. The native
+- A Caddy-active result does not establish a PathWard revision. The native
   publisher/ack command refuses that case; an outer Caddy integration retains
   responsibility for its own public HTTP checks.
 - A valid KDL may be smaller than its full receipt. Aggregate receipt capacity

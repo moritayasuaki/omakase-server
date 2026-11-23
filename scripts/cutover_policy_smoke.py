@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = Path(os.environ.get('OMAKASE_TEST_BINARY', ROOT/'server/target/release/omakase-server'))
+BINARY = Path(os.environ.get('PATHWARD_TEST_BINARY', ROOT/'server/target/release/pathward-server'))
 
 def call(name, args, expected):
     result = subprocess.run([str(BINARY), 'cutover-policy', name, *map(str, args)],

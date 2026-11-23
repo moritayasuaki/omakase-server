@@ -10,7 +10,7 @@ required. None of these commands builds, copies or deletes a release directory.
 
 ```kdl
 site "example.com" {
-    root "/srv/omakase/releases/v1"
+    root "/srv/pathward/releases/v1"
     tls "auto"
     publish "/" "index.html"
     publish "/guide" "guide.html"
@@ -102,16 +102,16 @@ through the compiler. It does not discover whether an explicitly listed ordinary
 filename contains secrets: reviewing the manifest is essential.
 
 ```sh
-omakase-server generate base.kdl example.com /srv/omakase/releases/v2 \
+pathward-server generate base.kdl example.com /srv/pathward/releases/v2 \
   public-files.txt --index index.html > candidate.kdl
-omakase-server check candidate.kdl --cache /var/lib/pathward/acme
+pathward-server check candidate.kdl --cache /var/lib/pathward/acme
 ```
 
 The server's `check` compiles the complete config, pins roots, opens every
 published target through the serving opener and prints the configuration SHA-256
 and mapping count. It detects missing, symlink, special, multi-link and oversized
 files. It does not verify DNS, certificates, content hashes, content provenance
-or future immutability. The older `omakase-config check` remains syntax/schema
+or future immutability. The older `pathward-config check` remains syntax/schema
 only. Configuration and manifest input are capped at 1 MiB.
 
 ## Managed activation and rollback
@@ -120,8 +120,8 @@ Create trusted service-owned parent directories first. Initialize a new private
 control directory from a checked config, then start serving its managed file:
 
 ```sh
-omakase-server init /var/lib/pathward/control initial.kdl
-omakase-server serve-tls /var/lib/pathward/control/.config \
+pathward-server init /var/lib/pathward/control initial.kdl
+pathward-server serve-tls /var/lib/pathward/control/.config \
   /var/lib/pathward/acme --accept-terms --acme staging \
   --listen 0.0.0.0:8443 --http-listen 0.0.0.0:8080 \
   --control-dir /var/lib/pathward/control --monitor 127.0.0.1:9090
@@ -135,12 +135,12 @@ socket; there is no TCP admin endpoint. Root and processes with the service UID
 are trusted. Keep the directory's pathname stable while serving.
 
 ```sh
-omakase-server status --control-dir /var/lib/pathward/control
+pathward-server status --control-dir /var/lib/pathward/control
 # Paste the exact GENERATION:SHA256 returned above after reviewing the candidate.
-omakase-server activate --control-dir /var/lib/pathward/control \
+pathward-server activate --control-dir /var/lib/pathward/control \
   --expect GENERATION:SHA256 candidate.kdl
-omakase-server status --control-dir /var/lib/pathward/control
-omakase-server rollback --control-dir /var/lib/pathward/control \
+pathward-server status --control-dir /var/lib/pathward/control
+pathward-server rollback --control-dir /var/lib/pathward/control \
   --expect CURRENT_GENERATION:CURRENT_SHA256
 ```
 

@@ -294,7 +294,7 @@ impl<S: System> Engine<S> {
         let (entries, protected) = self.collection_inventory(&current, &p, keep)?;
         let mut selected = json!({});
         for (k, e) in entries.as_object().ok_or("entries")? {
-            if omakase::publication::collection_allowed(
+            if pathward::publication::collection_allowed(
                 true,
                 true,
                 observed["entries"].get(k).is_some(),
@@ -367,7 +367,7 @@ impl<S: System> Engine<S> {
         f::directory(&batch)?;
         for (k, e) in selected {
             require(
-                omakase::publication::collection_allowed(
+                pathward::publication::collection_allowed(
                     true,
                     true,
                     observed["entries"].get(k).is_some(),

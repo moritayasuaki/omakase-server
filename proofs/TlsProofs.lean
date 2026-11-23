@@ -1,6 +1,6 @@
 import ServingProofs
 open Aeneas Aeneas.Std RustM
-open omakase OmakaseProofs
+open pathward PathwardProofs
 namespace TlsProofs
 
 theorem identity_eq (s h c : Slice U8) :

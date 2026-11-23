@@ -27,7 +27,7 @@ impl Budgets {
             return false;
         }
         let limit = 2 * limit + HEAD;
-        if !omakase::delivery::wire_fits(c.used, 0, limit) {
+        if !pathward::delivery::wire_fits(c.used, 0, limit) {
             return false;
         }
         c.limit = limit;
@@ -77,7 +77,7 @@ impl<S: quic::RecvStream> quic::RecvStream for Bound<S> {
             let Ok(mut c) = self.count.lock() else {
                 return Poll::Ready(Err(fail()));
             };
-            if !omakase::delivery::wire_fits(c.used, data.remaining() as u64, c.limit) {
+            if !pathward::delivery::wire_fits(c.used, data.remaining() as u64, c.limit) {
                 inner.stop_sending(h3::error::Code::H3_EXCESSIVE_LOAD.value());
                 return Poll::Ready(Err(fail()));
             }

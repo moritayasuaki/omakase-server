@@ -1,7 +1,7 @@
 //! Private, descriptor-relative, crash-safe Linux ACME storage.
 #[cfg(target_os = "linux")]
 mod linux {
-    use omakase::tls::{SecretFacts, secret_allowed};
+    use pathward::tls::{SecretFacts, secret_allowed};
     use rustix::fs::{self, AtFlags, FlockOperation, Mode, OFlags, ResolveFlags};
     use std::{
         fs::File,

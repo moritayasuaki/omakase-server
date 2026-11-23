@@ -26,7 +26,7 @@ capabilities, private state and write restrictions, and validate the full servic
 sandbox before stopping an existing server. See the
 [systemd setting](https://freedesktop.org/software/systemd/man/latest/systemd.exec.html#RestrictSUIDSGID=).
 
-Omakase serves HTTP/1.1 through rustls on Linux 5.6+ and continuously obtains and
+PathWard serves HTTP/1.1 through rustls on Linux 5.6+ and continuously obtains and
 renews certificates with ACME TLS-ALPN-01. Existing KDL `tls "auto"` declarations
 are activated by `serve-tls`; `serve-http` remains explicitly loopback-only.
 
@@ -35,7 +35,7 @@ make server-setup
 make server-build
 # Parent directory must already exist, belong to root/service UID, and be private
 # or non-group/world-writable. The final cache directory is created as 0700.
-server/target/release/omakase-server serve-tls /etc/pathward/Pathward.kdl \
+server/target/release/pathward-server serve-tls /etc/pathward/Pathward.kdl \
   /var/lib/pathward/staging --accept-terms --acme staging \
   --listen 0.0.0.0:8443 --contact mailto:admin@example.com
 ```
@@ -98,7 +98,7 @@ If renewal fails, the valid old identity stays active. Missing/expired identitie
 refuse ordinary TLS handshakes while ACME validation remains available. A failed
 write cannot activate a new identity. The CLI emits redacted lifecycle/failure
 events on stderr; connect these to your supervisor's alerting. No automatic
-external notification is configured by Omakase.
+external notification is configured by PathWard.
 
 TLS requires configured SNI and a matching HTTP authority. TCP supports HTTP/2
 and HTTP/1.1, and the dedicated `acme-tls/1` listener path handles certificate

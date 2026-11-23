@@ -1,16 +1,16 @@
 [package]
-name = "omakase-config"
+name = "pathward-config"
 version = "0.1.0"
 edition = "2024"
 publish = false
 license = "MIT"
-description = "Audited KDL adapter for Omakase's verified publication compiler"
+description = "Audited KDL adapter for PathWard's verified publication compiler"
 
 [workspace]
 resolver = "3"
 
 [dependencies]
-omakase = { path = ".." }
+pathward = { path = ".." }
 kdl = { version = "=6.7.1", default-features = false, features = ["span"] }
 
 [lints.rust]

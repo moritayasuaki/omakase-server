@@ -1,4 +1,4 @@
-use omakase_admin::{
+use pathward_admin::{
     Result, codec, contract,
     engine::{Engine, Environment},
     storage as f,
@@ -179,7 +179,7 @@ impl Fixture {
             .canonicalize()
             .unwrap_or(std::env::temp_dir())
             .join(format!(
-                "omakase-native-{}-{}",
+                "pathward-native-{}-{}",
                 std::process::id(),
                 NEXT.fetch_add(1, Ordering::Relaxed)
             ));
@@ -696,9 +696,9 @@ fn process_exit_watchdog_restores_source_without_reboot() -> Result<()> {
     let id = f.prepare()?;
     let status = std::process::Command::new(std::env::current_exe()?)
         .args(["--exact", "crash_child"])
-        .env("OMAKASE_ROLE_CHILD", &f.base)
-        .env("OMAKASE_ROLE_REQUEST", &id)
-        .env("OMAKASE_ROLE_POINT", point.to_string())
+        .env("PATHWARD_ROLE_CHILD", &f.base)
+        .env("PATHWARD_ROLE_REQUEST", &id)
+        .env("PATHWARD_ROLE_POINT", point.to_string())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()?;
@@ -747,11 +747,11 @@ fn shared_lock_contention_is_distinct_from_invalid_state() -> Result<()> {
 
 #[test]
 fn crash_child() -> Result<()> {
-    let Ok(base) = std::env::var("OMAKASE_ROLE_CHILD") else {
+    let Ok(base) = std::env::var("PATHWARD_ROLE_CHILD") else {
         return Ok(());
     };
-    let request = std::env::var("OMAKASE_ROLE_REQUEST")?;
-    let stop = std::env::var("OMAKASE_ROLE_POINT")?.parse::<usize>()?;
+    let request = std::env::var("PATHWARD_ROLE_REQUEST")?;
+    let stop = std::env::var("PATHWARD_ROLE_POINT")?.parse::<usize>()?;
     let mut count = 0;
     engine(Path::new(&base)).apply(&request, &mut |_| {
         if count == stop {
@@ -779,9 +779,9 @@ fn every_process_kill_boundary_recovers_and_retries() -> Result<()> {
         let id = f.prepare()?;
         let status = std::process::Command::new(std::env::current_exe()?)
             .args(["--exact", "crash_child", "--nocapture"])
-            .env("OMAKASE_ROLE_CHILD", &f.base)
-            .env("OMAKASE_ROLE_REQUEST", &id)
-            .env("OMAKASE_ROLE_POINT", point.to_string())
+            .env("PATHWARD_ROLE_CHILD", &f.base)
+            .env("PATHWARD_ROLE_REQUEST", &id)
+            .env("PATHWARD_ROLE_POINT", point.to_string())
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status()?;

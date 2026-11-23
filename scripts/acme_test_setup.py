@@ -14,7 +14,7 @@ ASSETS = {
 name, expected = ASSETS[(platform.system(), platform.machine())]
 destination = ROOT / ".tools/pebble/pebble"
 destination.parent.mkdir(parents=True, exist_ok=True)
-with tempfile.TemporaryDirectory(prefix="omakase-pebble-setup-") as temporary:
+with tempfile.TemporaryDirectory(prefix="pathward-pebble-setup-") as temporary:
     archive = Path(temporary) / "pebble.tar.gz"
     subprocess.run(["curl", "--fail", "--location", "--retry", "3", "--max-time", "180",
                     f"https://github.com/letsencrypt/pebble/releases/download/v2.10.1/pebble-{name}.tar.gz",

@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 
 const [firefox, testBinary] = process.argv.slice(2);
 if (!firefox || !testBinary) throw Error('usage: node scripts/firefox_smoke.mjs FIREFOX SERVER_TEST_BINARY');
-const evidence = await mkdtemp(join(tmpdir(), 'omakase-firefox-'));
+const evidence = await mkdtemp(join(tmpdir(), 'pathward-firefox-'));
 await chmod(evidence, 0o700);
 const fixture = spawn(testBinary, ['--ignored', '--exact', 'browser_fixture::firefox_loopback_fixture', '--nocapture'], {stdio:['ignore','pipe','pipe']});
 let fixtureLog = '';
@@ -84,7 +84,7 @@ try {
         const value=await send('script.evaluate',{expression:'JSON.stringify({title:document.title,text:document.body.innerText,image:document.images[0]?.naturalWidth,protocol:performance.getEntriesByType("navigation")[0].nextHopProtocol,status:performance.getEntriesByType("navigation")[0].responseStatus})',target:{context},awaitPromise:false});
         const page=JSON.parse(value.result.value);
         results.push({mode,round,version:session.capabilities.browserVersion,...page});
-        assert.equal(page.title,'Omakase compatibility fixture');assert.equal(page.protocol,mode);assert.equal(page.status,200);assert.equal(page.image,1);
+        assert.equal(page.title,'PathWard compatibility fixture');assert.equal(page.protocol,mode);assert.equal(page.status,200);assert.equal(page.image,1);
         console.log(JSON.stringify(results.at(-1)));
         await send('browsingContext.navigate',{context,url:'about:blank',wait:'complete'});
       }

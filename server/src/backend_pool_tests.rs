@@ -1,7 +1,7 @@
 //! Loopback staging fixtures use normal server admission, reload and proxy I/O.
 use super::{exchange, read_request, with_config};
 use crate::backend_pool::WritePoint;
-use omakase_config::ParsedConfig;
+use pathward_config::ParsedConfig;
 use std::{
     fs::{self, OpenOptions},
     io::Write,
@@ -56,7 +56,7 @@ impl Replica {
         listener.set_nonblocking(true).unwrap();
         let addr = listener.local_addr().unwrap();
         let ledger = std::env::temp_dir().join(format!(
-            "omakase-pool-{}-{}-{name}",
+            "pathward-pool-{}-{}-{name}",
             std::process::id(),
             addr.port()
         ));
@@ -93,7 +93,7 @@ impl Replica {
                 if head.starts_with("GET /ready HTTP/1.1\r\n") {
                     assert_eq!(
                         head,
-                        "GET /ready HTTP/1.1\r\nHost: app.example\r\nVia: 1.1 omakase\r\nConnection: close\r\nContent-Length: 0"
+                        "GET /ready HTTP/1.1\r\nHost: app.example\r\nVia: 1.1 pathward\r\nConnection: close\r\nContent-Length: 0"
                     );
                     assert!(body.is_empty());
                     control.probes.fetch_add(1, Ordering::Release);

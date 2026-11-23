@@ -1,9 +1,9 @@
-name = "omakase_proofs"
+name = "pathward_proofs"
 version = "0.1.0"
-defaultTargets = ["OmakaseProofs", "RulesProofs", "ServingProofs", "TlsProofs", "RuntimeProofs", "ResponseProofs", "ReleaseProofs", "ProxyProofs", "RoutingProofs", "StreamingProofs", "ContentProofs", "UpstreamProofs", "PlatformProofs", "LinuxProofs", "DeliveryProofs", "SafetyProofs", "CancellationProofs", "ConnectionProofs", "CutoverProofs", "RecoveryProofs", "GuardUpgradeProofs", "PlanMigrationProofs", "ContractMigrationProofs", "PublicationProofs", "BootstrapProofs", "AuthorityProofs"]
+defaultTargets = ["PathwardProofs", "RulesProofs", "ServingProofs", "TlsProofs", "RuntimeProofs", "ResponseProofs", "ReleaseProofs", "ProxyProofs", "RoutingProofs", "StreamingProofs", "ContentProofs", "UpstreamProofs", "PlatformProofs", "LinuxProofs", "DeliveryProofs", "SafetyProofs", "CancellationProofs", "ConnectionProofs", "CutoverProofs", "RecoveryProofs", "GuardUpgradeProofs", "PlanMigrationProofs", "ContractMigrationProofs", "PublicationProofs", "BootstrapProofs", "AuthorityProofs"]
 
 [[lean_lib]]
-name = "OmakaseProofs"
+name = "PathwardProofs"
 
 [[lean_lib]]
 name = "RulesProofs"

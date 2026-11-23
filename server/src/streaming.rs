@@ -1,7 +1,7 @@
 //! Bounded nonblocking relay. TLS stays owned by the same worker in both directions.
 use crate::http::{self, Rejection, Request, Transport};
-use omakase::streaming as gate;
-use omakase_config::ProxyLimits;
+use pathward::streaming as gate;
+use pathward_config::ProxyLimits;
 use std::{
     collections::{BTreeSet, HashMap},
     io::{self, Read, Write},

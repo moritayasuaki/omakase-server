@@ -1,4 +1,4 @@
-use omakase_config::{MAX_CONFIG_BYTES, ParsedConfig, TlsPolicy};
+use pathward_config::{MAX_CONFIG_BYTES, ParsedConfig, TlsPolicy};
 
 fn site(directives: &str) -> String {
     format!("site \"example.com\" {{\n{directives}\n}}")
@@ -16,7 +16,7 @@ fn rejected(source: &str) {
 
 #[test]
 fn example_compiles_into_only_explicit_rules() {
-    let parsed = ParsedConfig::parse(include_str!("../../examples/Omakase.kdl")).unwrap();
+    let parsed = ParsedConfig::parse(include_str!("../../examples/Pathward.kdl")).unwrap();
     let config = parsed.compile().unwrap();
     assert_eq!(config.sites().len(), 1);
     let site = config.site("example.com").unwrap();
@@ -277,7 +277,7 @@ fn deterministic_malformed_corpus_never_produces_unchecked_rules() {
                 && let Ok(compiled) = parsed.compile()
             {
                 for site in compiled.sites() {
-                    assert!(omakase::rules::compile(site.publications()).is_some());
+                    assert!(pathward::rules::compile(site.publications()).is_some());
                 }
             }
         }

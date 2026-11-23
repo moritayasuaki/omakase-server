@@ -46,7 +46,7 @@ fn gate(
     global: bool,
     shared_nat: bool,
 ) -> Result<(), Rejection> {
-    match omakase::release::capacity_rejection(active, peer, tokens, draining, shared_nat) {
+    match pathward::release::capacity_rejection(active, peer, tokens, draining, shared_nat) {
         0 => Ok(()),
         1 => Err(Rejection::Draining),
         2 => Err(Rejection::GlobalActive),
@@ -123,8 +123,8 @@ impl Admission {
                 active: 0,
                 global: Bucket::new(
                     Instant::now(),
-                    omakase::release::capacity_rate(shared_nat, false),
-                    omakase::release::capacity_burst(shared_nat, false),
+                    pathward::release::capacity_rate(shared_nat, false),
+                    pathward::release::capacity_burst(shared_nat, false),
                 ),
                 peers: HashMap::new(),
             }),
@@ -161,8 +161,8 @@ impl Admission {
                     active: 0,
                     bucket: Bucket::new(
                         now,
-                        omakase::release::capacity_rate(self.1, true),
-                        omakase::release::capacity_burst(self.1, true),
+                        pathward::release::capacity_rate(self.1, true),
+                        pathward::release::capacity_burst(self.1, true),
                     ),
                     seen: now,
                 },
@@ -214,7 +214,7 @@ impl Permit {
             .ok_or(Rejection::StateUnavailable)?;
         peer.bucket.refill(now);
         peer.seen = now;
-        if !omakase::delivery::request_credit(global, peer.bucket.credit / 1000, draining) {
+        if !pathward::delivery::request_credit(global, peer.bucket.credit / 1000, draining) {
             return Err(if draining {
                 Rejection::Draining
             } else if global == 0 {
@@ -247,7 +247,7 @@ mod tests {
         let now = Instant::now();
         let ip = IpAddr::from([127, 0, 0, 1]);
         let permit = a.at(ip, false, now).unwrap();
-        let burst = omakase::release::capacity_burst(false, true);
+        let burst = pathward::release::capacity_burst(false, true);
         for _ in 1..burst {
             permit.request_at(false, now).unwrap();
         }
@@ -259,7 +259,7 @@ mod tests {
             assert_eq!(s.peers[&ip].bucket.credit, 0);
             assert_eq!(
                 s.global.credit,
-                (omakase::release::capacity_burst(false, false) - burst) * 1000
+                (pathward::release::capacity_burst(false, false) - burst) * 1000
             );
         }
         assert_eq!(

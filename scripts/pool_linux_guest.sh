@@ -3,7 +3,7 @@
 set -eu
 seed=/mnt/pool-lab
 test "$(id -u)" = 0
-test "$(cat /sys/devices/virtual/dmi/id/product_name)" = OmakasePoolLab
+test "$(cat /sys/devices/virtual/dmi/id/product_name)" = PathWardPoolLab
 test "$(ls /sys/class/net)" = lo
 test "$(uname -m)" = x86_64
 test "$(uname -r)" = "$(cat "$seed/release")"
@@ -11,8 +11,8 @@ test "$(cat /proc/version_signature)" = "$(cat "$seed/version-signature")"
 sha256sum -c "$seed/kernel.sha256"
 cd "$seed"
 sha256sum -c binary.sha256
-install -m 0755 pool-tests /tmp/omakase-pool-tests
-bin=/tmp/omakase-pool-tests
+install -m 0755 pool-tests /tmp/pathward-pool-tests
+bin=/tmp/pathward-pool-tests
 run() { setpriv --reuid=nobody --regid=nogroup --clear-groups "$@"; }
 run id
 uname -srvmo
@@ -44,7 +44,7 @@ wait_file() {
 for trial in 1 2; do
     stage=$(mktemp -d)
     chown nobody:nogroup "$stage"
-    export OMAKASE_POOL_LAB="$stage"
+    export PATHWARD_POOL_LAB="$stage"
     before=$(cat /sys/power/suspend_stats/success)
     echo deep > /sys/power/mem_sleep
     cat /sys/power/mem_sleep

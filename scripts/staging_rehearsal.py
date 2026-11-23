@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Isolated, bounded Caddy -> Omakase -> Caddy rehearsal; Python standard library.
+"""Isolated, bounded Caddy -> PathWard -> Caddy rehearsal; Python standard library.
 
 Invoked by acme_integration.py --rehearsal under a resource-limited user service.
 Never loads the system Caddy configuration, calls its admin API, or binds public IPs.
@@ -23,7 +23,7 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-BIN = ROOT / 'server/target/release/omakase-server'
+BIN = ROOT / 'server/target/release/pathward-server'
 DRIVER = ROOT / 'server/target/release/examples/soak_server'
 GATE = ROOT / 'server/target/release/examples/migration_gate'
 HOST = 'stage.pathward.test'
@@ -74,10 +74,10 @@ class Rehearsal:
     def __init__(self, work, content, seconds, headers):
         self.work, self.content, self.seconds = work, content, seconds
         self.security = dict(headers, **{'x-content-type-options': 'nosniff'})
-        self.ports = {'tls': int(os.environ['OMAKASE_TEST_PORT']), 'http': available_port(), 'monitor': available_port()}
+        self.ports = {'tls': int(os.environ['PATHWARD_TEST_PORT']), 'http': available_port(), 'monitor': available_port()}
         require(len(set(self.ports.values())) == 3 and all(p > 1024 for p in self.ports.values()), 'isolated ports')
-        self.context = ssl.create_default_context(cafile=os.environ['OMAKASE_TEST_ISSUER'])
-        self.context.load_verify_locations(cafile=os.environ['OMAKASE_TEST_CA'])
+        self.context = ssl.create_default_context(cafile=os.environ['PATHWARD_TEST_ISSUER'])
+        self.context.load_verify_locations(cafile=os.environ['PATHWARD_TEST_CA'])
         self.context.set_alpn_protocols(['http/1.1'])
         self.process = None
         self.reader = None
@@ -125,7 +125,7 @@ class Rehearsal:
         self.caddyfile = work/'Caddyfile'
         header_lines = '\n'.join('    '+k+' '+json.dumps(v) for k,v in self.security.items())
         public_paths = ' '.join(json.dumps('/'+n) for n in content)
-        cert, key = os.environ['OMAKASE_TEST_FALLBACK_CERT'], os.environ['OMAKASE_TEST_FALLBACK_KEY']
+        cert, key = os.environ['PATHWARD_TEST_FALLBACK_CERT'], os.environ['PATHWARD_TEST_FALLBACK_KEY']
         self.caddyfile.write_text('''{
     admin off
     auto_https off
@@ -249,8 +249,8 @@ http://%s:%d {
         if kind=='caddy':
             cmd=[self.caddy,'run','--config',str(self.caddyfile),'--adapter','caddyfile']
         else:
-            cmd=[str(DRIVER),str(self.control),str(self.cache),os.environ['OMAKASE_TEST_DIRECTORY'],
-                 os.environ['OMAKASE_TEST_CA'],*(str(self.ports[p]) for p in ('tls','http','monitor'))]
+            cmd=[str(DRIVER),str(self.control),str(self.cache),os.environ['PATHWARD_TEST_DIRECTORY'],
+                 os.environ['PATHWARD_TEST_CA'],*(str(self.ports[p]) for p in ('tls','http','monitor'))]
             if broken: cmd.append('injected-invalid-argument')
         self.process=subprocess.Popen(cmd,stdout=log,stderr=subprocess.PIPE,text=True,
                                       env=self.caddy_env() if kind=='caddy' else None)
@@ -258,7 +258,7 @@ http://%s:%d {
         def drain():
             for line in process.stderr:
                 log.write(line);log.flush()
-                if kind=='omakase':
+                if kind=='pathward':
                     try: event=json.loads(line)['event']
                     except (ValueError,KeyError): continue
                     with self.lock:
@@ -276,7 +276,7 @@ http://%s:%d {
             try:
                 code,_,body=self.response()
                 if code==200 and body==self.content['index.html']:
-                    if self.kind=='omakase':
+                    if self.kind=='pathward':
                         require(self.response('/readyz',authority='localhost',monitor=True)[0]==200,'monitor readiness')
                     return
             except (OSError,ValueError):pass
@@ -298,7 +298,7 @@ http://%s:%d {
                 self.reader=None
 
     def handoff(self, kind, broken=False):
-        if kind=='omakase':self.gate()
+        if kind=='pathward':self.gate()
         self.transition.set()
         before=self.counts['transition_errors']
         began=time.monotonic()
@@ -338,7 +338,7 @@ http://%s:%d {
 
     def run(self):
         # Cert prewarming and full parity on the very same listeners, before promotion.
-        self.launch('omakase');self.ready(60)
+        self.launch('pathward');self.ready(60)
         candidate_types=self.contract()
         self.stop()
         self.launch('caddy');self.ready()
@@ -359,7 +359,7 @@ http://%s:%d {
         worker=threading.Thread(target=self.background)
         worker.start()
         try:
-            self.handoff('omakase')
+            self.handoff('pathward')
             for target in ('/%69ndex.html','/../private.txt','/%2e%2e/private.txt'):
                 require(self.response(target)[0]==404,'unsafe path')
             require(self.response(authority='unknown.pathward.test')[0]==421,'SNI/Host mismatch')
@@ -410,8 +410,8 @@ http://%s:%d {
                     info=(directory/name).stat()
                     require(info.st_mode&0o7777==0o600 and info.st_nlink==1,'private file mode/link')
             self.handoff('caddy')
-            self.handoff('omakase',broken=True)
-            self.handoff('omakase')
+            self.handoff('pathward',broken=True)
+            self.handoff('pathward')
             # Unplanned candidate death: controller detects loss and restores Caddy.
             self.transition.set()
             began=time.monotonic()
@@ -430,7 +430,7 @@ http://%s:%d {
                     'completed_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
                     'harness_sha256':sha(Path(__file__).read_bytes()),
                     'binary_sha256':{name:sha(path.read_bytes()) for name,path in
-                        (('omakase-server',BIN),('soak_server',DRIVER),('migration_gate',GATE),('caddy',Path(self.caddy)))},
+                        (('pathward-server',BIN),('soak_server',DRIVER),('migration_gate',GATE),('caddy',Path(self.caddy)))},
                     'seconds':self.seconds,'content_files':len(self.content),'content_bytes':sum(map(len,self.content.values())),
                     'content_manifest_sha256':sha(json.dumps({n:sha(v) for n,v in self.content.items()},sort_keys=True).encode()),
                     'caddy_version':subprocess.check_output([self.caddy,'version'],text=True).strip(),
@@ -458,7 +458,7 @@ def main():
     headers=json.loads(args.headers.read_text()) if args.headers else SECURITY
     require(set(headers)==set(SECURITY) and all(isinstance(v,str) and '\n' not in v and '\r' not in v for v in headers.values()),'security header input')
     os.umask(0o077)
-    with tempfile.TemporaryDirectory(prefix='omakase-rehearsal-') as directory:
+    with tempfile.TemporaryDirectory(prefix='pathward-rehearsal-') as directory:
         test=Rehearsal(Path(directory),content,args.seconds,headers)
         try:result=test.run()
         except BaseException as error:

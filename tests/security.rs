@@ -1,4 +1,4 @@
-use omakase::{State, accepting, is_public, same_path, step, valid_path};
+use pathward::{State, accepting, is_public, same_path, step, valid_path};
 
 fn grammar(path: &[u8]) -> bool {
     if path.is_empty() || path.len() > 4096 || path[0] != b'/' {

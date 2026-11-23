@@ -8,12 +8,12 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = ROOT / "server/target/release/omakase-server"
-with tempfile.TemporaryDirectory(prefix="omakase-smoke-") as temporary:
+BINARY = ROOT / "server/target/release/pathward-server"
+with tempfile.TemporaryDirectory(prefix="pathward-smoke-") as temporary:
     directory = Path(temporary)
     (directory / "public").mkdir()
-    (directory / "public/index.html").write_bytes(b"omakase smoke\n")
-    config = directory / "Omakase.kdl"
+    (directory / "public/index.html").write_bytes(b"pathward smoke\n")
+    config = directory / "Pathward.kdl"
     config.write_text(f'''site "example.com" {{
     root "{directory / 'public'}"
     publish "/" "index.html"
@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix="omakase-smoke-") as temporary:
         assert event["event"] == "listening", event
         port = event["port"]
         for method, path, code, body in [
-            ("GET", "/?v=1", 200, b"omakase smoke\n"),
+            ("GET", "/?v=1", 200, b"pathward smoke\n"),
             ("HEAD", "/", 200, b""),
             ("GET", "/index.html", 404, b""),
             ("GET", "/%2e%2e/secret", 404, b""),

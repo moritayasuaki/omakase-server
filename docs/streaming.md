@@ -33,7 +33,7 @@ compiled and activated through the same immutable configuration mechanism.
 
 ## Handshake and routing
 
-For WebSocket, Omakase requires HTTP/1.1 GET, no request body or prefetched client
+For WebSocket, PathWard requires HTTP/1.1 GET, no request body or prefetched client
 frames, a canonical 16-byte base64 key, version 13 and matching WebSocket Upgrade /
 Connection fields. It regenerates the upstream handshake alongside the existing
 trusted forwarding fields. Duplicate request fields, other Upgrade protocols,
@@ -55,7 +55,7 @@ path aliases. This allowlist affects only WebSocket handshakes, not CORS or SSE.
 Removing an origin affects new handshakes; already established connections keep
 running under their captured policy until expiry or shutdown.
 
-Before sending 101 downstream, Omakase checks the HTTP version, status,
+Before sending 101 downstream, PathWard checks the HTTP version, status,
 Upgrade/Connection pair, challenge response and any selected subprotocol.
 The selection must be one of at most 16 distinct offered tokens (64 bytes each).
 A 101 containing Content-Length, Transfer-Encoding or an unapproved extension is rejected.
@@ -65,7 +65,7 @@ bounded HTTP handling, so application rejections can reach the client.
 Compression is disabled by default. `websocket-compression "permessage-deflate"`
 requires WebSocket opt-in and enables a restricted, end-to-end negotiation profile:
 **both `server_no_context_takeover` and `client_no_context_takeover` are required**.
-Omakase emits a canonical offer only when a compatible client offer exists.
+PathWard emits a canonical offer only when a compatible client offer exists.
 The common `permessage-deflate; client_max_window_bits` browser offer is supported.
 Optional client window bits may be absent, valueless or 15. Offers requiring
 server window bits or other parameters are not selected. Upstream selection must
@@ -94,7 +94,7 @@ After successful Upgrade, frames are opaque bytes relayed in both directions,
 including bytes arriving with the upstream handshake. Ping/pong, close frames,
 fragmentation and application binary/text payloads pass unchanged. Endpoint frame
 parsers remain responsible for masking, opcodes, UTF-8 and message validation.
-Omakase does not synthesize frames, inspect messages or implement subprotocols.
+PathWard does not synthesize frames, inspect messages or implement subprotocols.
 EOF drains queued bytes and closes the transport; it does not promise TCP half-close
 semantics or a synthesized WebSocket close handshake.
 

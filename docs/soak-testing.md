@@ -76,7 +76,7 @@ supervisor/alert behavior still need a staging test on the deployment host.
 
 The baseline at `db30db7` (production code `f42f33b`) reproduces starvation: six
 slow connections from one peer occupy all four FIFO workers, and a healthy peer
-times out at 1.5 seconds. See the [baseline Linux run](https://github.com/moritayasuaki/omakase-server/actions/runs/41190712869).
+times out at 1.5 seconds. See the [baseline Linux run](https://github.com/moritayasuaki/pathward/actions/runs/41190712869).
 
 The corrected bounded queue keeps the admission limits (12 global / six per peer,
 8/second per peer, 64/second global), but dispatches at most **two running jobs per
@@ -135,10 +135,10 @@ recorded separately below.
 
 ## Completed review-fix one-hour run — 2026-11-01
 
-The [revised one-hour Linux run](https://github.com/moritayasuaki/omakase-server/actions/runs/41289195101)
+The [revised one-hour Linux run](https://github.com/moritayasuaki/pathward/actions/runs/41289195101)
 passed all six checkpoints, final resource validation, graceful shutdown and
 durable restart reuse at source `c72fc5bc7f989ed226682b043eec731e7176ee69`.
-The same source passed [full Linux integration, Lean and dependency CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41289195140),
+The same source passed [full Linux integration, Lean and dependency CI](https://github.com/moritayasuaki/pathward/actions/runs/41289195140),
 including mount confinement, CLI/admission tests, actual TLS-ALPN-01 renewal and
 persistence-failure tests, and the new public-port cases. Its two-minute overlap
 test passed 121 commits, 1,210 acknowledged-release probes and 242 revoked-URL
@@ -177,10 +177,10 @@ network/storage-failure and operational limits described above still apply.
 
 ## Completed one-hour run — 2026-10-31
 
-The [extended Linux run](https://github.com/moritayasuaki/omakase-server/actions/runs/41191573153)
+The [extended Linux run](https://github.com/moritayasuaki/pathward/actions/runs/41191573153)
 passed every 10-minute checkpoint and the final shutdown/restart checks at source
 commit `ea1914f2014fc81e58375c444342f35e1981bfe4`. The same source also passed
-[the full Rust/Lean/ACME/dependency CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41191573115).
+[the full Rust/Lean/ACME/dependency CI](https://github.com/moritayasuaki/pathward/actions/runs/41191573115).
 The [machine-readable result](soak-result-2026-10-31.json) preserves the final
 reported counters and histogram, with links to the original job logs.
 

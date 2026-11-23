@@ -138,7 +138,7 @@ fn resumption_before_finished_denies_proxy_and_rechecks_publication() {
             }
         }
         let p = std::env::temp_dir().join(format!(
-            "omakase-early-{}-{}",
+            "pathward-early-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -160,7 +160,7 @@ fn resumption_before_finished_denies_proxy_and_rechecks_publication() {
         "capacity \"shared-nat\"\nsite \"app.example\" {{\ntls \"auto\"\n{publication}reverse-proxy \"{}\"\nproxy-path \"/api\"\n}}",
         backend.local_addr().unwrap()
     );
-    let parsed = omakase_config::ParsedConfig::parse(&source).unwrap();
+    let parsed = pathward_config::ParsedConfig::parse(&source).unwrap();
     let server = Server::new(&parsed.compile().unwrap()).unwrap();
     let (identity, client) = configs();
     let tls = tls::TlsServer::new(identity).unwrap();
@@ -285,7 +285,7 @@ fn resumption_before_finished_denies_proxy_and_rechecks_publication() {
                                         "publish \"/\" \"index.txt\"\n",
                                         "publish \"/replacement\" \"index.txt\"\n",
                                     );
-                                    let p = omakase_config::ParsedConfig::parse(&revoked).unwrap();
+                                    let p = pathward_config::ParsedConfig::parse(&revoked).unwrap();
                                     server.reload(&p.compile().unwrap(), &stop).unwrap();
                                 }
                                 assert!(

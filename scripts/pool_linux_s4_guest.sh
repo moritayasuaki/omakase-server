@@ -2,14 +2,14 @@
 # Runs only on the fresh, pinned, NIC-less lab guest, with an extra disposable swap disk.
 set -eu
 test "$(id -u)" = 0
-test "$(cat /sys/devices/virtual/dmi/id/product_name)" = OmakasePoolLab
+test "$(cat /sys/devices/virtual/dmi/id/product_name)" = PathWardPoolLab
 test "$(ls /sys/class/net)" = lo
-test "$(cat /sys/class/block/vdb/serial)" = OmakaseS4Swap
+test "$(cat /sys/class/block/vdb/serial)" = PathWardS4Swap
 test "$(getconf PAGESIZE)" = 4096
 grep -qw disk /sys/power/state
 grep -qw platform /sys/power/disk
 test -z "$(lsblk -nro FSTYPE /dev/vdb)"
-mkswap -L OmakaseS4 /dev/vdb
+mkswap -L PathWardS4 /dev/vdb
 swapon /dev/vdb
 cat /sys/class/block/vdb/dev > /sys/power/resume
 echo platform > /sys/power/disk
@@ -28,9 +28,9 @@ mkswap --version
 cat > /boot/grub/grub.cfg <<GRUB
 set default=0
 set timeout=0
-menuentry 'Omakase S4 restore' {
+menuentry 'PathWard S4 restore' {
     search --no-floppy --fs-uuid --set=root $boot_uuid
-    linux $kernel_path resume=/dev/vdb resumewait root=/dev/omakase-no-root ro console=ttyS0 panic=-1
+    linux $kernel_path resume=/dev/vdb resumewait root=/dev/pathward-no-root ro console=ttyS0 panic=-1
 }
 GRUB
 sync

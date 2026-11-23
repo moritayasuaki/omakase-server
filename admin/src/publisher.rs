@@ -60,7 +60,7 @@ fn license_document(name: &str) -> bool {
         let document = n.strip_suffix(".txt").or_else(|| n.strip_suffix(".md"));
         (name.starts_with("licenses/")
             && (tags.contains(&n.as_str()) || n.starts_with("license-") || n.ends_with("-license")))
-            || omakase::bootstrap::license_text_allowed(
+            || pathward::bootstrap::license_text_allowed(
                 name.starts_with("licenses/"),
                 document.is_some_and(|n| tags.contains(&n)),
                 document.is_some(),
@@ -109,7 +109,7 @@ fn asset_contract(v: &Value) -> Result<()> {
     Ok(())
 }
 fn permitted_asset(v: &Value, name: &str) -> bool {
-    omakase::bootstrap::reviewed_asset_allowed(
+    pathward::bootstrap::reviewed_asset_allowed(
         public_path(name),
         safe_asset(name),
         v["reviewed_assets"]
@@ -471,7 +471,7 @@ pub fn describe<S: System>(config: &Value, id: &str, sys: &mut S) -> Result<Valu
     };
     require(
         sys.property("pathward.service", "ActiveState")? == "active",
-        "publisher requires active Omakase",
+        "publisher requires active PathWard",
     )?;
     out["files"] = scan_reviewed(&root, &out)?;
     out["root"] = json!(root);
@@ -879,7 +879,7 @@ fn restore<S: System>(
         let old = &expected["files"][&name];
         let verified = old.is_null()
             || io::stream(io::leaf(&backups, &name)?, None, io::MAX_FILE)?["sha256"] == *old;
-        if omakase::bootstrap::restore_allowed(
+        if pathward::bootstrap::restore_allowed(
             backend(sys, v)? == expected["backend"],
             now.as_ref() == Some(&record["files"][&name]),
             verified,
@@ -951,7 +951,7 @@ pub fn apply<S: System, V: Verify>(
     let unchanged = describe(config, id, sys)? == *expected;
     let meta = fs::symlink_metadata(stage)?;
     require(
-        omakase::bootstrap::package_allowed(
+        pathward::bootstrap::package_allowed(
             sealed,
             manifest["expected"]["config_sha256"] == codec::hash(&codec::canonical(config)),
             meta.uid() == rustix::process::geteuid().as_raw() && meta.mode() & 0o777 == 0o700,
@@ -972,7 +972,7 @@ pub fn apply<S: System, V: Verify>(
         require(permitted_asset(v, name), "public file name")?;
         let old = &expected["files"][name];
         require(
-            omakase::bootstrap::asset_allowed(
+            pathward::bootstrap::asset_allowed(
                 !old.is_null(),
                 v["kind"] == "release" || additive(v, name),
                 immutable(v, name),

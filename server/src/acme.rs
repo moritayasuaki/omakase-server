@@ -287,7 +287,7 @@ impl Manager {
             .ok()
             .and_then(|c| {
                 c.as_ref()
-                    .map(|c| omakase::tls::renewal_due(c.not_before, c.not_after, now))
+                    .map(|c| pathward::tls::renewal_due(c.not_before, c.not_after, now))
             })
             .unwrap_or(true)
     }
@@ -424,7 +424,7 @@ impl Manager {
                         c.as_ref().map(|c| {
                             if now < c.not_before || now >= c.not_after {
                                 "unavailable"
-                            } else if omakase::tls::renewal_due(c.not_before, c.not_after, now) {
+                            } else if pathward::tls::renewal_due(c.not_before, c.not_after, now) {
                                 "renewal_due"
                             } else {
                                 "ready"
@@ -463,7 +463,7 @@ impl Manager {
                     }
                     let result = result.and_then(|pem| {
                         let cert = Certificate::parse(&pem, &self.domains)?;
-                        if !omakase::tls::activate(
+                        if !pathward::tls::activate(
                             cert.not_before,
                             cert.not_after,
                             unix_now()?,

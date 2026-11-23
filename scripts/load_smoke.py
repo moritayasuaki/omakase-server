@@ -3,14 +3,14 @@
 from pathlib import Path
 import json,queue,re,signal,socket,subprocess,tempfile,threading,time
 ROOT=Path(__file__).resolve().parents[1]
-BIN=ROOT/'server/target/release/omakase-server'
+BIN=ROOT/'server/target/release/pathward-server'
 def receive(s):
     out=b''
     try:
         while chunk:=s.recv(8192):out+=chunk
     except (ConnectionResetError,BrokenPipeError):pass
     return out
-with tempfile.TemporaryDirectory(prefix='omakase-load-') as tmp:
+with tempfile.TemporaryDirectory(prefix='pathward-load-') as tmp:
     root=Path(tmp);(root/'a').write_text('OK')
     config=root/'config.kdl';config.write_text(f'site "example.com" {{\nroot "{root}"\npublish "/" "a"\ntls "auto"\n}}')
     p=subprocess.Popen([str(BIN),'serve-http',str(config),'127.0.0.1:0','--monitor','127.0.0.1:0'],stderr=subprocess.PIPE)

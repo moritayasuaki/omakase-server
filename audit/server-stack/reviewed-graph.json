@@ -1,6 +1,6 @@
 {
-  "manifest_sha256": "6dc5da0c42d6f7852b91cbf977c5034253f854e6411e8a73216d5c01d710ec13",
-  "lockfile_sha256": "0f1243448c4398c405568450db6cab19da2e8dbb8922fc8b43c766ddcd5dcac1",
+  "manifest_sha256": "d90c3f960e7fbabcbbb68ed7eb5d48cb4ae6ec550fa8f2d47607f7c92e8d09e8",
+  "lockfile_sha256": "b7136849a7e3a1e89a79ebe360e93592ed06362cac7992ca1ef17285f77f8137",
   "packages": [
     {
       "name": "async-channel",
@@ -539,15 +539,6 @@
       "proc_macro": false
     },
     {
-      "name": "omakase",
-      "version": "0.1.0",
-      "source": "path:.",
-      "license": "MIT",
-      "features": [],
-      "build_script": false,
-      "proc_macro": false
-    },
-    {
       "name": "once_cell",
       "version": "1.21.4",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
@@ -565,6 +556,15 @@
       "version": "2.2.1",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "license": "Apache-2.0 OR MIT",
+      "features": [],
+      "build_script": false,
+      "proc_macro": false
+    },
+    {
+      "name": "pathward",
+      "version": "0.1.0",
+      "source": "path:.",
+      "license": "MIT",
       "features": [],
       "build_script": false,
       "proc_macro": false
@@ -1255,13 +1255,13 @@
     }
   ],
   "vendor_files_sha256": {
-    "Cargo.toml": "787a07e316fc750a46929a9d7e56862d9cb5b6e449e5a5dd56ea7fe82c9dbb80",
+    "Cargo.toml": "c8569051a2ae737fc1f3d8f11d646b03c59d3fa64841e7dce2cf8b122d5279b2",
     "LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
     "LICENSE-MIT": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
-    "PROVENANCE.md": "53ef19c1681b12dc4905afff6e6299e5369c972aa3d2a9217c68f5e6ebdbc8b5",
+    "PROVENANCE.md": "1c9ed212ccb017f6eefc4318294b9fd8dd37f2373dc8a045ce4256a9292521f1",
     "src/acme.rs": "fd5d9c179cdd783c9dc64439a7d0587323cc983c28f2b56443228a2f4c5d26ef",
-    "src/https_helper.rs": "d67af5ddb42d266b91ddc40b0d27414d425d1d65e46ee1e8f3006afc1681eaff",
+    "src/https_helper.rs": "05bb81b7eb36cd6d4be3ab488e5ac8ea9d815dae23ee4a195e66cd78f7ddcf41",
     "src/jose.rs": "c8fe2b0ee1f8a687b0d0762138fdbf0b610dd8c39f301c3c2a5dbf7883046080",
-    "src/lib.rs": "297e567d127b92dbf833d1eca1339068c071356bba47fc0e2906a20365e85968"
+    "src/lib.rs": "d898b71308f8341ccfc61fe42ececb48f773680254589bebd52ca927293106a1"
   }
 }

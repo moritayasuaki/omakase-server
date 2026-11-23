@@ -10,7 +10,7 @@ fn handshake_known_answer_and_canonical_key() {
 }
 
 use crate::Server;
-use omakase_config::ParsedConfig;
+use pathward_config::ParsedConfig;
 use std::{
     net::{SocketAddr, TcpListener},
     sync::{

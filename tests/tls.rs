@@ -1,4 +1,4 @@
-use omakase::tls::*;
+use pathward::tls::*;
 #[test]
 fn identity_requires_nonempty_exact_sni_and_host() {
     assert!(identity_allowed(b"a.test", b"a.test", b"a.test"));

@@ -11,7 +11,7 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = ROOT / 'server/target/release/omakase-server'
+BINARY = ROOT / 'server/target/release/pathward-server'
 WS = b'GET /chat HTTP/1.1\r\nHost: app.example\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n'
 SWITCH = b'HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n'
 
@@ -45,7 +45,7 @@ def receive(stream):
         assert len(data) < 65536
     return data
 
-with tempfile.TemporaryDirectory(prefix='omakase-streams-') as temporary, socket.socket() as upstream:
+with tempfile.TemporaryDirectory(prefix='pathward-streams-') as temporary, socket.socket() as upstream:
     root = Path(temporary)
     upstream.bind(('127.0.0.1', 0))
     upstream.listen(20)

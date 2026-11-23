@@ -1,6 +1,6 @@
 # Administrator decision protocol
 
-`omakase-server cutover-policy OP ARGS...` is a read-only command. It returns
+`pathward-server cutover-policy OP ARGS...` is a read-only command. It returns
 exactly `ALLOW\n` or `DENY\n` with exit status 0. Malformed requests fail with a
 nonzero exit status and no stdout. It performs no deployment, file writes,
 network access, or privilege escalation.

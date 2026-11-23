@@ -1,4 +1,4 @@
-use omakase_admin::{
+use pathward_admin::{
     Result, codec, confined,
     publication::{self as p, Bridge},
     storage as f,
@@ -19,7 +19,7 @@ struct Fixture {
 impl Fixture {
     fn new() -> Result<Self> {
         let root = std::env::temp_dir().canonicalize()?.join(format!(
-            "omakase-publication-{}-{}",
+            "pathward-publication-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
@@ -127,7 +127,7 @@ fn pinned_private_authority_is_verified_without_allowing_private_publication() -
 
 #[test]
 fn server_license_documents_allow_text_but_not_server_code_or_private_paths() -> Result<()> {
-    use omakase_admin::publisher;
+    use pathward_admin::publisher;
     let x = Fixture::new()?;
     let directory = x.source().join("licenses/server/dependency-1.0.0");
     fs::create_dir_all(&directory)?;
@@ -421,14 +421,14 @@ fn publisher_lock_and_unsafe_metadata_are_refused() -> Result<()> {
 
 #[test]
 fn publication_kill_child() -> Result<()> {
-    let Ok(base) = std::env::var("OMAKASE_PUBLICATION_KILL_ROOT") else {
+    let Ok(base) = std::env::var("PATHWARD_PUBLICATION_KILL_ROOT") else {
         return Ok(());
     };
     let root = PathBuf::from(base);
     let policy = codec::parse(&fs::read(root.join("policy.json"))?)?;
     let fixture = Fixture { root, policy };
     let mut bridge = fixture.bridge();
-    let point: usize = std::env::var("OMAKASE_PUBLICATION_KILL_POINT")?.parse()?;
+    let point: usize = std::env::var("PATHWARD_PUBLICATION_KILL_POINT")?.parse()?;
     let mut n = 0;
     bridge.reconcile(&fixture.policy, &Fixture::now(), &mut |_| {
         let kill = n == point;
@@ -458,8 +458,8 @@ fn real_process_death_at_every_publication_write_boundary_retries() -> Result<()
         fs::write(x.root.join("policy.json"), p::encoded(&x.policy))?;
         let status = Command::new(std::env::current_exe()?)
             .args(["--exact", "publication_kill_child"])
-            .env("OMAKASE_PUBLICATION_KILL_ROOT", &x.root)
-            .env("OMAKASE_PUBLICATION_KILL_POINT", point.to_string())
+            .env("PATHWARD_PUBLICATION_KILL_ROOT", &x.root)
+            .env("PATHWARD_PUBLICATION_KILL_POINT", point.to_string())
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())

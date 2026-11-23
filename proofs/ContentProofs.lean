@@ -1,5 +1,5 @@
 import ServingProofs
-open Aeneas Aeneas.Std RustM omakase
+open Aeneas Aeneas.Std RustM pathward
 namespace ContentProofs
 
 theorem span_eq (size start count : U64) :

@@ -122,7 +122,9 @@ fn reset_after_partial_write_preserves_errno_and_spends_the_grant() {
 }
 
 fn fixture_dir() -> PathBuf {
-    PathBuf::from(std::env::var_os("OMAKASE_POOL_LAB").expect("requires the isolated guest driver"))
+    PathBuf::from(
+        std::env::var_os("PATHWARD_POOL_LAB").expect("requires the isolated guest driver"),
+    )
 }
 
 #[test]

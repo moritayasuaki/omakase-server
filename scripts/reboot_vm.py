@@ -36,7 +36,7 @@ def main():
     args.output.mkdir(mode=0o700,parents=True,exist_ok=False)
     seed=args.output/'seed';seed.mkdir()
     files={'pathward_recovery.py':ROOT/'deploy/pathward_recovery.py',
-           'reboot_guest.py':ROOT/'scripts/reboot_guest.py','omakase-recovery':args.kernel_binary}
+           'reboot_guest.py':ROOT/'scripts/reboot_guest.py','pathward-recovery':args.kernel_binary}
     if args.guard_upgrade or args.plan_migration:
         files.update({'pathward_guard_upgrade.py':ROOT/'deploy/pathward_guard_upgrade.py',
                       'guard_upgrade_guest.py':ROOT/'scripts/guard_upgrade_guest.py'})
@@ -47,19 +47,19 @@ def main():
         assert args.plan_migration and args.initial_kernel_binary.read_bytes()[:4]==b'\x7fELF'
         files['initial-recovery']=args.initial_kernel_binary
     if args.role_contract:
-        for name,path in [('omakase-admin',args.admin_binary),('role_vm_guest',args.role_guest),('role_fixture',args.role_fixture)]:
+        for name,path in [('pathward-admin',args.admin_binary),('role_vm_guest',args.role_guest),('role_fixture',args.role_fixture)]:
             assert path is not None and path.read_bytes()[:4]==b'\x7fELF','Reviewed Linux native test binaries required'
             files[name]=path
     entries=[]
     for name,path in files.items():
-        entries.append({'path':'/opt/pathward-reboot-test/'+name,'permissions':'0755' if name in ['omakase-recovery','initial-recovery','omakase-admin','role_vm_guest','role_fixture'] else '0600',
+        entries.append({'path':'/opt/pathward-reboot-test/'+name,'permissions':'0755' if name in ['pathward-recovery','initial-recovery','pathward-admin','role_vm_guest','role_fixture'] else '0600',
                         'encoding':'b64','content':base64.b64encode(path.read_bytes()).decode()})
     user={'package_update':False,'package_upgrade':False,'ssh_deletekeys':False,
           'write_files':entries,'runcmd':[['/usr/bin/python3','/opt/pathward-reboot-test/'+
                        ('plan_migration_guest.py' if args.plan_migration else 'guard_upgrade_guest.py' if args.guard_upgrade else 'reboot_guest.py'),'--initialize']]}
     if args.role_contract:user['runcmd']=[['/opt/pathward-reboot-test/role_vm_guest','--initialize']]
     (seed/'user-data').write_text('#cloud-config\n'+json.dumps(user))
-    (seed/'meta-data').write_text('instance-id: omakase-recovery-isolated\nlocal-hostname: recovery-test\n')
+    (seed/'meta-data').write_text('instance-id: pathward-recovery-isolated\nlocal-hostname: recovery-test\n')
     (seed/'network-config').write_text('version: 2\nethernets: {}\n')
     iso=args.output/'seed.iso'
     if shutil.which('hdiutil'):

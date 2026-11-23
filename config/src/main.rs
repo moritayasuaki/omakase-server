@@ -1,16 +1,16 @@
-use omakase_config::ParsedConfig;
+use pathward_config::ParsedConfig;
 use std::{env, fs::File, process::ExitCode};
 
 fn run() -> Result<(), String> {
     let args: Vec<_> = env::args_os().skip(1).collect();
     if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
-        println!("omakase-config check FILE\nomakase-config resolve FILE HOST RAW_URL_PATH");
+        println!("pathward-config check FILE\npathward-config resolve FILE HOST RAW_URL_PATH");
         return Ok(());
     }
     let valid =
         (args.len() == 2 && args[0] == "check") || (args.len() == 4 && args[0] == "resolve");
     if !valid {
-        return Err("usage: omakase-config check FILE | resolve FILE HOST RAW_URL_PATH".into());
+        return Err("usage: pathward-config check FILE | resolve FILE HOST RAW_URL_PATH".into());
     }
     let file = File::open(&args[1]).map_err(|e| format!("cannot open configuration: {e}"))?;
     let parsed = ParsedConfig::read(file).map_err(|e| e.to_string())?;

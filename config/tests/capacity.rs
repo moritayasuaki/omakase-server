@@ -1,4 +1,4 @@
-use omakase_config::ParsedConfig;
+use pathward_config::ParsedConfig;
 
 const SITE: &str = "site \"app.example\" {\n tls \"auto\"\n reverse-proxy \"127.0.0.1:3000\"\n}\n";
 

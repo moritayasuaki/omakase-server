@@ -6,7 +6,7 @@ use crate::{
     storage::Checkpoint,
     system::{System, words},
 };
-use omakase::publication as policy;
+use pathward::publication as policy;
 use serde_json::{Value, json};
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::{
@@ -118,7 +118,7 @@ pub fn validate(p: &Value) -> Result<()> {
             for u in a {
                 let u = u.as_str().ok_or("public URL")?;
                 require(
-                    omakase::valid_path(u.as_bytes()) && unique.insert(u),
+                    pathward::valid_path(u.as_bytes()) && unique.insert(u),
                     "public URL",
                 )?;
             }
@@ -228,7 +228,7 @@ pub fn mappings(s: &Value, names: &[String]) -> Result<BTreeMap<String, String>>
     for (url, name) in &out {
         require(
             policy::mapping_allowed(
-                omakase::valid_path(url.as_bytes()) && io::relative(name),
+                pathward::valid_path(url.as_bytes()) && io::relative(name),
                 names.contains(name),
                 synthetic.contains_key(name),
             ),
@@ -874,7 +874,7 @@ pub fn publish_checked<S: System>(
     let stamp = begin(p, receipt, owner, profile, sys, &clock()?)?;
     require(
         stamp["routing"] == "pathward",
-        "native publish requires active Omakase acknowledgement",
+        "native publish requires active PathWard acknowledgement",
     )?;
     require(
         io::reference(&base_fd)? == expected,

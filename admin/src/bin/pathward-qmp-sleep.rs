@@ -123,7 +123,7 @@ impl Qmp {
         Ok(q)
     }
     fn message(&mut self) -> io::Result<Value> {
-        omakase_admin::codec::parse(&line(&mut self.stream, 65536)?).map_err(io::Error::other)
+        pathward_admin::codec::parse(&line(&mut self.stream, 65536)?).map_err(io::Error::other)
     }
     fn event(&mut self, event: &str) -> io::Result<()> {
         match event {
@@ -263,7 +263,7 @@ fn main() -> std::process::ExitCode {
     match run(&std::env::args().skip(1).collect::<Vec<_>>()) {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("Omakase QMP witness: {e}");
+            eprintln!("PathWard QMP witness: {e}");
             std::process::ExitCode::FAILURE
         }
     }

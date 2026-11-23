@@ -11,7 +11,7 @@ const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 const baseSha='406630c08b5e545fcc7209854b129d47e3af822db128c9f19336593b5a2d3fe0';
 if(sha(fs.readFileSync(base))!==baseSha)throw Error('Base image checksum');
 const root=path.resolve(import.meta.dirname,'..');
-const names=['omakase-admin','omakase-hosting','omakase-server','omakase-recovery','role_vm_guest','role_fixture',...(scenario!=='publication'?['omakase-publish','bootstrap_vm_guest']:[])];
+const names=['pathward-admin','pathward-hosting','pathward-server','pathward-recovery','role_vm_guest','role_fixture',...(scenario!=='publication'?['pathward-publish','bootstrap_vm_guest']:[])];
 const sums=new Map(fs.readFileSync(path.join(bundle,'SHA256SUMS'),'utf8').trim().split('\n').map(s=>{const m=/^([0-9a-f]{64})  ([A-Za-z0-9_-]+)$/.exec(s);if(!m)throw Error('Checksum line');return [m[2],m[1]];}));
 const source=fs.readFileSync(path.join(bundle,'SOURCE_COMMIT'),'utf8').trim();
 if(!/^[0-9a-f]{40}$/.test(source))throw Error('Source commit');
@@ -27,13 +27,13 @@ if(args['--retained-bundle']){
  retainedSource=fs.readFileSync(path.join(retained,'SOURCE_COMMIT'),'utf8').trim();
  if(!/^[0-9a-f]{40}$/.test(retainedSource))throw Error('Retained source commit');
  const oldSums=new Map(fs.readFileSync(path.join(retained,'SHA256SUMS'),'utf8').trim().split('\n').map(l=>{const m=/^([a-f0-9]{64})  ([A-Za-z0-9_-]+)$/.exec(l);if(!m)throw Error('Retained checksum line');return[m[2],m[1]];}));
- const candidate=files.find(f=>f.name==='omakase-publish');
+ const candidate=files.find(f=>f.name==='pathward-publish');
  files.push({...candidate,name:'candidate-publisher'});inputs['candidate-publisher']=sha(candidate.content);
  const tools=['admin','hosting','publish'];
- const families=['omakase','pathward'].filter(prefix=>tools.every(tool=>oldSums.has(prefix+'-'+tool)));
+ const families=['pathward','omakase'].filter(prefix=>tools.every(tool=>oldSums.has(prefix+'-'+tool)));
  if(families.length!==1)throw Error('Retained runtime must have one complete inventory');
  for(const tool of tools){
-  const name='omakase-'+tool, retainedName=families[0]+'-'+tool;
+  const name='pathward-'+tool, retainedName=families[0]+'-'+tool;
   const bytes=fs.readFileSync(path.join(retained,retainedName));
   if(sha(bytes)!==oldSums.get(retainedName)||bytes.subarray(0,4).toString('hex')!=='7f454c46')throw Error('Retained runtime checksum');
   files.find(f=>f.name===name).content=bytes;inputs['retained-'+name]=sha(bytes);
@@ -56,11 +56,11 @@ fs.mkdirSync(out,{mode:0o700});const seed=path.join(out,'seed');fs.mkdirSync(see
 // in cloud-init YAML needlessly makes its parser emulate megabytes of text.
 fs.mkdirSync(path.join(seed,'artifacts'));
 for(const file of files)fs.writeFileSync(path.join(seed,'artifacts',file.name),file.content);
-const guestRoot='/opt/pathward-reboot-test',media='/mnt/omakase-seed';
+const guestRoot='/opt/pathward-reboot-test',media='/mnt/pathward-seed';
 const commands=[['/usr/bin/install','-d','-m','0755',guestRoot,media],['/usr/bin/mount','-t','iso9660','-o','ro,nodev,nosuid,noexec','/dev/sr0',media],
  ...files.map(f=>['/usr/bin/install','-m',f.mode,`${media}/artifacts/${f.name}`,`${guestRoot}/${f.name}`]),['/usr/bin/umount',media],[`${guestRoot}/${scenario!=='publication'?'bootstrap_vm_guest':'role_vm_guest'}`,scenario==='bridge'?'--bridge-initialize':scenario==='bootstrap'?'--initialize':'--publication-initialize']];
 fs.writeFileSync(path.join(seed,'user-data'),'#cloud-config\n'+JSON.stringify({package_update:false,package_upgrade:false,ssh_deletekeys:false,runcmd:commands}));
-fs.writeFileSync(path.join(seed,'meta-data'),'instance-id: omakase-native-publication\nlocal-hostname: publication-test\n');fs.writeFileSync(path.join(seed,'network-config'),'version: 2\nethernets: {}\n');
+fs.writeFileSync(path.join(seed,'meta-data'),'instance-id: pathward-native-publication\nlocal-hostname: publication-test\n');fs.writeFileSync(path.join(seed,'network-config'),'version: 2\nethernets: {}\n');
 function cmd(bin,a){const r=spawnSync(bin,a,{stdio:['ignore','ignore','inherit']});if(r.status!==0)throw Error(`${bin} failed`);}
 const iso=path.join(out,'seed.iso'),disk=path.join(out,'disk.qcow2');
 if(process.platform==='darwin')cmd('hdiutil',['makehybrid','-iso','-joliet','-default-volume-name','cidata','-o',iso,seed]);else cmd('genisoimage',['-output',iso,'-volid','cidata','-joliet','-rock',seed]);
@@ -80,7 +80,7 @@ try{
     if(text.includes('PW_VM_RECOVERY_PASS ')){
      const report=JSON.parse(text.split('PW_VM_RECOVERY_PASS ')[1].split(/\r?\n/)[0]);
      report.base_image_sha256=baseSha;report.source_commit=source;report.external_network=false;report.host_services_changed=false;report.reviewed_fixture_sha256=inputs;
-     report.runtime_sha256=Object.fromEntries(['omakase-admin','omakase-hosting','omakase-publish'].filter(n=>names.includes(n)).map(n=>[n,sha(files.find(f=>f.name===n).content)]));
+     report.runtime_sha256=Object.fromEntries(['pathward-admin','pathward-hosting','pathward-publish'].filter(n=>names.includes(n)).map(n=>[n,sha(files.find(f=>f.name===n).content)]));
      if(retainedSource)report.retained_runtime_source=retainedSource;
      await Promise.race([stopped,delay(90000).then(()=>{throw Error('Guest did not stop');})]);
      fs.writeFileSync(path.join(out,'result.json'),JSON.stringify(report,null,2)+'\n');console.log(`PASS ${path.join(out,'result.json')}`);process.exit(0);

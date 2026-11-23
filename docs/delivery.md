@@ -82,7 +82,7 @@ still occupies an ordinary worker until its bounded deadline. File open/read and
 metadata syscalls can block on unhealthy storage, including the 16 KiB read in
 the output loop; trusted local storage and an external supervisor remain required.
 
-The runtime commit `92a6bf1` passed [Linux CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41498881113),
+The runtime commit `92a6bf1` passed [Linux CI](https://github.com/moritayasuaki/pathward/actions/runs/41498881113),
 including HTTP/stream regression, TLS-ALPN issuance, renewal/restart/persistence
 failure, overlapping ACME/release churn, RustSec and all Lean proofs.
 Final adapter review also corrected a timeout race: if the transport deadline
@@ -117,7 +117,7 @@ connection-lifecycle tracing before the empty responses can be attributed.
 The bounded remote controller subsequently completed 1,475 configuration switches,
 210 rejected capacity changes and 1,475 marker/private checks without a recorded
 policy failure. This includes remote-only activity after browser failure, not
-75 minutes of successful interactive load. Sampled Omakase peaks were 64,208 KiB
+75 minutes of successful interactive load. Sampled PathWard peaks were 64,208 KiB
 RSS, 26 threads and 68 descriptors. All four owned child processes exited zero;
 production configuration, adapted routes, service PIDs and TCP listeners matched
 their pre-test inventory.
@@ -134,10 +134,10 @@ Both Caddy children exited zero and the production inventory again matched.
 This establishes that the available browser/link path also reaches the client
 deadline with Caddy. It is not a throughput comparison: Caddy used one upstream,
 no configuration churn and the corrected snapshot guard. It does not explain away
-Omakase's empty responses or prove that HTTP/2 would fix every failure.
+PathWard's empty responses or prove that HTTP/2 would fix every failure.
 
 Before migration, trace connection lifetime and browser queue/send/receive timing
-on Omakase, implement/review connection reuse and HTTP/2 as appropriate, and
+on PathWard, implement/review connection reuse and HTTP/2 as appropriate, and
 repeat cold entry plus both reload waves. HTTP compression may reduce JavaScript
 traffic but will not remove the already-compressed sprite workload. Public-link
 TLS/CA and production cutover remain separate pending gates; the current draft
@@ -179,11 +179,11 @@ passes the revised functional oracle, not the former unconditional zero-I/O gate
 During the browser window, monitor samples observed 156 successful configuration
 changes and 22 rejected capacity-profile changes. Across the entire bounded
 server session, including setup/teardown, there were 194 changes, 27 rejections
-and 194 matching marker/private-canary checks. Sampled Omakase peaks were
+and 194 matching marker/private-canary checks. Sampled PathWard peaks were
 63,864 KiB RSS, 26 threads and 56 descriptors. All four owned children exited
 zero and production configuration, routes, service PIDs and listeners matched.
 
-The [runtime CI](https://github.com/moritayasuaki/omakase-server/actions/runs/41805580676)
+The [runtime CI](https://github.com/moritayasuaki/pathward/actions/runs/41805580676)
 passed Linux integration, real local-CA issuance/renewal and overlap soak, all
 289 Lean statements, and dependency audit. The new real-socket cancellation
 regression also passes on Linux and macOS: fail a partially read response, retain

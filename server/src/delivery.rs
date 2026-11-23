@@ -40,7 +40,7 @@ impl Budget {
     pub fn reserve(&self, peer: IpAddr, amount: u64, draining: bool) -> Option<Lease> {
         let mut s = self.0.lock().ok()?;
         let used = s.peers.get(&peer).copied().unwrap_or(0);
-        if !omakase::delivery::reserve_allowed(s.global, used, amount, draining) {
+        if !pathward::delivery::reserve_allowed(s.global, used, amount, draining) {
             return None;
         }
         s.global += amount;
@@ -54,7 +54,7 @@ impl Budget {
 }
 impl Lease {
     fn shrink(&mut self, amount: u64) -> io::Result<()> {
-        if !omakase::delivery::shrink_allowed(self.amount, amount) {
+        if !pathward::delivery::shrink_allowed(self.amount, amount) {
             return Err(io::Error::other("delivery reservation exceeded"));
         }
         let mut s = self
@@ -412,13 +412,14 @@ impl Reactor {
                 let Some(mut input) = self.heads.pop_front() else {
                     break;
                 };
-                let live = omakase::delivery::phase_live(
+                let live = pathward::delivery::phase_live(
                     input.started.elapsed().as_millis().min(u64::MAX as u128) as u64,
                     5000,
                     drain.is_some(),
                 );
                 if !live || input.born.elapsed() >= Duration::from_secs(120) {
-                    let status = omakase::delivery::input_timeout_status(input.prefix.len() as u64);
+                    let status =
+                        pathward::delivery::input_timeout_status(input.prefix.len() as u64);
                     if status != 0 {
                         self.reject(input, status, generation());
                     }
@@ -447,7 +448,7 @@ impl Reactor {
                         // The deadline can expire between the phase check and
                         // the transport read. Preserve the same timeout policy.
                         let status =
-                            omakase::delivery::input_timeout_status(input.prefix.len() as u64);
+                            pathward::delivery::input_timeout_status(input.prefix.len() as u64);
                         if status != 0 {
                             self.reject(input, status, generation());
                         }
@@ -484,7 +485,7 @@ impl Reactor {
                 let Some(mut output) = self.outputs.pop_front() else {
                     break;
                 };
-                output.prepared.reusable = omakase::delivery::reuse_allowed(
+                output.prepared.reusable = pathward::delivery::reuse_allowed(
                     output.completed.saturating_add(1),
                     output.born.elapsed().as_millis().min(u64::MAX as u128) as u64,
                     output.prepared.reusable,
